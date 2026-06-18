@@ -165,7 +165,7 @@ ESP32-CAM, PIR, HC-SR04, LDR, DS1307 và hệ thống gửi thông báo qua Inte
 
 * Hệ thống kết hợp dữ liệu từ PIR, HC-SR04 và LDR để xác nhận hành vi đột nhập.
 * Khi điều kiện cảnh báo được thỏa mãn, ESP32-CAM tự động chụp ảnh khu vực giám sát.
-* Hình ảnh được lưu lại hoặc gửi đến nền tảng Cloud/App cùng với thời gian xảy ra sự kiện lấy từ DS1307.
+* Hình ảnh được lưu lại hoặc gửi đến nền tảng Arduino IoT Cloud cùng với thời gian xảy ra sự kiện lấy từ DS1307 và hiển thị trên ứng dụng điện thoại.
 * Còi Buzzer và đèn LED đỏ đồng thời được kích hoạt để cảnh báo tại chỗ.
 * Hệ thống áp dụng thời gian chờ giữa các lần chụp để tránh chụp liên tục hoặc gửi quá nhiều thông báo.
 
@@ -181,7 +181,7 @@ Cho phép chủ nhà chủ động kích hoạt cảnh báo khẩn cấp thông 
 
 **Thiết bị và nền tảng sử dụng:**
 
-Điện thoại của chủ nhà, nền tảng Cloud/App, ESP32-CAM, còi Buzzer và đèn LED đỏ.
+Điện thoại của chủ nhà, nền tảng Arduino IoT Cloud (và ứng dụng Arduino IoT Cloud Remote), ESP32-CAM, còi Buzzer và đèn LED đỏ.
 
 **Nguyên lý hoạt động:**
 
@@ -213,7 +213,7 @@ Ghi lại toàn bộ các sự kiện quan trọng do cảm biến phát hiện,
 
 **Thiết bị và nền tảng sử dụng:**
 
-ESP32-CAM, DS1307, các cảm biến của hệ thống và nền tảng Cloud/App hoặc bộ nhớ lưu trữ.
+ESP32-CAM, DS1307, các cảm biến của hệ thống và nền tảng Arduino IoT Cloud (hoặc bộ nhớ lưu trữ).
 
 **Nguyên lý hoạt động:**
 
@@ -225,7 +225,7 @@ ESP32-CAM, DS1307, các cảm biến của hệ thống và nền tảng Cloud/A
   * Giá trị hoặc trạng thái cảm biến tại thời điểm đó.
   * Mức độ cảnh báo của sự kiện.
   * Hành động mà hệ thống đã thực hiện, ví dụ: bật còi, bật đèn LED, chụp ảnh hoặc gửi thông báo.
-* Nhật ký có thể được gửi lên nền tảng Cloud/App để chủ nhà xem lại trên điện thoại.
+* Nhật ký có thể được gửi lên nền tảng Arduino IoT Cloud để chủ nhà xem lại trên ứng dụng điện thoại.
 * Trong trường hợp mất kết nối Internet, dữ liệu có thể được lưu tạm thời và gửi lại khi kết nối được khôi phục.
 * Hệ thống chỉ ghi các sự kiện có ý nghĩa hoặc ghi theo chu kỳ nhất định để tránh tạo quá nhiều dữ liệu không cần thiết.
 
@@ -252,7 +252,7 @@ Người dùng có thể theo dõi lịch sử hoạt động của hệ thống
 
 * Quản lý và điều phối tiến độ dự án.
 * Thiết kế kiến trúc tổng thể của hệ thống.
-* Xây dựng nền tảng Cloud/App nhận cảnh báo.
+* Xây dựng nền tảng Cloud (sử dụng Arduino IoT Cloud) và ứng dụng di động để lưu trữ dữ liệu và nhận cảnh báo.
 * Thiết kế và tối ưu các thuật toán xử lý chính.
 * Hoàn thiện báo cáo và slide thuyết trình.
 * Tìm viết báo khoa học bằng công cụ LaTeX.
@@ -288,7 +288,7 @@ Người dùng có thể theo dõi lịch sử hoạt động của hệ thống
 
 * Nhật Anh (Phần cứng): Cắm tất cả linh kiện (ESP8266, PIR, LDR, DS1307, HC-SR04) lên board dựa trên sơ đồ mạch điện.
 * Công Danh (Phần mềm): Viết code cơ bản để đọc khoảng cách từ cảm biến siêu âm, đọc trạng thái chuyển động từ PIR để còi (Buzzer) kêu.
-* Gia Long (Leader) + An Vương: Thiết lập nền tảng nhận thông báo (VD: Telegram Bot, Firebase hoặc Blynk) để chuẩn bị hứng dữ liệu từ chip gửi lên.
+* Gia Long (Leader) + An Vương: Thiết lập nền tảng Cloud (sử dụng Arduino IoT Cloud) để chuẩn bị hứng và lưu trữ dữ liệu từ chip gửi lên, đồng thời cấu hình truyền về ứng dụng trên điện thoại.
 
 #### Tuần 4: Xử lý Thuật toán đa cảm biến (Multi-Sensor Fusion)
 
@@ -297,7 +297,7 @@ Người dùng có thể theo dõi lịch sử hoạt động của hệ thống
 **Phân chia công việc:**
 
 * Công Danh (Phần mềm): Viết thêm logic kết hợp (AND/OR) cho PIR, Ultrasonic và độ dao động ánh sáng LDR; thêm code Wi-Fi để chip gửi dữ liệu cảnh báo lên mạng.
-* Gia Long (Leader): Cấu hình hệ thống Cloud để tự động nhận dạng mức độ nguy hiểm và định dạng tin nhắn đẩy về điện thoại.
+* Gia Long (Leader): Cấu hình Arduino IoT Cloud để tự động nhận dạng mức độ nguy hiểm, lưu trữ dữ liệu sự kiện và định dạng tin nhắn cảnh báo truyền về điện thoại.
 * Nhật Anh + An Vương: Kiểm tra xem góc quét có điểm mù không, và đo xem mất bao lâu dữ liệu báo động mới nhảy lên điện thoại.
 
 #### Tuần 5: Lọc nhiễu chống phá hoại & Spam tin nhắn

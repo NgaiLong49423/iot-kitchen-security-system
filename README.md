@@ -63,7 +63,7 @@ Dự án được thực hiện bởi **Nhóm 6 – lớp SE2034**.
 2. Bộ điều khiển xử lý và kết hợp tín hiệu từ nhiều cảm biến.
 3. Khi phát hiện sự kiện bất thường, hệ thống xác định mức độ cảnh báo.
 4. Còi và đèn LED được kích hoạt để cảnh báo tại chỗ.
-5. Thông báo và hình ảnh hiện trường có thể được gửi lên nền tảng Cloud/App.
+5. Thông báo và hình ảnh hiện trường có thể được gửi lên nền tảng Arduino IoT Cloud và truyền về ứng dụng trên điện thoại.
 6. Thông tin sự kiện được lưu lại để theo dõi và kiểm thử.
 
 ## Kịch bản trình diễn
