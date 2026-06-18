@@ -48,7 +48,6 @@ Dự án được thực hiện bởi **Nhóm 6 – lớp SE2034**.
 
 * RFID RC522
 * ESP32-CAM Module Wi-Fi ESP32 Camera OV3660
-* ESP8266
 * DS1307 và pin CR2032
 * Cảm biến chuyển động PIR 5050
 * Cảm biến siêu âm HC-SR04
@@ -107,9 +106,9 @@ Hệ thống được thiết kế để trình diễn các tình huống chính
 | Thuộc tính   | Nội dung                    |
 | ------------ | --------------------------- |
 | Project Name | IoT based anti-theft system |
-| Version      | 2.0.4                       |
+| Version      | 2.0.5                       |
 | Prepared By  | Group 6                     |
-| Date         | Jun 5, 2026                 |
+| Date         | Jun 18, 2026                 |
 | Class        | SE2034                      |
 
 ---
