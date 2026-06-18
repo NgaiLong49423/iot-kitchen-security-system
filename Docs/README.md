@@ -5,7 +5,7 @@
 | Item         | Context                     |
 | ------------ | --------------------------- |
 | Project Name | IoT based anti-theft system |
-| Version      | 2.0.5                       |
+| Version      | 2.0.6                       |
 | Prepared By  | Group 6                     |
 | Date         | June 18, 2026                 |
 
@@ -59,6 +59,7 @@ Dự án xây dựng một hệ thống an ninh thông minh ứng dụng công n
 | 4   | Cảnh báo thiết bị WiFi lạ lảng vảng | Phát hiện thiết bị WiFi lạ xuất hiện liên tục gần khu vực giám sát |
 | 5   | Tự động kích hoạt/vô hiệu hóa       | Dựa trên sự hiện diện của các thiết bị đã được xác thực            |
 | 6   | Phát hiện hành vi phá hoại thiết bị | Nhận diện việc che khuất hoặc can thiệp cảm biến                   |
+| 7   | Gửi email cảnh báo qua Google Apps Script | Gửi email khẩn cấp đến người nhà hoặc nhóm giả lập như công an/cứu hỏa khi có SOS, cháy hoặc đột nhập |
 
 ### 4a. Kịch Bản Trình Diễn Chức Năng (Demo Scenarios)
 
@@ -246,13 +247,51 @@ ESP32-CAM, DS1307, các cảm biến của hệ thống và nền tảng Arduino
 
 Người dùng có thể theo dõi lịch sử hoạt động của hệ thống, biết cảm biến nào đã được kích hoạt, thời điểm xảy ra sự kiện và phản ứng tương ứng của thiết bị. Chức năng này giúp tăng khả năng kiểm tra, truy vết và đánh giá độ ổn định của hệ thống.
 
+#### 4b.5. Gửi email cảnh báo khẩn cấp qua Google Apps Script
+
+**Mục đích:**
+
+Bổ sung thêm một kênh cảnh báo ngoài Arduino IoT Cloud và ứng dụng điện thoại bằng cách gửi email tự động đến người nhận đã cấu hình trước. Chức năng này giúp người nhà hoặc nhóm phản ứng giả lập nhận được thông báo khi xảy ra tình huống nguy hiểm như SOS, cháy hoặc đột nhập.
+
+**Thiết bị và nền tảng sử dụng:**
+
+ESP32-CAM, kết nối WiFi, Google Apps Script Web App, Gmail/MailApp và danh sách email người nhận đã cấu hình sẵn.
+
+**Nguyên lý hoạt động:**
+
+* Khi ESP32-CAM phát hiện một sự kiện nguy hiểm hoặc nhận lệnh SOS từ ứng dụng, thiết bị tạo một yêu cầu HTTP Request (Yêu cầu siêu văn bản) đến Google Apps Script Web App.
+* Google Apps Script nhận tham số sự kiện, ví dụ `type=sos`, `type=fire` hoặc `type=intrusion`.
+* Dựa trên loại sự kiện, hệ thống tự chọn nhóm người nhận phù hợp:
+  * `sos`: gửi cho người nhà hoặc người giám hộ.
+  * `fire`: gửi cho người nhà và nhóm cứu hỏa giả lập.
+  * `intrusion`: gửi cho người nhà và nhóm công an giả lập.
+* Google Apps Script sử dụng MailApp để gửi email cảnh báo với nội dung tương ứng.
+* Email gửi đi bao gồm loại cảnh báo, khu vực xảy ra sự kiện, mức độ nguy hiểm và hành động đề xuất cho người nhận.
+* Để tránh lộ thông tin nhạy cảm, URL Web App và các thông tin bí mật như Telegram Bot Token, Chat ID hoặc Email API URL sẽ được lưu trong file `secrets.h` và không được đưa lên GitHub.
+
+**Luồng trình diễn:**
+
+1. Người trình diễn kích hoạt một trong ba tình huống: SOS, báo cháy hoặc báo đột nhập.
+2. ESP32-CAM xử lý sự kiện và kích hoạt còi/LED tại chỗ.
+3. ESP32-CAM gửi yêu cầu đến Google Apps Script Web App.
+4. Google Apps Script nhận tham số sự kiện và chọn danh sách email phù hợp.
+5. Email cảnh báo được gửi đến người nhận tương ứng.
+6. Người trình diễn mở hộp thư để xác nhận email đã được gửi thành công.
+
+**Kết quả mong đợi:**
+
+Hệ thống có thêm một kênh cảnh báo khẩn cấp qua email, giúp tăng khả năng thông báo đến người giám hộ hoặc nhóm phản ứng giả lập ngay cả khi người dùng không mở ứng dụng điện thoại. Chức năng này cũng giúp dự án thể hiện rõ khả năng tích hợp dịch vụ Cloud bên ngoài thông qua API/Web App.
+
+> **Lưu ý:** Các email công an và cứu hỏa trong phạm vi đồ án chỉ là email giả lập để demo. Hệ thống không tự động gửi cảnh báo đến cơ quan khẩn cấp thật nhằm tránh báo động giả hoặc gây ảnh hưởng đến đơn vị chức năng.
+
+
 ### 5. Phân Công Nhân Sự (Roles & Responsibilities)
 
 #### Ngô Gia Long (Trưởng nhóm)
 
 * Quản lý và điều phối tiến độ dự án.
 * Thiết kế kiến trúc tổng thể của hệ thống.
-* Xây dựng nền tảng Cloud (sử dụng Arduino IoT Cloud) và ứng dụng di động để lưu trữ dữ liệu và nhận cảnh báo.
+* Xây dựng nền tảng Cloud (sử dụng Arduino IoT Cloud), ứng dụng di động và cơ chế gửi email cảnh báo qua Google Apps Script để lưu trữ dữ liệu, nhận cảnh báo và hỗ trợ thông báo khẩn cấp.
 * Thiết kế và tối ưu các thuật toán xử lý chính.
 * Hoàn thiện báo cáo và slide thuyết trình.
 * Tìm viết báo khoa học bằng công cụ LaTeX.
@@ -288,7 +327,7 @@ Người dùng có thể theo dõi lịch sử hoạt động của hệ thống
 
 * Nhật Anh (Phần cứng): Cắm tất cả linh kiện (ESP32-CAM, PIR, LDR, DS1307, HC-SR04) lên board dựa trên sơ đồ mạch điện.
 * Công Danh (Phần mềm): Viết code cơ bản để đọc khoảng cách từ cảm biến siêu âm, đọc trạng thái chuyển động từ PIR để còi (Buzzer) kêu.
-* Gia Long (Leader) + An Vương: Thiết lập nền tảng Cloud (sử dụng Arduino IoT Cloud) để chuẩn bị hứng và lưu trữ dữ liệu từ chip gửi lên, đồng thời cấu hình truyền về ứng dụng trên điện thoại.
+* Gia Long (Leader) + An Vương: Thiết lập nền tảng Cloud (sử dụng Arduino IoT Cloud) để chuẩn bị hứng và lưu trữ dữ liệu từ chip gửi lên, đồng thời cấu hình truyền về ứng dụng trên điện thoại và chuẩn bị Google Apps Script Web App để gửi email cảnh báo.
 
 #### Tuần 4: Xử lý Thuật toán đa cảm biến (Multi-Sensor Fusion)
 
@@ -297,7 +336,7 @@ Người dùng có thể theo dõi lịch sử hoạt động của hệ thống
 **Phân chia công việc:**
 
 * Công Danh (Phần mềm): Viết thêm logic kết hợp (AND/OR) cho PIR, Ultrasonic và độ dao động ánh sáng LDR; thêm code Wi-Fi để chip gửi dữ liệu cảnh báo lên mạng.
-* Gia Long (Leader): Cấu hình Arduino IoT Cloud để tự động nhận dạng mức độ nguy hiểm, lưu trữ dữ liệu sự kiện và định dạng tin nhắn cảnh báo truyền về điện thoại.
+* Gia Long (Leader): Cấu hình Arduino IoT Cloud để tự động nhận dạng mức độ nguy hiểm, lưu trữ dữ liệu sự kiện, định dạng tin nhắn cảnh báo truyền về điện thoại và liên kết sự kiện với Google Apps Script để gửi email khẩn cấp.
 * Nhật Anh + An Vương: Kiểm tra xem góc quét có điểm mù không, và đo xem mất bao lâu dữ liệu báo động mới nhảy lên điện thoại.
 
 #### Tuần 5: Lọc nhiễu chống phá hoại & Spam tin nhắn
