@@ -5,9 +5,9 @@
 | Item         | Context                     |
 | ------------ | --------------------------- |
 | Project Name | IoT based anti-theft system |
-| Version      | 2.0.4                       |
+| Version      | 2.0.5                       |
 | Prepared By  | Group 6                     |
-| Date         | Jun 5, 2026                 |
+| Date         | June 18, 2026                 |
 
 ### Đề tài
 
@@ -27,7 +27,7 @@
 | STT | Thiết bị/ Module                          | Chức năng                                                                                                                                                                                                                                                                          |
 | --- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | RFID RC522                                | Nhận dạng và xác thực người dùng thông qua thẻ RFID hoặc thẻ từ. Cho phép bật/tắt chế độ bảo vệ, vô hiệu hóa báo động đối với người được cấp quyền, đồng thời ghi nhận lịch sử truy cập (thời gian, UID thẻ, trạng thái truy cập) để phục vụ quản lý và theo dõi an ninh hệ thống. |
-| 2   | ESP32-CAM Module Wifi ESP32 Camera OV2640 | Vi điều khiển chính của hệ thống, xử lý dữ liệu cảm biến, kết nối WiFi, gửi cảnh báo lên Internet và chụp ảnh hiện trường khi phát hiện xâm nhập.                                                                                                                                  |
+| 2   | ESP32-CAM Module Wifi ESP32-CAM Camera OV2640 | Vi điều khiển chính của hệ thống, xử lý dữ liệu cảm biến, kết nối WiFi, gửi cảnh báo lên Internet và chụp ảnh hiện trường khi phát hiện xâm nhập.                                                                                                                                  |
 | 3   | DS1307                                    | Lưu trữ và cung cấp thời gian thực cho hệ thống, vẫn hoạt động khi mất điện nhờ pin CR2032 dự phòng. Dùng để xác định ngày, giờ xảy ra sự kiện và chế độ bảo vệ ban đêm.                                                                                                           |
 | 4   | Ultrasonic Range Finder (HC-SR04)         | Đo khoảng cách đến vật thể bằng sóng siêu âm. Hỗ trợ xác nhận có người xâm nhập và phân biệt người với vật nuôi dựa trên chiều cao hoặc khoảng cách.                                                                                                                               |
 | 5   | Light Sensor (LDR)                        | Đo cường độ ánh sáng môi trường. Dùng để phát hiện ánh sáng bất thường (đèn pin của kẻ gian) và phát hiện hành vi che khuất cảm biến.                                                                                                                                              |
@@ -70,44 +70,44 @@ Dự án xây dựng một hệ thống an ninh thông minh ứng dụng công n
   * _Dữ liệu đầu vào:_ Tín hiệu chuyển động, Khoảng cách vật thể ($< 100\text{cm}$), Cường độ sáng thay đổi liên tục, Thời gian thực (02:15).
 * **Luồng trình diễn (Demo Flow):**
   * _Hành động:_ Giả lập kẻ gian đứng trước cửa sổ bếp (đưa tay qua lại trước PIR và HC-SR04 $> 30\text{ giây}$), đồng thời rọi đèn pin lướt qua cảm biến LDR.
-  * _Kết quả:_ ESP8266 ghi nhận ánh sáng dao động bất thường ($120 \rightarrow 700 \rightarrow 250$). Hệ thống xử lý logic AND cho cả 3 cảm biến, lập tức kích hoạt Buzzer và gửi Notification (Thông báo cảnh báo).
+  * _Kết quả:_ ESP32-CAM ghi nhận ánh sáng dao động bất thường ($120 \rightarrow 700 \rightarrow 250$). Hệ thống xử lý logic AND cho cả 3 cảm biến, lập tức kích hoạt Buzzer và gửi Notification (Thông báo cảnh báo).
 * **Nội dung thuyết trình:** > "Để giải quyết triệt để bài toán False Positive (Báo động giả), hệ thống sử dụng thuật toán Sensor Fusion (Kết hợp cảm biến). Việc kiểm tra song song độ dao động ánh sáng từ LDR và khoảng cách từ HC-SR04 giúp hệ thống xác nhận chính xác 100% đây là hành vi đột nhập dùng đèn pin, loại bỏ hoàn toàn sai số do người nhà bật đèn bếp uống nước."
 
 #### 3.2 Chức năng 2 - Lọc nhiễu vật nuôi
 
 * **Điều kiện tiền đề (Setup):**
   * _Tình huống:_ 01:00 AM, chó nuôi trong nhà đi vòng quanh mặt sàn phòng bếp để tìm thức ăn.
-  * _Thiết bị:_ ESP8266, PIR, HC-SR04, DS1307 (Lắp đặt tại bếp, tầm quét song song mặt đất ở độ cao $80\text{cm}$).
+  * _Thiết bị:_ ESP32-CAM, PIR, HC-SR04, DS1307 (Lắp đặt tại bếp, tầm quét song song mặt đất ở độ cao $80\text{cm}$).
   * _Dữ liệu đầu vào:_ Thời gian (01:00 AM), Tín hiệu chuyển động nguồn nhiệt, Khoảng cách vật cản tầm thấp ($15 - 30\text{ cm}$ so với mặt sàn).
 * **Luồng trình diễn (Demo Flow):**
   * _Hành động:_ Đưa một vật cản lướt qua dưới mặt sàn bếp (cách cảm biến $15 - 30\text{ cm}$) để giả lập chú chó đi ngang qua.
-  * _Kết quả:_ Đèn LED và Buzzer hoàn toàn im lặng. ESP8266 bỏ qua cảnh báo và chỉ âm thầm ghi Log (Nhật ký hệ thống).
+  * _Kết quả:_ Đèn LED và Buzzer hoàn toàn im lặng. ESP32-CAM bỏ qua cảnh báo và chỉ âm thầm ghi Log (Nhật ký hệ thống).
 
 #### 3.3 Chức năng 3 - Khôi phục trạng thái sau mất điện
 
 * **Điều kiện tiền đề (Setup):**
   * _Tình huống:_ 00:45 AM, kẻ gian cắt cầu dao điện tổng của phòng bếp để vô hiệu hóa an ninh trước khi trèo vào.
-  * _Thiết bị:_ ESP8266 (chạy nguồn 220V), DS1307 (chạy độc lập bằng pin dự phòng CR2032).
+  * _Thiết bị:_ ESP32-CAM (chạy nguồn 220V), DS1307 (chạy độc lập bằng pin dự phòng CR2032).
   * _Dữ liệu đầu vào:_ Trạng thái nguồn điện lưới (Mất/Có), Thời gian thực lấy ngầm từ DS1307.
 * **Luồng trình diễn (Demo Flow):**
   * _Hành động:_ Rút nguồn điện chính của mạch (Giả lập cúp điện). Chờ 3 giây, sau đó cắm nguồn lại và lập tức quơ tay trước cảm biến PIR.
-  * _Kết quả:_ Khi mất điện, ESP8266 tắt nhưng DS1307 vẫn đếm giờ. Ngay khi có điện, ESP8266 khởi động lại chớp nhoáng, truy vấn DS1307, nhận diện vẫn là ban đêm và lập tức khôi phục Security Mode (Chế độ an ninh), réo còi ngay khi có chuyển động.
+  * _Kết quả:_ Khi mất điện, ESP32-CAM tắt nhưng DS1307 vẫn đếm giờ. Ngay khi có điện, ESP32-CAM khởi động lại chớp nhoáng, truy vấn DS1307, nhận diện vẫn là ban đêm và lập tức khôi phục Security Mode (Chế độ an ninh), réo còi ngay khi có chuyển động.
 
 #### 3.4 Chức năng 4 - Cảnh báo thiết bị WiFi lạ lảng vảng
 
 * **Điều kiện tiền đề (Setup):**
   * _Tình huống:_ Một kẻ gian lạ mặt đứng lỳ sát bên ngoài cửa sổ bếp để rình rập, dò xét hệ thống chốt cửa trước khi bẻ khóa.
-  * _Thiết bị:_ ESP8266 kích hoạt Promiscuous Mode (Chế độ nhận toàn bộ gói tin trong mạng mà không cần lọc theo địa chỉ MAC).
+  * _Thiết bị:_ ESP32-CAM kích hoạt Promiscuous Mode (Chế độ nhận toàn bộ gói tin trong mạng mà không cần lọc theo địa chỉ MAC).
   * _Dữ liệu đầu vào:_ Probe Requests (Gói tin thăm dò) phát ra từ điện thoại kẻ gian, tín hiệu cường độ sóng, bộ đếm thời gian.
 * **Luồng trình diễn (Demo Flow):**
   * _Hành động:_ Dùng 1 điện thoại lạ (không có trong danh sách) đứng gần khu bếp. Mạch bắt liên tục các gói tin phát ra.
-  * _Kết quả:_ Khi bộ đếm điện thoại lạ chạm mốc 5 lần xuất hiện trong thời gian quy định, ESP8266 lập tức đẩy một HTTP Request (Yêu cầu siêu văn bản) báo tin nhắn: “Có đối tượng lảng vảng khu vực bếp lúc \[Thời gian thực]”.
+  * _Kết quả:_ Khi bộ đếm điện thoại lạ chạm mốc 5 lần xuất hiện trong thời gian quy định, ESP32-CAM lập tức đẩy một HTTP Request (Yêu cầu siêu văn bản) báo tin nhắn: “Có đối tượng lảng vảng khu vực bếp lúc \[Thời gian thực]”.
 
 #### 3.5 Chức năng 5 - Tự động kích hoạt và vô hiệu hóa chế độ bảo vệ
 
 * **Điều kiện tiền đề (Setup):**
   * _Tình huống:_ Ban ngày, toàn bộ gia đình rời khỏi nhà, khu vực bếp không có ai. Hệ thống phải tự nhận biết để bảo vệ.
-  * _Thiết bị:_ ESP8266 (Quét MAC WiFi).
+  * _Thiết bị:_ ESP32-CAM (Quét MAC WiFi).
   * _Dữ liệu đầu vào:_ Whitelist (Danh sách trắng) chứa MAC điện thoại của 3 thành viên, dữ liệu quét gói tin WiFi hiện tại trong bếp.
 * **Luồng trình diễn (Demo Flow):**
   * _Hành động:_ Tắt WiFi trên điện thoại chủ nhà (Giả lập cả nhà đã rời đi). Quơ tay trước cảm biến PIR ban ngày. Sau đó, bật lại WiFi (Giả lập chủ nhà bước vào bếp).
@@ -117,7 +117,7 @@ Dự án xây dựng một hệ thống an ninh thông minh ứng dụng công n
 
 * **Điều kiện tiền đề (Setup):**
   * _Tình huống:_ Kẻ gian lọt vào bếp lúc ban ngày, lén dùng áo trùm kín hộp thiết bị hoặc dùng băng keo đen bịt mắt cảm biến để tối hành động.
-  * _Thiết bị:_ ESP8266, LDR, PIR.
+  * _Thiết bị:_ ESP32-CAM, LDR, PIR.
   * _Dữ liệu đầu vào:_ Mức sụt giảm ánh sáng đột ngột, tín hiệu chuyển động tức thời.
 * **Luồng trình diễn (Demo Flow):**
   * _Hành động:_ Dùng bàn tay úp chặt che tối hoàn toàn LDR một cách đột ngột vào ban ngày, sau đó quơ tay trước cảm biến PIR ngay lập tức.
@@ -266,7 +266,7 @@ Người dùng có thể theo dõi lịch sử hoạt động của hệ thống
 
 #### Võ Trần Công Danh (Phần mềm)
 
-* Lập trình ESP8266 bằng C/C++.
+* Lập trình ESP32-CAM bằng C/C++.
 * Xử lý dữ liệu từ các cảm biến.
 * Xây dựng các thuật toán phát hiện sự kiện.
 * Tối ưu hiệu năng và độ ổn định của hệ thống.
@@ -286,7 +286,7 @@ Người dùng có thể theo dõi lịch sử hoạt động của hệ thống
 
 **Phân chia công việc:**
 
-* Nhật Anh (Phần cứng): Cắm tất cả linh kiện (ESP8266, PIR, LDR, DS1307, HC-SR04) lên board dựa trên sơ đồ mạch điện.
+* Nhật Anh (Phần cứng): Cắm tất cả linh kiện (ESP32-CAM, PIR, LDR, DS1307, HC-SR04) lên board dựa trên sơ đồ mạch điện.
 * Công Danh (Phần mềm): Viết code cơ bản để đọc khoảng cách từ cảm biến siêu âm, đọc trạng thái chuyển động từ PIR để còi (Buzzer) kêu.
 * Gia Long (Leader) + An Vương: Thiết lập nền tảng Cloud (sử dụng Arduino IoT Cloud) để chuẩn bị hứng và lưu trữ dữ liệu từ chip gửi lên, đồng thời cấu hình truyền về ứng dụng trên điện thoại.
 
