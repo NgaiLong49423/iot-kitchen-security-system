@@ -21,3 +21,4 @@ Thumbs.db
 *.log
 
 secrets.h
+arduino_secrets.h
