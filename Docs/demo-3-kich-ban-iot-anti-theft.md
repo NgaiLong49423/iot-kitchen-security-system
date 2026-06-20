@@ -1,815 +1,1140 @@
-# Tài liệu Demo 3 Kịch Bản IoT Anti-Theft System  
-## Bản cập nhật: Arduino IoT Cloud + SOS điện thoại + Google Apps Script gửi Gmail
+# Demo 3 Kịch Bản IoT Anti-Theft System  
+## Bản viết lại theo kịch bản đã sửa + đối chiếu đúng biến Arduino Cloud thật
 
-> Mục tiêu của bản demo này là trình bày hệ thống **IoT Anti-Theft System** theo 3 kịch bản dễ kiểm chứng nhất, đồng thời bổ sung phần **đồng bộ Arduino IoT Cloud**, **bấm SOS từ điện thoại**, **module tự cảnh báo bằng LED/Buzzer**, và **gửi Gmail qua Google Apps Script** khi có cảnh báo SOS.
-
----
-
-# 1. Tổng quan demo
-
-Trong bản demo này, nhóm trình bày 3 kịch bản chính:
-
-| STT | Kịch bản | Ý nghĩa chính | Module / Dịch vụ chính |
-|---|---|---|---|
-| 1 | SOS từ điện thoại + gửi Gmail | Người dùng bấm SOS trên Arduino IoT Cloud, module tự báo động và gửi Gmail | ESP32-CAM, WiFi, Arduino IoT Cloud, Google Apps Script, Gmail, LED, Buzzer |
-| 2 | Cảnh báo cháy | Flame Sensor phát hiện lửa, module tự báo động | Flame Sensor, ESP32-CAM, LED, Buzzer |
-| 3 | Chống phá hoại thiết bị | LDR bị che kết hợp PIR phát hiện chuyển động, module báo động | LDR, PIR, ESP32-CAM, LED, Buzzer |
-
----
-
-# 2. Mục tiêu của bản demo
-
-Bản demo cần chứng minh được các ý sau:
-
-1. **Thiết bị được đồng bộ với Arduino IoT Cloud**.  
-   ESP32-CAM có thể kết nối WiFi và đồng bộ trạng thái với dashboard trên điện thoại.
-
-2. **Điện thoại có thể điều khiển module từ xa**.  
-   Người dùng có thể bấm nút SOS trên Arduino IoT Cloud.
-
-3. **Module có thể tự cảnh báo tại chỗ**.  
-   Khi có SOS hoặc cảnh báo cảm biến, ESP32-CAM tự bật LED đỏ và buzzer.
-
-4. **Hệ thống có thể gửi Gmail cảnh báo**.  
-   Khi có người bấm SOS trên điện thoại, ESP32-CAM gọi Google Apps Script để gửi Gmail.
-
-5. **Cảm biến vẫn hoạt động độc lập**.  
-   Ngoài SOS thủ công, hệ thống vẫn có thể phát hiện cháy và chống phá hoại cảm biến.
-
----
-
-# 3. Kiến trúc tổng quan
-
-```text
-Điện thoại / Arduino IoT Cloud Dashboard
-        ↓
-Arduino IoT Cloud
-        ↓
-WiFi
-        ↓
-ESP32-CAM AI Thinker OV2640
-        ↓
-LED đỏ + Buzzer
-        ↓
-Google Apps Script Web App
-        ↓
-Gmail cảnh báo
-```
-
-Giải thích:
-
-- **Arduino IoT Cloud** là nền tảng cloud dùng để đồng bộ dữ liệu giữa điện thoại và ESP32-CAM.
-- **Cloud** nghĩa là nền tảng trực tuyến, thiết bị có thể gửi/nhận dữ liệu qua Internet.
-- **ESP32-CAM** là vi điều khiển chính, nhận lệnh từ cloud và đọc cảm biến.
-- **Google Apps Script** là dịch vụ trung gian để gửi Gmail.
-- **Gmail** là nơi nhận thông báo cảnh báo.
-
----
-
-# 4. Module cần dùng trong bản demo
-
-| Module / Dịch vụ | Có dùng không? | Lý do |
-|---|---:|---|
-| ESP32-CAM AI Thinker OV2640 | Có | Vi điều khiển chính, kết nối WiFi, xử lý logic |
-| Arduino IoT Cloud | Có | Đồng bộ biến giữa điện thoại và ESP32-CAM |
-| Điện thoại | Có | Dùng để bấm SOS và theo dõi trạng thái |
-| Google Apps Script | Có | Nhận request từ ESP32-CAM và gửi Gmail |
-| Gmail | Có | Nhận thông báo cảnh báo SOS |
-| Flame Sensor | Có | Demo cảnh báo cháy |
-| LDR Light Sensor | Có | Demo phát hiện che cảm biến |
-| HC-SR501 | Có | Demo phát hiện chuyển động |
-| LED đỏ | Có | Hiển thị cảnh báo bằng ánh sáng |
-| Buzzer 1407 | Có | Phát còi cảnh báo |
-| RC522 | Không | Không cần cho 3 demo này |
-| DS1307 | Không bắt buộc | Demo này có thể bỏ để giảm dây |
-| HY-SRF05 / HC-SR04 | Không | Không cần cho 3 demo này |
-
----
-
-# 5. Bảng nối dây
-
-## 5.1 Nguồn chính
-
-| Nguồn | ESP32-CAM |
+| Mục | Nội dung |
 |---|---|
-| 5V | 5V |
-| GND | GND |
-
-> Tất cả module phải nối chung GND.
-
-**GND chung** nghĩa là chân âm của tất cả module phải được nối chung với GND của ESP32-CAM. Nếu không nối chung GND, tín hiệu cảm biến có thể đọc sai hoặc không hoạt động.
-
----
-
-## 5.2 Flame Sensor
-
-| Flame Sensor | ESP32-CAM |
-|---|---|
-| VCC | 3.3V |
-| GND | GND |
-| DO | GPIO15 |
-
-> `DO` là **Digital Output**, nghĩa là ngõ ra số, chỉ có 2 trạng thái: HIGH hoặc LOW.
+| Project | IoT Based Anti-Theft System |
+| Nhóm | Group 6 - SE2034 |
+| Thing đề xuất | `IoT_Anti_Theft_System` |
+| Mục tiêu | Demo 3 kịch bản thực tế: SOS, cảnh báo cháy, chống phá hoại thiết bị |
+| Nguyên tắc viết lại | Chỉ dùng các biến có trong file danh sách biến Arduino Cloud thật |
+| Version tài liệu | 3.0 |
 
 ---
 
-## 5.3 LDR Light Sensor
+# 1. Nguyên tắc quan trọng của bản demo
 
-| LDR | ESP32-CAM |
-|---|---|
-| VCC | 3.3V |
-| GND | GND |
-| DO | GPIO14 |
-| AO | Không nối |
+Bản demo này được viết lại theo đúng ý kịch bản đã sửa, nhưng phải bám theo biến thật trong Arduino Cloud.
 
-> Không dùng `AO -> GPIO33` vì ESP32-CAM AI Thinker không có GPIO33 đưa ra ngoài.  
-> Với demo, dùng `DO` là đủ. Chỉnh biến trở xanh trên module LDR để chọn ngưỡng sáng/tối.
+## 1.1. Không dùng biến bịa thêm
 
-**AO** là **Analog Output**, nghĩa là ngõ ra tương tự, có thể trả về giá trị thay đổi liên tục theo ánh sáng.  
-**DO** là **Digital Output**, nghĩa là ngõ ra số, chỉ báo sáng/tối theo ngưỡng đã chỉnh.
-
----
-
-## 5.4 PIR 5050
-
-| PIR | ESP32-CAM |
-|---|---|
-| VCC | 5V |
-| GND | GND |
-| OUT | GPIO13 |
-
-> Trước khi nối OUT vào ESP32-CAM, nên đo điện áp OUT so với GND. Nếu OUT gần 5V thì cần chia áp xuống 3.3V.
-
-**PIR** là cảm biến chuyển động hồng ngoại, dùng để phát hiện người hoặc vật thể chuyển động trong vùng quan sát.
-
----
-
-## 5.5 LED đỏ
-
-| LED đỏ | ESP32-CAM |
-|---|---|
-| Anode (+) | GPIO2 qua điện trở 220Ω hoặc 330Ω |
-| Cathode (-) | GND |
-
-> LED bắt buộc có điện trở để tránh cháy LED hoặc làm hỏng chân GPIO.
-
----
-
-## 5.6 Buzzer 1407
-
-### Cách an toàn nhất: dùng transistor
-
-| Buzzer / mạch đệm | ESP32-CAM |
-|---|---|
-| Chân điều khiển transistor | GPIO16 |
-| Buzzer + | 5V |
-| Buzzer - | Qua transistor xuống GND |
-
-### Cách test nhanh nếu chưa có transistor
-
-| Buzzer | ESP32-CAM |
-|---|---|
-| + | GPIO16 |
-| - | GND |
-
-> Không khuyến khích nối trực tiếp buzzer lâu dài vì chân GPIO của ESP32 chịu dòng nhỏ.
-
----
-
-# 6. Pin mapping dùng trong code
+Các biến cũ như sau **không dùng trong bản mới** vì không có trong file biến thật:
 
 ```cpp
-#define PIN_FLAME   15
-#define PIN_LDR     14
-#define PIN_PIR     13
-#define PIN_LED     2
-#define PIN_BUZZER  16
+sosButton
+resetAlarm
+alertType
+gmailSent
+lastAlertMessage
+flameDetected
+ldrBlocked
+pirDetected
 ```
 
-| Tên trong code | Chân ESP32-CAM | Tác dụng |
-|---|---:|---|
-| `PIN_FLAME` | GPIO15 | Đọc Flame Sensor |
-| `PIN_LDR` | GPIO14 | Đọc LDR DO |
-| `PIN_PIR` | GPIO13 | Đọc PIR OUT |
-| `PIN_LED` | GPIO2 | Điều khiển LED đỏ |
-| `PIN_BUZZER` | GPIO16 | Điều khiển buzzer |
+Thay vào đó, bản mới dùng đúng các biến thật:
+
+```cpp
+sos_child
+sos_adult
+sos_level
+sos_message
+reset_alarm
+alarm_status
+send_email_request
+email_event_type
+email_sent_status
+flame_detected
+fire_alert
+ldr_covered
+pir_detected
+sabotage_alert
+last_event
+last_event_type
+event_counter
+buzzer_on
+led_red_on
+```
 
 ---
 
-# 7. Biến cần tạo trong Arduino IoT Cloud
+## 1.2. Cách hiểu luồng thực tế
 
-Các biến dưới đây nên tạo trong **Thing** của Arduino IoT Cloud.
+Trong dự án này, ESP32-CAM là board chính xử lý logic.
 
-## 7.1 Nhóm biến điều khiển từ điện thoại
+Luồng chung:
 
-| Tên biến | Kiểu dữ liệu | Quyền | Cập nhật | Tác dụng |
+```text
+Cảm biến hoặc người dùng trên điện thoại
+        ↓
+Arduino IoT Cloud đồng bộ biến
+        ↓
+ESP32-CAM đọc biến / đọc cảm biến
+        ↓
+ESP32-CAM xử lý logic cảnh báo
+        ↓
+ESP32-CAM bật LED + Buzzer
+        ↓
+ESP32-CAM cập nhật trạng thái lên Cloud
+        ↓
+ESP32-CAM gọi Google Apps Script nếu cần gửi Gmail
+        ↓
+Google Apps Script gửi Gmail cho người nhận
+```
+
+---
+
+# 2. Tổng quan 3 kịch bản demo
+
+| STT | Kịch bản | Ý nghĩa | Biến chính dùng |
+|---|---|---|---|
+| 1 | SOS từ điện thoại theo mức độ | Trẻ em/người lớn bấm SOS, hệ thống cảnh báo tại chỗ và gửi email theo mức nguy hiểm | `sos_child`, `sos_adult`, `sos_level`, `sos_message`, `alarm_status`, `send_email_request`, `email_event_type`, `email_sent_status` |
+| 2 | Cảnh báo cháy | Flame Sensor phát hiện lửa, đối chiếu nhiệt độ bếp, cảnh báo và gửi Gmail | `flame_value`, `flame_detected`, `kitchen_temperature`, `fire_alert`, `alarm_status`, `send_email_request`, `email_event_type`, `email_sent_status` |
+| 3 | Chống phá hoại thiết bị | LDR bị che + PIR phát hiện chuyển động, hệ thống báo động chống phá hoại | `ldr_value`, `ldr_delta`, `ldr_covered`, `pir_detected`, `sabotage_alert`, `device_tampered`, `alarm_status` |
+
+---
+
+# 3. Các module và dịch vụ dùng trong demo
+
+| Thành phần | Vai trò |
+|---|---|
+| ESP32-CAM AI Thinker OV2640 | Board chính, xử lý logic, kết nối WiFi |
+| Arduino IoT Cloud | Đồng bộ biến giữa board và điện thoại |
+| Điện thoại | Bấm SOS, xem trạng thái cảnh báo |
+| Google Apps Script | Web App trung gian để gửi Gmail |
+| Gmail | Nhận email cảnh báo |
+| Flame Sensor | Phát hiện dấu hiệu ngọn lửa |
+| Cảm biến nhiệt độ bếp | Cung cấp `kitchen_temperature` để đối chiếu báo cháy |
+| LDR Light Sensor | Phát hiện ánh sáng bất thường hoặc bị che |
+| HC-SR501 / PIR | Phát hiện chuyển động |
+| LED đỏ | Cảnh báo tại chỗ bằng ánh sáng |
+| Buzzer 1407 | Cảnh báo tại chỗ bằng âm thanh |
+
+---
+
+# 4. Nhóm biến Cloud dùng trong 3 kịch bản
+
+## 4.1. Biến điều khiển chính
+
+| Biến | Kiểu | Quyền | Cập nhật | Dùng trong demo |
 |---|---|---|---|---|
-| `sosButton` | Boolean | Read & Write | On Change | Nút SOS trên điện thoại |
-| `resetAlarm` | Boolean | Read & Write | On Change | Nút reset/tắt cảnh báo từ điện thoại |
+| `alarm_enabled` | `bool` | Read & Write | On Change | Bật/tắt chế độ bảo vệ |
+| `system_armed` | `bool` | Read Only | On Change | Cho biết hệ thống thật sự đang canh gác |
+| `reset_alarm` | `bool` | Read & Write | On Change | Người lớn/admin bấm để tắt cảnh báo |
+| `alarm_status` | `String` | Read Only | On Change | Hiển thị trạng thái chính của hệ thống |
 
-Giải thích:
+Ví dụ giá trị `alarm_status` trong 3 demo:
 
-- `sosButton` cần **Read & Write** vì điện thoại phải ghi giá trị xuống ESP32-CAM.
-- `resetAlarm` cũng cần **Read & Write** vì người dùng cần bấm nút để tắt cảnh báo.
-- **On Change** nghĩa là chỉ cập nhật khi giá trị thay đổi, phù hợp với nút bấm.
+```text
+"SAFE"
+"SOS_CHILD_ALERT"
+"SOS_ADULT_ALERT"
+"FIRE_ALERT"
+"SABOTAGE_ALERT"
+"EMAIL_SENDING"
+"EMAIL_SENT"
+"EMAIL_FAILED"
+```
 
 ---
 
-## 7.2 Nhóm biến trạng thái cảnh báo
+## 4.2. Biến SOS
 
-| Tên biến | Kiểu dữ liệu | Quyền | Cập nhật | Tác dụng |
+| Biến | Kiểu | Quyền | Cập nhật | Dùng để làm gì |
 |---|---|---|---|---|
-| `alarmStatus` | Boolean | Read Only | On Change | Cho biết hệ thống đang báo động hay không |
-| `alertType` | String | Read Only | On Change | Loại cảnh báo hiện tại: SOS, FIRE, SABOTAGE |
-| `lastAlertMessage` | String | Read Only | On Change | Nội dung cảnh báo gần nhất |
-| `gmailSent` | Boolean | Read Only | On Change | Cho biết Gmail đã gửi thành công hay chưa |
+| `sos_child` | `bool` | Read & Write | On Change | Trẻ em bấm SOS từ điện thoại |
+| `sos_adult` | `bool` | Read & Write | On Change | Người lớn bấm SOS từ điện thoại |
+| `sos_level` | `int` | Read Only | On Change | Board tự tính mức SOS |
+| `sos_message` | `String` | Read Only | On Change | Nội dung SOS hiển thị/gửi email |
 
-Giải thích:
+Lưu ý quan trọng:
 
-- Các biến này nên để **Read Only** vì đây là trạng thái do thiết bị tạo ra.
-- Người dùng chỉ nên xem, không nên tự sửa thủ công trên dashboard.
-- `alertType` giúp khi demo biết cảnh báo đến từ SOS, cháy hay chống phá hoại.
+```text
+sos_level là Read Only.
+Vì vậy dashboard không nên tự ghi sos_level.
+Board phải tự tính sos_level dựa trên hành vi bấm SOS.
+```
+
+Ví dụ quy ước:
+
+```text
+sos_level = 0 → Không có SOS
+sos_level = 1 → Chỉ báo động tại chỗ
+sos_level = 2 → Gửi Gmail cho người lớn trong gia đình
+sos_level = 3 → Gửi Gmail cho người lớn + yêu cầu xác nhận gửi mail cho công an/cứu hộ giả lập
+```
 
 ---
 
-## 7.3 Nhóm biến cảm biến
+## 4.3. Biến báo cháy
 
-| Tên biến | Kiểu dữ liệu | Quyền | Cập nhật | Tác dụng |
+| Biến | Kiểu | Quyền | Cập nhật | Dùng để làm gì |
 |---|---|---|---|---|
-| `flameDetected` | Boolean | Read Only | On Change | Cho biết có phát hiện lửa hay không |
-| `ldrBlocked` | Boolean | Read Only | On Change | Cho biết LDR có bị che hay không |
-| `pirDetected` | Boolean | Read Only | On Change | Cho biết PIR có phát hiện chuyển động hay không |
+| `flame_value` | `int` | Read Only | Periodic | Giá trị thô từ Flame Sensor |
+| `flame_detected` | `bool` | Read Only | On Change | Board kết luận có dấu hiệu lửa |
+| `kitchen_temperature` | `float` | Read Only | Periodic | Nhiệt độ khu vực bếp |
+| `fire_alert` | `bool` | Read Only | On Change | Board xác nhận nguy cơ cháy |
 
-Giải thích:
+Lưu ý:
 
-- Các biến cảm biến nên để **Read Only** vì chúng phản ánh trạng thái thật từ phần cứng.
-- **On Change** phù hợp vì các trạng thái này chỉ cần báo khi thay đổi.
-
----
-
-# 8. Kịch bản demo 1: SOS từ điện thoại + module tự cảnh báo + gửi Gmail
-
-## 8.1 Mục tiêu
-
-Cho phép người dùng bấm nút SOS trên điện thoại thông qua Arduino IoT Cloud. Khi SOS được kích hoạt, ESP32-CAM tự bật LED đỏ, buzzer và gọi Google Apps Script để gửi Gmail cảnh báo.
+```text
+Flame Sensor không đo nhiệt độ.
+flame_value / flame_detected là dữ liệu về dấu hiệu ngọn lửa.
+kitchen_temperature phải đến từ cảm biến nhiệt độ riêng.
+```
 
 ---
 
-## 8.2 Luồng hoạt động
+## 4.4. Biến chống phá hoại
+
+| Biến | Kiểu | Quyền | Cập nhật | Dùng để làm gì |
+|---|---|---|---|---|
+| `ldr_value` | `int` | Read Only | Periodic | Giá trị ánh sáng LDR |
+| `ldr_delta` | `int` | Read Only | Periodic | Độ thay đổi ánh sáng |
+| `light_abnormal` | `bool` | Read Only | On Change | Board kết luận ánh sáng bất thường |
+| `ldr_covered` | `bool` | Read Only | On Change | Board kết luận LDR bị che |
+| `pir_detected` | `bool` | Read Only | On Change | PIR phát hiện chuyển động |
+| `sabotage_alert` | `bool` | Read Only | On Change | Board xác nhận phá hoại thiết bị |
+| `device_tampered` | `bool` | Read Only | On Change | Thiết bị có dấu hiệu bị can thiệp |
+
+---
+
+## 4.5. Biến output LED/Buzzer
+
+| Biến | Kiểu | Quyền | Cập nhật | Dùng để làm gì |
+|---|---|---|---|---|
+| `buzzer_on` | `bool` | Read Only | On Change | Cho biết còi đang kêu |
+| `led_red_on` | `bool` | Read Only | On Change | Cho biết LED đỏ đang bật |
+
+Lưu ý:
+
+```text
+buzzer_on và led_red_on là Read Only.
+Người dùng không bật trực tiếp 2 biến này.
+Muốn tắt báo động thì dùng reset_alarm.
+```
+
+---
+
+## 4.6. Biến gửi Gmail
+
+| Biến | Kiểu | Quyền | Cập nhật | Dùng để làm gì |
+|---|---|---|---|---|
+| `send_email_request` | `bool` | Read Only | On Change | Board đánh dấu cần gửi email |
+| `email_event_type` | `String` | Read Only | On Change | Loại email cần gửi |
+| `email_sent_status` | `String` | Read Only | On Change | Trạng thái gửi email |
+
+Ví dụ `email_event_type`:
+
+```text
+"sos_child"
+"sos_adult"
+"fire"
+"sabotage"
+```
+
+Ví dụ `email_sent_status`:
+
+```text
+"EMAIL_IDLE"
+"EMAIL_SENDING"
+"EMAIL_SENT"
+"EMAIL_FAILED"
+```
+
+---
+
+## 4.7. Biến log sự kiện
+
+| Biến | Kiểu | Quyền | Cập nhật | Dùng để làm gì |
+|---|---|---|---|---|
+| `last_event` | `String` | Read Only | On Change | Ghi sự kiện gần nhất |
+| `last_event_type` | `String` | Read Only | On Change | Loại sự kiện gần nhất |
+| `event_counter` | `int` | Read Only | On Change | Tăng số lần có sự kiện |
+
+---
+
+## 4.8. Biến chống spam cảnh báo
+
+| Biến | Kiểu | Quyền | Cập nhật | Dùng để làm gì |
+|---|---|---|---|---|
+| `cooldown_active` | `bool` | Read Only | On Change | Đang trong thời gian chống spam cảnh báo |
+| `last_alert_time` | `String` | Read Only | On Change | Thời điểm cảnh báo gần nhất |
+
+**Cooldown** nghĩa là thời gian nghỉ giữa hai lần gửi cảnh báo.  
+Mục đích là tránh gửi quá nhiều Gmail liên tục khi cảm biến vẫn đang bị kích hoạt.
+
+---
+
+# 5. Kịch bản 1: SOS từ điện thoại theo mức độ + cảnh báo + gửi Gmail
+
+## 5.1. Mục tiêu
+
+Kịch bản này demo việc người dùng bấm SOS trên điện thoại bằng Arduino IoT Cloud.
+
+Hệ thống cần xử lý theo mức độ SOS:
+
+```text
+Mức 1 → Module tự cảnh báo tại chỗ bằng LED + buzzer
+Mức 2 → Gửi Gmail cho người lớn trong gia đình
+Mức 3 → Gửi Gmail cho người lớn, sau đó yêu cầu xác nhận để gửi tiếp Gmail cho công an/cứu hộ giả lập
+```
+
+---
+
+## 5.2. Luồng thực tế đề xuất
 
 ```text
 Người dùng mở Arduino IoT Cloud Dashboard trên điện thoại
         ↓
-Người dùng bấm nút SOS
+Người dùng bấm SOS trẻ em hoặc SOS người lớn
         ↓
-Biến sosButton trên Cloud đổi thành true
+Cloud cập nhật biến sos_child hoặc sos_adult
         ↓
-ESP32-CAM nhận giá trị sosButton = true
+ESP32-CAM nhận thay đổi từ Arduino Cloud
+        ↓
+ESP32-CAM kiểm tra alarm_enabled và trạng thái hệ thống
+        ↓
+ESP32-CAM tính sos_level
+        ↓
+ESP32-CAM cập nhật sos_message
         ↓
 ESP32-CAM bật LED đỏ và buzzer
         ↓
-ESP32-CAM cập nhật alarmStatus = true
+ESP32-CAM cập nhật led_red_on = true
         ↓
-ESP32-CAM cập nhật alertType = "SOS"
+ESP32-CAM cập nhật buzzer_on = true
+        ↓
+ESP32-CAM cập nhật alarm_status theo mức SOS
+        ↓
+Nếu sos_level >= 2 thì ESP32-CAM bật send_email_request
+        ↓
+ESP32-CAM cập nhật email_event_type
         ↓
 ESP32-CAM gọi Google Apps Script Web App
         ↓
-Google Apps Script gửi Gmail cảnh báo
+Google Apps Script gửi Gmail theo email_event_type
         ↓
-Người dùng bấm resetAlarm để tắt cảnh báo
+ESP32-CAM cập nhật email_sent_status
+        ↓
+ESP32-CAM ghi last_event, last_event_type, event_counter
+        ↓
+Người lớn/admin bấm reset_alarm để tắt cảnh báo
+        ↓
+ESP32-CAM tắt LED, tắt buzzer, đưa hệ thống về SAFE
 ```
 
 ---
 
-## 8.3 Điều kiện kích hoạt
+## 5.3. Logic mức SOS
+
+Vì file biến thật có `sos_level` là Read Only, nên `sos_level` phải do board tự tính.
+
+### Cách demo dễ hiểu nhất
+
+Trong lúc demo, có thể quy ước:
 
 ```text
-Nếu sosButton == true
-→ Kích hoạt cảnh báo SOS
+Bấm sos_child 1 lần trong 3 giây → sos_level = 1
+Bấm sos_child 2 lần trong 3 giây → sos_level = 2
+Bấm sos_child 3 lần trong 3 giây → sos_level = 3
+```
+
+Hoặc nếu nhóm chưa code được bấm nhiều lần, có thể dùng:
+
+```text
+demo_mode = true
+demo_scenario = 8
+```
+
+để chạy nhanh nhánh demo SOS trẻ em.
+
+Lưu ý khi thuyết trình:
+
+```text
+demo_mode và demo_scenario chỉ dùng để hỗ trợ trình diễn.
+Khi chạy thật, hệ thống xử lý dựa trên sos_child hoặc sos_adult.
 ```
 
 ---
 
-## 8.4 Hành động của module
+## 5.4. Hành động theo từng mức SOS
 
-Khi có SOS:
-
-1. LED đỏ nháy.
-2. Buzzer kêu.
-3. `alarmStatus = true`.
-4. `alertType = "SOS"`.
-5. `lastAlertMessage = "SOS button pressed from phone"`.
-6. ESP32-CAM gọi Google Apps Script để gửi Gmail.
-7. Nếu gửi Gmail thành công, `gmailSent = true`.
+| Mức | Điều kiện | Hành động tại module | Hành động email |
+|---|---|---|---|
+| `sos_level = 1` | SOS nhẹ | Bật LED đỏ, bật buzzer | Chưa bắt buộc gửi Gmail |
+| `sos_level = 2` | SOS cần người lớn hỗ trợ | Bật LED đỏ, bật buzzer, ghi log | Gửi Gmail cho người lớn trong gia đình |
+| `sos_level = 3` | SOS khẩn cấp | Bật LED đỏ, bật buzzer liên tục, ghi log khẩn cấp | Gửi Gmail cho người lớn, Gmail có phần xác nhận gửi tiếp cho công an/cứu hộ giả lập |
 
 ---
 
-## 8.5 Nội dung Gmail đề xuất
+## 5.5. Biến cập nhật khi SOS mức 1
 
-**Subject:**
-
-```text
-[SOS ALERT] IoT Anti-Theft System
+```cpp
+sos_level = 1;
+sos_message = "SOS level 1: local alarm only";
+alarm_status = "SOS_CHILD_ALERT";
+led_red_on = true;
+buzzer_on = true;
+last_event_type = "SOS_CHILD";
+last_event = "SOS level 1 triggered from Arduino IoT Cloud";
+event_counter++;
 ```
 
-**Body:**
+Không cần bật:
 
-```text
-Emergency alert from IoT Anti-Theft System.
-
-Alert type: SOS
-Device: ESP32-CAM Kitchen Security Module
-Status: Someone pressed the SOS button from Arduino IoT Cloud.
-
-Please check the situation immediately.
+```cpp
+send_email_request = false;
+email_sent_status = "EMAIL_IDLE";
 ```
 
 ---
 
-## 8.6 Cách trình bày khi demo
+## 5.6. Biến cập nhật khi SOS mức 2
 
-Người thuyết trình có thể nói:
-
-> “Ở kịch bản đầu tiên, nhóm em demo chức năng SOS từ điện thoại. ESP32-CAM đã được đồng bộ với Arduino IoT Cloud. Khi người dùng bấm nút SOS trên dashboard, biến `sosButton` trên Cloud thay đổi. ESP32-CAM nhận lệnh này, tự bật LED đỏ và buzzer để cảnh báo tại chỗ. Đồng thời, ESP32-CAM gọi Google Apps Script để gửi Gmail cảnh báo cho người nhận.”
-
----
-
-## 8.7 Điểm cần nhấn mạnh
-
-Kịch bản này có đủ 3 phần quan trọng của một hệ thống IoT:
-
-```text
-Cloud control + Local alarm + Email notification
+```cpp
+sos_level = 2;
+sos_message = "SOS level 2: notify adults by Gmail";
+alarm_status = "SOS_CHILD_ALERT";
+led_red_on = true;
+buzzer_on = true;
+send_email_request = true;
+email_event_type = "sos_child";
+email_sent_status = "EMAIL_SENDING";
+last_event_type = "SOS_CHILD";
+last_event = "SOS level 2: email sent to adults";
+event_counter++;
 ```
 
-Giải thích:
+Sau khi gọi Google Apps Script:
 
-- **Cloud control**: điều khiển từ điện thoại qua Arduino IoT Cloud.
-- **Local alarm**: thiết bị tự hú còi và nháy LED tại chỗ.
-- **Email notification**: gửi Gmail để thông báo cho người khác.
+```cpp
+email_sent_status = "EMAIL_SENT";
+last_alert_time = current_time;
+cooldown_active = true;
+```
+
+Nếu lỗi:
+
+```cpp
+email_sent_status = "EMAIL_FAILED";
+```
 
 ---
 
-# 9. Kịch bản demo 2: Cảnh báo cháy
+## 5.7. Biến cập nhật khi SOS mức 3
 
-## 9.1 Mục tiêu
+```cpp
+sos_level = 3;
+sos_message = "SOS level 3: emergency confirmation required";
+alarm_status = "SOS_CHILD_ALERT";
+led_red_on = true;
+buzzer_on = true;
+send_email_request = true;
+email_event_type = "sos_child";
+email_sent_status = "EMAIL_SENDING";
+last_event_type = "SOS_CHILD";
+last_event = "SOS level 3: adults must confirm emergency escalation";
+event_counter++;
+```
 
-Dùng Flame Sensor để phát hiện lửa hoặc nguồn hồng ngoại. Khi phát hiện cháy, ESP32-CAM kích hoạt cảnh báo bằng LED đỏ và buzzer.
+Sau khi Gmail gửi thành công:
+
+```cpp
+email_sent_status = "EMAIL_SENT";
+last_alert_time = current_time;
+cooldown_active = true;
+```
 
 ---
 
-## 9.2 Luồng hoạt động
+## 5.8. Về xác nhận gửi mail cho công an/cứu hộ
+
+Trong ý tưởng của bạn có đoạn:
 
 ```text
-Người trình diễn đưa nguồn lửa nhỏ hoặc nguồn hồng ngoại lại gần Flame Sensor
-        ↓
-Flame Sensor đổi trạng thái DO
-        ↓
-ESP32-CAM đọc tín hiệu từ GPIO15
-        ↓
-ESP32-CAM xác nhận có cháy
-        ↓
-LED đỏ nháy
-        ↓
+Mức 3 yêu cầu người lớn xác nhận gửi mail báo công an/cứu hộ.
+Chỉ cần 1 người lớn xác nhận là gửi ngay.
+Sau khi đã gửi thì khóa quyền xác nhận của những người còn lại.
+```
+
+Luồng này **không nên bịa thêm biến Arduino Cloud**, vì file biến thật hiện chưa có biến kiểu:
+
+```cpp
+police_confirmed
+firefighter_confirmed
+hospital_confirmed
+emergency_confirm_locked
+```
+
+Vì vậy bản demo thực tế nên làm như sau:
+
+```text
+ESP32-CAM chỉ gửi email SOS level 3 cho Google Apps Script.
+Google Apps Script tạo Gmail có nút/link xác nhận.
+Người lớn bấm link xác nhận trong Gmail.
+Google Apps Script tự xử lý việc:
+- Chỉ nhận xác nhận đầu tiên.
+- Gửi mail tiếp cho công an/cứu hộ giả lập.
+- Khóa các xác nhận sau.
+- Gửi mail báo lại cho người lớn rằng mail khẩn cấp đã được gửi.
+```
+
+Như vậy phần xác nhận nằm ở **Google Apps Script**, không nằm ở Arduino Cloud.
+
+Cách này hợp lý hơn vì:
+
+```text
+Arduino Cloud hiện chưa có biến xác nhận riêng.
+Google Apps Script phù hợp để xử lý link xác nhận trong Gmail.
+Không cần tạo thêm biến ngoài danh sách thật.
+```
+
+---
+
+## 5.9. Cách demo kịch bản 1 trên lớp
+
+### Bước 1: Cho thầy thấy dashboard
+
+Mở Arduino IoT Cloud Dashboard và chỉ các biến:
+
+```cpp
+sos_child
+sos_adult
+sos_level
+sos_message
+alarm_status
+email_event_type
+email_sent_status
+buzzer_on
+led_red_on
+```
+
+Nói:
+
+> “Đây là dashboard đã đồng bộ với ESP32-CAM. Những biến người dùng được bấm là `sos_child`, `sos_adult`, `reset_alarm`. Các biến còn lại là trạng thái do board tự cập nhật.”
+
+---
+
+### Bước 2: Bấm SOS
+
+Bấm `sos_child`.
+
+Quan sát:
+
+```text
+LED đỏ bật
 Buzzer kêu
+sos_level đổi
+sos_message đổi
+alarm_status đổi
+buzzer_on = true
+led_red_on = true
+```
+
+---
+
+### Bước 3: Kiểm tra Gmail
+
+Nếu `sos_level >= 2`, mở Gmail và kiểm tra email.
+
+Quan sát trên dashboard:
+
+```text
+send_email_request = true
+email_event_type = "sos_child"
+email_sent_status = "EMAIL_SENT"
+```
+
+---
+
+### Bước 4: Reset
+
+Bấm:
+
+```cpp
+reset_alarm = true;
+```
+
+Board xử lý:
+
+```cpp
+led_red_on = false;
+buzzer_on = false;
+alarm_status = "SAFE";
+sos_child = false;
+sos_adult = false;
+sos_level = 0;
+send_email_request = false;
+email_sent_status = "EMAIL_IDLE";
+```
+
+---
+
+# 6. Kịch bản 2: Cảnh báo cháy + Gmail + hiển thị trên Arduino Cloud
+
+## 6.1. Mục tiêu
+
+Kịch bản này demo việc hệ thống tự phát hiện nguy cơ cháy bằng Flame Sensor và nhiệt độ bếp.
+
+Hệ thống cần:
+
+```text
+Phát hiện dấu hiệu lửa
+Đối chiếu nhiệt độ bếp
+Bật LED + buzzer
+Cập nhật dashboard Arduino Cloud
+Gửi Gmail cho người lớn
+Nếu cần, Gmail có link xác nhận gọi cứu hỏa giả lập
+```
+
+---
+
+## 6.2. Luồng thực tế đề xuất
+
+```text
+Người trình diễn đưa nguồn lửa nhỏ hoặc nguồn hồng ngoại gần Flame Sensor
         ↓
-Cập nhật flameDetected = true
+ESP32-CAM đọc giá trị flame_value
         ↓
-Cập nhật alarmStatus = true
+ESP32-CAM cập nhật flame_value định kỳ lên Arduino Cloud
         ↓
-Cập nhật alertType = "FIRE"
+Nếu tín hiệu lửa vượt ngưỡng, ESP32-CAM cập nhật flame_detected = true
+        ↓
+ESP32-CAM đọc kitchen_temperature
+        ↓
+ESP32-CAM đối chiếu flame_detected và kitchen_temperature
+        ↓
+Nếu đủ điều kiện nguy hiểm, ESP32-CAM cập nhật fire_alert = true
+        ↓
+ESP32-CAM bật LED đỏ và buzzer
+        ↓
+ESP32-CAM cập nhật led_red_on = true, buzzer_on = true
+        ↓
+ESP32-CAM cập nhật alarm_status = "FIRE_ALERT"
+        ↓
+ESP32-CAM bật send_email_request = true
+        ↓
+ESP32-CAM cập nhật email_event_type = "fire"
+        ↓
+ESP32-CAM gọi Google Apps Script Web App
+        ↓
+Google Apps Script gửi Gmail cảnh báo cháy cho người lớn
+        ↓
+Gmail có thể chứa link xác nhận gọi cứu hỏa giả lập
+        ↓
+Người lớn xác nhận hoặc bỏ qua trong Gmail
+        ↓
+Người lớn/admin bấm reset_alarm để kết thúc cảnh báo trên module
 ```
 
 ---
 
-## 9.3 Điều kiện kích hoạt
+## 6.3. Điều kiện kích hoạt đề xuất
 
-```text
-Nếu Flame Sensor phát hiện lửa
-→ Kích hoạt cảnh báo cháy
+Nếu nhóm có cảm biến nhiệt độ thật:
+
+```cpp
+if (flame_detected == true && kitchen_temperature >= 55.0) {
+    fire_alert = true;
+}
 ```
 
-Lưu ý: Tùy module, Flame Sensor có thể báo ngược logic.
+Nếu nhóm chưa có cảm biến nhiệt độ thật, demo có thể dùng mức đơn giản:
 
-Ví dụ:
-
-```text
-Có lửa = LOW
-Không có lửa = HIGH
+```cpp
+if (flame_detected == true) {
+    fire_alert = true;
+}
 ```
 
-hoặc:
+Nhưng khi thuyết trình phải nói rõ:
 
 ```text
-Có lửa = HIGH
-Không có lửa = LOW
+Flame Sensor phát hiện lửa.
+kitchen_temperature là biến dành cho cảm biến nhiệt độ rời.
+Nếu chưa gắn cảm biến nhiệt độ, nhóm chỉ demo theo tín hiệu Flame Sensor.
 ```
 
-Vì vậy cần test trước bằng Serial Monitor hoặc Arduino Cloud để biết module của nhóm đang dùng logic nào.
+---
+
+## 6.4. Biến cập nhật khi cảnh báo cháy
+
+```cpp
+flame_detected = true;
+fire_alert = true;
+alarm_status = "FIRE_ALERT";
+led_red_on = true;
+buzzer_on = true;
+send_email_request = true;
+email_event_type = "fire";
+email_sent_status = "EMAIL_SENDING";
+last_event_type = "FIRE";
+last_event = "Fire alert detected by flame sensor";
+event_counter++;
+```
+
+Sau khi gửi Gmail thành công:
+
+```cpp
+email_sent_status = "EMAIL_SENT";
+last_alert_time = current_time;
+cooldown_active = true;
+```
+
+Nếu gửi lỗi:
+
+```cpp
+email_sent_status = "EMAIL_FAILED";
+```
 
 ---
 
-## 9.4 Hành động của module
+## 6.5. Về xác nhận gọi cứu hỏa
 
-Khi phát hiện cháy:
+Tương tự SOS mức 3, file biến thật hiện chưa có biến Cloud để lưu xác nhận cứu hỏa.
 
-1. LED đỏ nháy.
-2. Buzzer kêu.
-3. `flameDetected = true`.
-4. `alarmStatus = true`.
-5. `alertType = "FIRE"`.
-6. `lastAlertMessage = "Fire detected by flame sensor"`.
-
----
-
-## 9.5 Cách trình bày khi demo
-
-Người thuyết trình có thể nói:
-
-> “Ở kịch bản thứ hai, nhóm em demo cảnh báo cháy. Khi Flame Sensor phát hiện lửa hoặc nguồn hồng ngoại, ESP32-CAM sẽ đọc tín hiệu từ cảm biến, sau đó kích hoạt LED và buzzer để cảnh báo tại chỗ. Đồng thời trạng thái `flameDetected` và `alertType` được cập nhật lên Arduino IoT Cloud.”
-
----
-
-## 9.6 Lưu ý an toàn
-
-Không dí lửa sát:
-
-- Breadboard.
-- Dây điện.
-- ESP32-CAM.
-- Module cảm biến.
-- Vật dễ cháy.
-
-Nên đưa lửa ở khoảng cách vừa đủ để cảm biến nhận tín hiệu. Nếu có thể, dùng remote hồng ngoại để test an toàn hơn.
-
----
-
-# 10. Kịch bản demo 3: Chống phá hoại thiết bị bằng LDR + PIR
-
-## 10.1 Mục tiêu
-
-Phát hiện trường hợp có người cố tình che cảm biến hoặc phá hoại thiết bị.
-
-Hệ thống không chỉ dựa vào LDR, mà kết hợp thêm PIR để giảm báo động giả.
-
----
-
-## 10.2 Luồng hoạt động
+Vì vậy luồng hợp lý là:
 
 ```text
-Ban đầu LDR ở môi trường sáng
+Google Apps Script gửi Gmail cảnh báo cháy.
+Trong Gmail có link xác nhận gọi cứu hỏa giả lập.
+Người lớn bấm xác nhận.
+Google Apps Script gửi tiếp Gmail cho địa chỉ cứu hỏa giả lập + địa chỉ nhà.
+Google Apps Script gửi lại Gmail thông báo cho người lớn rằng yêu cầu đã được gửi.
+```
+
+Phần này do Google Apps Script quản lý, không cần thêm biến Arduino Cloud mới.
+
+---
+
+## 6.6. Cách demo kịch bản 2 trên lớp
+
+### Bước 1: Cho thấy giá trị cảm biến
+
+Mở dashboard và chỉ các biến:
+
+```cpp
+flame_value
+flame_detected
+kitchen_temperature
+fire_alert
+alarm_status
+email_event_type
+email_sent_status
+```
+
+Nói:
+
+> “Flame Sensor không đo nhiệt độ trực tiếp. Vì vậy nhóm em tách riêng `flame_value`, `flame_detected` và `kitchen_temperature`. `fire_alert` là kết luận cuối cùng sau khi board xử lý.”
+
+---
+
+### Bước 2: Đưa nguồn lửa/hồng ngoại gần cảm biến
+
+Quan sát:
+
+```text
+flame_value thay đổi
+flame_detected = true
+fire_alert = true
+alarm_status = "FIRE_ALERT"
+LED đỏ bật
+Buzzer kêu
+```
+
+---
+
+### Bước 3: Kiểm tra Gmail
+
+Quan sát:
+
+```text
+send_email_request = true
+email_event_type = "fire"
+email_sent_status = "EMAIL_SENT"
+```
+
+Mở Gmail để kiểm tra email cảnh báo cháy.
+
+---
+
+### Bước 4: Reset
+
+Bấm:
+
+```cpp
+reset_alarm = true;
+```
+
+Board đưa về:
+
+```cpp
+fire_alert = false;
+flame_detected = false;
+led_red_on = false;
+buzzer_on = false;
+alarm_status = "SAFE";
+send_email_request = false;
+email_sent_status = "EMAIL_IDLE";
+```
+
+---
+
+# 7. Kịch bản 3: Chống phá hoại thiết bị bằng LDR + PIR
+
+## 7.1. Mục tiêu
+
+Kịch bản này demo việc phát hiện người cố tình che cảm biến hoặc can thiệp thiết bị.
+
+Hệ thống không chỉ dùng LDR, vì LDR có thể báo nhầm khi môi trường tối.  
+Do đó cần kết hợp:
+
+```text
+LDR bị che bất thường
++
+PIR phát hiện chuyển động
+=
+Nghi có người phá hoại thiết bị
+```
+
+---
+
+## 7.2. Luồng thực tế đề xuất
+
+```text
+Ban đầu thiết bị hoạt động bình thường
+        ↓
+ESP32-CAM đọc ldr_value định kỳ
+        ↓
+ESP32-CAM tính ldr_delta
         ↓
 Người trình diễn dùng tay hoặc khăn che LDR
         ↓
-LDR DO đổi trạng thái
+ldr_value thay đổi mạnh
         ↓
-ESP32-CAM cập nhật ldrBlocked = true
+ESP32-CAM cập nhật light_abnormal = true
+        ↓
+ESP32-CAM cập nhật ldr_covered = true
         ↓
 Người trình diễn quơ tay trước PIR
         ↓
-PIR phát hiện chuyển động
+ESP32-CAM cập nhật pir_detected = true
         ↓
-ESP32-CAM cập nhật pirDetected = true
+ESP32-CAM xác nhận sabotage_alert = true
         ↓
-ESP32-CAM xác nhận có hành vi che cảm biến kèm chuyển động
+ESP32-CAM cập nhật device_tampered = true
         ↓
-LED đỏ nháy
+ESP32-CAM bật LED đỏ và buzzer
         ↓
-Buzzer kêu
+ESP32-CAM cập nhật led_red_on = true, buzzer_on = true
         ↓
-Cập nhật alarmStatus = true
+ESP32-CAM cập nhật alarm_status = "SABOTAGE_ALERT"
         ↓
-Cập nhật alertType = "SABOTAGE"
+ESP32-CAM ghi last_event, last_event_type, event_counter
+        ↓
+Nếu cần gửi Gmail, ESP32-CAM bật send_email_request
+        ↓
+ESP32-CAM cập nhật email_event_type = "sabotage"
+        ↓
+Google Apps Script gửi Gmail cho người lớn trong nhà
+        ↓
+Người lớn/admin bấm reset_alarm để tắt cảnh báo
 ```
 
 ---
 
-## 10.3 Điều kiện kích hoạt
-
-```text
-Nếu LDR bị che và PIR phát hiện chuyển động
-→ Kích hoạt cảnh báo chống phá hoại
-```
-
-Viết theo logic đơn giản:
+## 7.3. Điều kiện kích hoạt đề xuất
 
 ```cpp
-if (ldrBlocked == true && pirDetected == true) {
-    triggerSabotageAlarm();
+if (ldr_covered == true && pir_detected == true) {
+    sabotage_alert = true;
+    device_tampered = true;
+}
+```
+
+Nếu muốn chắc hơn, dùng thêm `light_abnormal`:
+
+```cpp
+if (light_abnormal == true && ldr_covered == true && pir_detected == true) {
+    sabotage_alert = true;
+    device_tampered = true;
 }
 ```
 
 ---
 
-## 10.4 Vì sao phải dùng cả LDR và PIR?
+## 7.4. Biến cập nhật khi chống phá hoại
 
-Nếu chỉ dùng LDR, hệ thống dễ báo nhầm khi:
-
-- Trời tối.
-- Tắt đèn.
-- Có bóng người đi ngang.
-- Ánh sáng môi trường thay đổi.
-- Người trình diễn vô tình che cảm biến.
-
-Vì vậy cần thêm PIR để xác nhận có chuyển động gần thiết bị.
-
-Logic của nhóm là:
-
-```text
-LDR bị che + PIR có chuyển động = nghi ngờ có người cố tình phá hoại
+```cpp
+light_abnormal = true;
+ldr_covered = true;
+pir_detected = true;
+sabotage_alert = true;
+device_tampered = true;
+alarm_status = "SABOTAGE_ALERT";
+led_red_on = true;
+buzzer_on = true;
+last_event_type = "SABOTAGE";
+last_event = "LDR covered and PIR motion detected";
+event_counter++;
 ```
 
-Đây là dạng **sensor fusion**.
+Nếu nhóm muốn gửi Gmail cho người lớn:
 
-**Sensor fusion** nghĩa là kết hợp nhiều cảm biến để ra quyết định chính xác hơn. Thay vì chỉ tin một cảm biến, hệ thống kiểm tra nhiều nguồn tín hiệu cùng lúc để giảm báo động sai.
+```cpp
+send_email_request = true;
+email_event_type = "sabotage";
+email_sent_status = "EMAIL_SENDING";
+```
 
----
+Sau khi gửi thành công:
 
-## 10.5 Hành động của module
-
-Khi phát hiện chống phá hoại:
-
-1. LED đỏ nháy.
-2. Buzzer kêu.
-3. `ldrBlocked = true`.
-4. `pirDetected = true`.
-5. `alarmStatus = true`.
-6. `alertType = "SABOTAGE"`.
-7. `lastAlertMessage = "LDR blocked and motion detected"`.
+```cpp
+email_sent_status = "EMAIL_SENT";
+last_alert_time = current_time;
+cooldown_active = true;
+```
 
 ---
 
-## 10.6 Cách trình bày khi demo
+## 7.5. Vì sao luồng này thực tế hơn?
 
-Người thuyết trình có thể nói:
-
-> “Ở kịch bản thứ ba, nhóm em demo chức năng chống phá hoại thiết bị. Nếu chỉ dùng LDR thì hệ thống dễ báo nhầm khi ánh sáng thay đổi. Vì vậy nhóm em kết hợp LDR với PIR. Khi LDR bị che và PIR đồng thời phát hiện chuyển động, ESP32-CAM xác định đây là hành vi đáng ngờ và kích hoạt cảnh báo.”
-
----
-
-# 11. Thứ tự demo đề xuất trên lớp
-
-Nên demo theo thứ tự sau để dễ hiểu và ít lỗi nhất:
-
-## Bước 1: Kiểm tra Arduino IoT Cloud
-
-Mở dashboard trên điện thoại hoặc laptop.
-
-Kiểm tra:
-
-- Device đang online.
-- Có nút `sosButton`.
-- Có nút `resetAlarm`.
-- Có trạng thái `alarmStatus`.
-- Có trạng thái `alertType`.
-- Có trạng thái `flameDetected`, `ldrBlocked`, `pirDetected`.
-- Có trạng thái `gmailSent`.
-
-Câu nói gợi ý:
-
-> “Trước tiên, nhóm em cho thấy ESP32-CAM đã được đồng bộ với Arduino IoT Cloud. Các biến trên dashboard sẽ thay đổi theo trạng thái thật của thiết bị.”
-
----
-
-## Bước 2: Demo SOS từ điện thoại
-
-1. Bấm nút SOS trên điện thoại.
-2. Quan sát LED đỏ và buzzer.
-3. Kiểm tra `alarmStatus = true`.
-4. Kiểm tra `alertType = SOS`.
-5. Mở Gmail để kiểm tra email đã gửi.
-6. Bấm `resetAlarm` để tắt cảnh báo.
-
-Câu nói gợi ý:
-
-> “Khi em bấm SOS trên điện thoại, ESP32-CAM nhận lệnh qua Cloud, tự cảnh báo tại chỗ bằng LED và buzzer, đồng thời gửi Gmail thông báo qua Google Apps Script.”
-
----
-
-## Bước 3: Demo cảnh báo cháy
-
-1. Đưa nguồn lửa nhỏ hoặc nguồn hồng ngoại gần Flame Sensor.
-2. Quan sát LED đỏ và buzzer.
-3. Kiểm tra `flameDetected = true`.
-4. Kiểm tra `alertType = FIRE`.
-5. Bấm reset nếu cần.
-
-Câu nói gợi ý:
-
-> “Tiếp theo là cảnh báo cháy. Khi Flame Sensor phát hiện lửa, hệ thống tự kích hoạt cảnh báo và cập nhật trạng thái lên Cloud.”
-
----
-
-## Bước 4: Demo chống phá hoại
-
-1. Che LDR bằng tay hoặc khăn.
-2. Quơ tay trước PIR.
-3. Quan sát LED đỏ và buzzer.
-4. Kiểm tra `ldrBlocked = true`.
-5. Kiểm tra `pirDetected = true`.
-6. Kiểm tra `alertType = SABOTAGE`.
-7. Bấm reset nếu cần.
-
-Câu nói gợi ý:
-
-> “Cuối cùng là chống phá hoại. Khi cảm biến ánh sáng bị che và có chuyển động gần thiết bị, hệ thống xác nhận có hành vi đáng ngờ và kích hoạt báo động.”
-
----
-
-# 12. Checklist trước khi cấp nguồn
-
-- [ ] Chưa nối RC522, DS1307, HY-SRF05 nếu không demo các module đó.
-- [ ] ESP32-CAM nhận 5V đúng chân 5V.
-- [ ] Tất cả module nối chung GND.
-- [ ] Flame Sensor cấp 3.3V.
-- [ ] LDR cấp 3.3V.
-- [ ] LDR dùng DO, không dùng AO.
-- [ ] LED đỏ có điện trở 220Ω hoặc 330Ω.
-- [ ] PIR OUT đã được kiểm tra điện áp, không vượt quá 3.3V nếu nối thẳng vào ESP32-CAM.
-- [ ] Buzzer không nóng bất thường.
-- [ ] Không dùng GPIO0 cho module demo.
-- [ ] Không dùng GPIO1/GPIO3 để tránh ảnh hưởng Serial Monitor.
-- [ ] WiFi đã nhập đúng SSID và password.
-- [ ] Arduino IoT Cloud device đang online.
-- [ ] Google Apps Script Web App URL đã đúng.
-- [ ] Gmail người nhận đã đúng.
-- [ ] Đã test gửi Gmail trước khi demo.
-- [ ] Đã test nút resetAlarm để tắt còi khi cần.
-
----
-
-# 13. Rủi ro thường gặp và cách xử lý
-
-## 13.1 Buzzer không kêu
-
-Nguyên nhân có thể:
-
-- Buzzer là loại passive, cần phát xung.
-- GPIO16 không đủ dòng.
-- Cắm sai cực buzzer.
-- Buzzer cần transistor.
-- Dây GND chưa nối chung.
-
-Cách xử lý:
-
-- Test buzzer riêng bằng code đơn giản.
-- Nếu buzzer passive, dùng `tone()` hoặc PWM.
-- Nếu buzzer active, chỉ cần HIGH/LOW.
-- Nếu vẫn yếu hoặc không kêu, dùng transistor để cấp dòng riêng cho buzzer.
-
-**PWM** là Pulse Width Modulation, nghĩa là điều chế độ rộng xung. Hiểu đơn giản là tạo tín hiệu bật/tắt rất nhanh để điều khiển thiết bị như buzzer hoặc LED.
-
----
-
-## 13.2 LDR không đổi trạng thái
-
-Nguyên nhân có thể:
-
-- Chưa chỉnh biến trở xanh.
-- Che chưa đủ kín.
-- Đang đọc ngược HIGH/LOW.
-- Cấp sai nguồn.
-- Dây DO cắm sai chân.
-
-Cách xử lý:
-
-- Chỉnh biến trở xanh trên module.
-- In giá trị LDR ra Serial Monitor.
-- Hiển thị `ldrBlocked` lên Arduino Cloud để kiểm tra.
-- Test trong môi trường sáng rõ rồi che kín bằng tay.
-
----
-
-## 13.3 PIR luôn báo 1 hoặc báo lung tung
-
-Nguyên nhân có thể:
-
-- PIR cần thời gian ổn định sau khi cấp nguồn.
-- Người đứng quá gần cảm biến.
-- Dây OUT nhiễu.
-- OUT của PIR có mức 5V gây không ổn định.
-
-Cách xử lý:
-
-- Chờ 30-60 giây sau khi cấp nguồn rồi mới demo.
-- Đứng yên vài giây trước khi test.
-- Kiểm tra điện áp OUT.
-- Nếu OUT gần 5V, dùng chia áp xuống 3.3V.
-
----
-
-## 13.4 Flame Sensor báo ngược
-
-Nguyên nhân:
-
-- Một số module có logic ngược.
-- Biến trở trên module chỉnh ngưỡng khác nhau.
-
-Cách xử lý:
-
-- Test trước xem có lửa là HIGH hay LOW.
-- Đổi điều kiện trong code nếu cần.
-- Hiển thị `flameDetected` lên Cloud để dễ quan sát.
-
----
-
-## 13.5 Arduino Cloud không cập nhật
-
-Nguyên nhân có thể:
-
-- WiFi sai tên hoặc mật khẩu.
-- Device Secret sai.
-- Board chưa online.
-- Code chưa gọi hàm cập nhật cloud.
-- Mạng yếu.
-
-Cách xử lý:
-
-- Kiểm tra Serial Monitor.
-- Kiểm tra trạng thái online trong Arduino IoT Cloud.
-- Kiểm tra lại WiFi SSID, password và Device Secret.
-- Test bằng biến đơn giản trước như bật/tắt LED.
-
----
-
-## 13.6 Không gửi được Gmail
-
-Nguyên nhân có thể:
-
-- Google Apps Script chưa deploy đúng dạng Web App.
-- Web App URL sai.
-- Chưa cấp quyền gửi Gmail.
-- ESP32-CAM chưa gọi được URL.
-- Mạng WiFi không có Internet.
-- Google Apps Script bị lỗi tham số.
-
-Cách xử lý:
-
-- Mở Web App URL trên trình duyệt để test.
-- Kiểm tra quyền Gmail trong Google Apps Script.
-- In HTTP response code ra Serial Monitor.
-- Kiểm tra Gmail người nhận.
-- Kiểm tra thư mục Spam.
-
-**HTTP response code** là mã phản hồi khi thiết bị gọi một đường link. Ví dụ `200` thường nghĩa là gọi thành công.
-
----
-
-# 14. Câu thuyết trình ngắn
-
-Có thể dùng đoạn này khi trình bày:
-
-> “Trong bản demo này, nhóm em chọn ba tình huống dễ kiểm chứng nhất: SOS từ điện thoại, cảnh báo cháy và chống phá hoại cảm biến. ESP32-CAM được đồng bộ với Arduino IoT Cloud, nên người dùng có thể theo dõi trạng thái và bấm SOS từ điện thoại. Khi SOS được kích hoạt, thiết bị tự bật LED đỏ và buzzer để cảnh báo tại chỗ, đồng thời gọi Google Apps Script để gửi Gmail thông báo. Ngoài SOS thủ công, hệ thống còn có thể tự phát hiện cháy bằng Flame Sensor và phát hiện hành vi che cảm biến bằng cách kết hợp LDR với PIR.”
-
----
-
-# 15. Câu trả lời khi thầy hỏi
-
-## 15.1 Vì sao dùng Arduino IoT Cloud?
-
-> “Dạ vì Arduino IoT Cloud giúp nhóm em đồng bộ dữ liệu giữa ESP32-CAM và điện thoại. Nhờ đó người dùng có thể xem trạng thái cảm biến, trạng thái cảnh báo và bấm SOS từ xa.”
-
----
-
-## 15.2 Vì sao bấm SOS rồi module vẫn phải tự hú còi?
-
-> “Dạ vì Gmail hoặc Internet có thể bị trễ, nên thiết bị vẫn cần cảnh báo tại chỗ bằng LED và buzzer. Như vậy người ở gần có thể nhận biết nguy hiểm ngay lập tức.”
-
----
-
-## 15.3 Vì sao dùng Google Apps Script để gửi Gmail?
-
-> “Dạ vì ESP32-CAM không phù hợp để đăng nhập Gmail trực tiếp. Google Apps Script đóng vai trò trung gian: ESP32-CAM chỉ cần gọi một Web App URL, còn Apps Script sẽ gửi Gmail giúp hệ thống.”
-
----
-
-## 15.4 Vì sao không dùng AO của LDR?
-
-> “Dạ vì ESP32-CAM AI Thinker không đưa GPIO33 ra ngoài nên nhóm em không nối được chân AO của LDR vào GPIO33. Với demo này nhóm em chỉ cần phát hiện sáng hoặc bị che, nên dùng DO là đủ.”
-
----
-
-## 15.5 Vì sao chống phá hoại phải dùng cả LDR và PIR?
-
-> “Dạ nếu chỉ dùng LDR thì dễ báo nhầm khi môi trường tối hoặc ánh sáng thay đổi. Vì vậy nhóm em dùng thêm PIR để xác nhận có chuyển động gần thiết bị. Khi vừa có LDR bị che vừa có PIR phát hiện chuyển động, hệ thống mới xác định là hành vi đáng ngờ.”
-
----
-
-# 16. Kết luận
-
-Sau khi cập nhật, 3 kịch bản demo của nhóm gồm:
-
-1. **SOS từ điện thoại + module tự cảnh báo + gửi Gmail**  
-   Người dùng bấm SOS trên Arduino IoT Cloud, ESP32-CAM tự bật LED/Buzzer và gọi Google Apps Script để gửi Gmail.
-
-2. **Cảnh báo cháy**  
-   Flame Sensor phát hiện lửa, ESP32-CAM bật LED/Buzzer và cập nhật trạng thái lên Cloud.
-
-3. **Chống phá hoại thiết bị**  
-   LDR phát hiện bị che, PIR xác nhận có chuyển động, ESP32-CAM bật LED/Buzzer và cập nhật trạng thái lên Cloud.
-
-Bản demo này thể hiện rõ tính chất IoT vì có đủ:
+Nếu chỉ dùng:
 
 ```text
-Thiết bị thật + Cloud + Điện thoại + Cảm biến + Cảnh báo tại chỗ + Gửi Gmail
+LDR bị tối → báo phá hoại
+```
+
+thì dễ sai vì có thể chỉ là tắt đèn hoặc trời tối.
+
+Luồng mới dùng:
+
+```text
+LDR thay đổi bất thường
++
+LDR bị che
++
+PIR có chuyển động
+```
+
+nên hợp lý hơn. Có người ở gần thiết bị và ánh sáng bị che đột ngột thì mới kết luận là đáng nghi.
+
+---
+
+## 7.6. Cách demo kịch bản 3 trên lớp
+
+### Bước 1: Cho thấy trạng thái ban đầu
+
+Dashboard nên hiển thị:
+
+```cpp
+ldr_value
+ldr_delta
+light_abnormal
+ldr_covered
+pir_detected
+sabotage_alert
+device_tampered
+alarm_status
+```
+
+Ban đầu:
+
+```text
+light_abnormal = false
+ldr_covered = false
+pir_detected = false
+sabotage_alert = false
+device_tampered = false
+alarm_status = "SAFE"
+```
+
+---
+
+### Bước 2: Che LDR
+
+Dùng tay hoặc khăn che LDR.
+
+Quan sát:
+
+```text
+ldr_value thay đổi
+ldr_delta tăng
+light_abnormal = true
+ldr_covered = true
+```
+
+Lúc này chưa nhất thiết phải hú còi ngay nếu chưa có PIR.
+
+---
+
+### Bước 3: Quơ tay trước PIR
+
+Quan sát:
+
+```text
+pir_detected = true
+sabotage_alert = true
+device_tampered = true
+alarm_status = "SABOTAGE_ALERT"
+LED đỏ bật
+Buzzer kêu
+```
+
+---
+
+### Bước 4: Kiểm tra thông báo/Gmail nếu có bật gửi mail
+
+Quan sát:
+
+```text
+email_event_type = "sabotage"
+email_sent_status = "EMAIL_SENT"
+```
+
+---
+
+### Bước 5: Reset
+
+Bấm:
+
+```cpp
+reset_alarm = true;
+```
+
+Board đưa về:
+
+```cpp
+sabotage_alert = false;
+device_tampered = false;
+led_red_on = false;
+buzzer_on = false;
+alarm_status = "SAFE";
+send_email_request = false;
+email_sent_status = "EMAIL_IDLE";
+```
+
+---
+
+# 8. Thứ tự demo đề xuất
+
+## Bước 1: Kiểm tra Cloud
+
+Mở Arduino IoT Cloud Dashboard.
+
+Nói:
+
+> “Nhóm em dùng 1 Thing tên `IoT_Anti_Theft_System`. Các biến điều khiển như `sos_child`, `sos_adult`, `reset_alarm` là Read & Write. Các biến cảm biến và trạng thái như `fire_alert`, `sabotage_alert`, `alarm_status` là Read Only vì do board tự cập nhật.”
+
+---
+
+## Bước 2: Demo kịch bản 1 - SOS
+
+1. Bấm `sos_child`.
+2. Quan sát `sos_level`, `sos_message`, `alarm_status`.
+3. Quan sát LED/Buzzer.
+4. Kiểm tra `email_sent_status`.
+5. Mở Gmail nếu mức SOS có gửi email.
+6. Bấm `reset_alarm`.
+
+---
+
+## Bước 3: Demo kịch bản 2 - Cháy
+
+1. Đưa nguồn lửa/hồng ngoại gần Flame Sensor.
+2. Quan sát `flame_value`.
+3. Quan sát `flame_detected`.
+4. Quan sát `fire_alert`.
+5. Kiểm tra Gmail.
+6. Bấm `reset_alarm`.
+
+---
+
+## Bước 4: Demo kịch bản 3 - Chống phá hoại
+
+1. Che LDR.
+2. Quan sát `ldr_value`, `ldr_delta`, `ldr_covered`.
+3. Quơ tay trước PIR.
+4. Quan sát `pir_detected`, `sabotage_alert`, `device_tampered`.
+5. Kiểm tra LED/Buzzer.
+6. Bấm `reset_alarm`.
+
+---
+
+# 9. Câu thuyết trình ngắn
+
+> “Trong bản demo này, nhóm em trình bày 3 kịch bản chính: SOS từ điện thoại, cảnh báo cháy và chống phá hoại thiết bị. ESP32-CAM được đồng bộ với Arduino IoT Cloud thông qua các biến trong Thing `IoT_Anti_Theft_System`. Người dùng có thể bấm SOS từ điện thoại bằng biến `sos_child` hoặc `sos_adult`. Board sẽ tự tính `sos_level`, bật LED, bật buzzer và nếu cần thì gửi Gmail qua Google Apps Script bằng nhóm biến `send_email_request`, `email_event_type`, `email_sent_status`. Với báo cháy, board dùng `flame_detected`, `kitchen_temperature` và `fire_alert`. Với chống phá hoại, board kết hợp `ldr_covered` và `pir_detected` để xác nhận `sabotage_alert`.”
+
+---
+
+# 10. Câu trả lời khi thầy hỏi
+
+## 10.1. Vì sao không cho dashboard sửa `fire_alert`, `sabotage_alert`?
+
+> “Dạ vì đây là kết luận do board tự xử lý từ cảm biến. Nếu cho dashboard sửa trực tiếp thì dữ liệu sẽ không còn phản ánh trạng thái thật của phần cứng.”
+
+---
+
+## 10.2. Vì sao `sos_level` là Read Only?
+
+> “Dạ vì mức SOS nên do board tự tính từ hành vi bấm SOS. Người dùng chỉ bấm `sos_child` hoặc `sos_adult`, còn board quyết định mức 1, 2 hay 3 để tránh người dùng sửa sai mức cảnh báo.”
+
+---
+
+## 10.3. Vì sao cần `email_event_type`?
+
+> “Dạ vì Google Apps Script cần biết sự kiện nào đang xảy ra. Ví dụ `sos_child`, `fire`, hoặc `sabotage`, từ đó chọn nội dung Gmail và người nhận phù hợp.”
+
+---
+
+## 10.4. Vì sao xác nhận công an/cứu hỏa không đưa vào Arduino Cloud?
+
+> “Dạ vì trong danh sách biến hiện tại chưa có biến xác nhận riêng. Để không tạo thêm biến ngoài thiết kế, nhóm em để phần xác nhận nằm trong Google Apps Script thông qua link trong Gmail. Apps Script sẽ xử lý ai xác nhận trước, gửi mail tiếp và khóa các xác nhận sau.”
+
+---
+
+## 10.5. Vì sao chống phá hoại cần cả LDR và PIR?
+
+> “Dạ nếu chỉ dùng LDR thì dễ báo nhầm khi tắt đèn hoặc môi trường tối. Vì vậy nhóm em kết hợp LDR bị che với PIR phát hiện chuyển động. Khi vừa có ánh sáng bất thường vừa có người ở gần thiết bị, hệ thống mới xác nhận là phá hoại.”
+
+---
+
+# 11. Checklist trước demo
+
+- [ ] Arduino IoT Cloud Device đang online.
+- [ ] Thing `IoT_Anti_Theft_System` có đúng biến thật.
+- [ ] Dashboard có `sos_child`, `sos_adult`, `reset_alarm`.
+- [ ] Dashboard có `alarm_status`, `sos_level`, `sos_message`.
+- [ ] Dashboard có `flame_value`, `flame_detected`, `kitchen_temperature`, `fire_alert`.
+- [ ] Dashboard có `ldr_value`, `ldr_delta`, `ldr_covered`, `pir_detected`, `sabotage_alert`.
+- [ ] Dashboard có `send_email_request`, `email_event_type`, `email_sent_status`.
+- [ ] LED đỏ hoạt động.
+- [ ] Buzzer hoạt động.
+- [ ] Google Apps Script Web App URL đúng.
+- [ ] Gmail người nhận đúng.
+- [ ] Đã test `reset_alarm` để tắt cảnh báo.
+- [ ] Nếu chưa có cảm biến nhiệt độ thật, phải nói rõ khi demo báo cháy.
+- [ ] Nếu xác nhận công an/cứu hỏa làm qua Gmail, phải nói rõ phần đó do Google Apps Script xử lý.
+
+---
+
+# 12. Kết luận
+
+Bản demo sau khi viết lại gồm 3 kịch bản:
+
+1. **SOS từ điện thoại theo mức độ**  
+   Dùng `sos_child`, `sos_adult`, `sos_level`, `sos_message`, `alarm_status`, `send_email_request`, `email_event_type`, `email_sent_status`.
+
+2. **Cảnh báo cháy**  
+   Dùng `flame_value`, `flame_detected`, `kitchen_temperature`, `fire_alert`, `alarm_status`, `send_email_request`, `email_event_type`, `email_sent_status`.
+
+3. **Chống phá hoại thiết bị**  
+   Dùng `ldr_value`, `ldr_delta`, `light_abnormal`, `ldr_covered`, `pir_detected`, `sabotage_alert`, `device_tampered`, `alarm_status`.
+
+Điểm quan trọng nhất của bản mới:
+
+```text
+Không bịa thêm biến Arduino Cloud.
+Luồng xác nhận công an/cứu hỏa được đưa sang Google Apps Script.
+Arduino Cloud chỉ dùng đúng các biến đã có trong file thật.
 ```
