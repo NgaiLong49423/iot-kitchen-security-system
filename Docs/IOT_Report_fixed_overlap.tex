@@ -1,0 +1,218 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\tikzset{>=Stealth}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{IoT-Based Multi-Sensor Kitchen Security System: Design, Implementation, and Evaluation}
+
+\author{\IEEEauthorblockN{Group 6, SE2034}
+\IEEEauthorblockA{Ngô Gia Long -- SE190732 \\ Nguyễn Nhật Anh -- SE192077 \\ Võ Trần Công Danh -- SE190824 \\ Nguyễn An Vương -- SE190996 \\
+FPT University, Ho Chi Minh Campus, Vietnam}
+}
+
+\maketitle
+
+\begin{abstract}
+This paper presents the design and implementation of a compact IoT-based security system for kitchen environments. The system integrates an ESP32-CAM-MB controller with an AI Thinker OV2640 camera module, PIR 5050 motion sensor, and LDR light sensor to detect intrusions and environmental changes. Local alerting is provided via a passive buzzer and red LED indicator. The system supports nighttime intrusion detection when an intruder uses a flashlight or other sudden light source to illuminate the monitored area. Experimental validation demonstrates the system's ability to detect motion patterns and light changes, enabling practical smart home security with minimal hardware footprint.
+\end{abstract}
+
+\begin{IEEEkeywords}
+IoT security, ESP32-CAM, smart home, intrusion detection, motion sensing, light detection.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Smart home security is increasingly important for protecting people and assets, especially in high-risk areas such as the kitchen. Traditional alarm systems typically rely on a single type of sensor and offer limited remote access. Recent IoT research highlights the benefits of multi-sensor fusion, cloud monitoring, and adaptive logic to improve reliability and reduce false positives %\cite{stojkoska2017review,gunawan2017prototype}.
+
+This project constructs a compact kitchen security system that combines motion detection and ambient light monitoring in one embedded platform. The design uses an ESP32-CAM-MB board carrying the AI Thinker OV2640 camera module to leverage the built-in camera, Wi-Fi connectivity, and GPIO support for external sensors while preserving the compact form factor required for kitchen installation.
+
+\section{Related Work}
+Prior works on smart home security emphasize fault-tolerant sensing and remote alerting. Malche and Maheshwary %\cite{malche2017internet} described a general IoT smart home architecture that supports cloud-based monitoring. Stojkoska and Trivodaliev \cite{stojkoska2017review} reviewed the challenges of smart home adoption, including interoperability and false alarm reduction. Gunawan et al. \cite{gunawan2017prototype} evaluated prototype designs that combine multiple sensors for improved detection performance. These studies motivate the proposed kitchen security approach.
+
+\section{System Architecture}
+The system is organized into sensing, processing, actuation, and communication layers. Input devices include:
+\begin{itemize}
+  \item PIR 5050 motion sensor for human presence detection.
+  \item LDR light sensor for ambient brightness and light-based intrusion detection.
+  \item Built-in OV2640 camera for visual verification and recording.
+\end{itemize}
+
+The ESP32-CAM controller processes sensor data, executes detection logic, and coordinates camera capture, passive buzzer activation, and red LED indication. Local alerts are provided via audio (buzzer) and visual (LED) signals. The system can also send notifications through Wi-Fi connectivity when abnormal events occur, enabling remote monitoring of the monitored space.
+
+\section{Hardware and Software Design}
+\subsection{Hardware Components}
+The hardware design supports kitchen deployment with a minimal sensor array and central ESP32-CAM board. Key component functions are:
+\begin{itemize}
+  \item PIR 5050 provides motion detection for intrusion alerts.
+  \item LDR monitors ambient light levels to detect sudden illumination (flashlight intrusion) during dark hours.
+  \item OV2640 camera enables visual verification and recording of detected events.
+  \item Passive buzzer 1407 and red LED provide immediate local alerts without network dependency.
+\end{itemize}
+
+The ESP32-CAM-MB board uses the AI Thinker OV2640 camera module and requires careful GPIO planning because several pins are shared with camera and programming signals. The system powers the PIR 5050 from the 5V supply while the LDR, buzzer, and LED operate at 3.3V logic levels from the ESP32-CAM board.
+
+Table~\ref{tab:components} summarizes the major components.
+
+\begin{table}[ht]
+\centering
+\caption{Primary hardware components}
+\label{tab:components}
+\begin{tabularx}{\columnwidth}{|p{2.8cm}|X|}
+\toprule
+Component & Purpose \\
+\midrule
+ESP32-CAM-MB + AI Thinker OV2640 & Main controller with Wi-Fi and integrated camera \\
+PIR 5050 & Motion detection for intrusion alerts \\
+LDR (Light-Dependent Resistor) & Ambient light monitoring and flashlight detection \\
+Passive Buzzer 1407 & Audible alarm output \\
+Red LED & Visual alarm indicator \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Wiring and GPIO Mapping}
+The hardware documentation for this project specifies the following wiring between the ESP32-CAM-MB board and external modules:
+\begin{itemize}
+  \item PIR 5050 motion sensor output is connected to GPIO13, powered by 5V supply.
+  \item LDR light sensor analog output is connected to GPIO33 (ADC input), powered by 3.3V.
+  \item Passive Buzzer 1407 is connected to GPIO12, driven at 3.3V logic level.
+  \item Red LED is connected through a 220Ω current-limiting resistor to GPIO2, powered at 3.3V.
+\end{itemize}
+
+The system uses separate power domains: the PIR 5050 is powered from 5V, while the LDR, buzzer, and LED operate at 3.3V logic levels from the ESP32-CAM board. All grounds are tied together to maintain a common reference.
+
+These wiring choices reflect the constraints of the ESP32-CAM platform, which has limited GPIO pins available due to camera and programming signal conflicts. GPIO selections prioritize avoiding interference with the camera and UART pins used for programming.
+
+\begin{figure}[ht]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[auto, node distance=20mm, every node/.style={font=\sffamily\footnotesize}]
+  \tikzstyle{device}=[rectangle, draw=black, rounded corners, minimum width=35mm, minimum height=8mm, fill=blue!10]
+  \tikzstyle{periph}=[rectangle, draw=black, rounded corners, minimum width=28mm, minimum height=7mm, fill=green!10]
+  \tikzstyle{rail}=[rectangle, draw=black, minimum width=18mm, minimum height=5mm, fill=gray!10]
+
+  \node[device] (esp) {ESP32-CAM-MB / OV2640};
+  \node[periph, above=18mm of esp, xshift=-40mm] (pir) {PIR 5050};
+  \node[periph, above=18mm of esp, xshift=40mm] (ldr) {LDR};
+  \node[periph, below=18mm of esp, xshift=-40mm] (buzzer) {Buzzer 1407};
+  \node[periph, below=18mm of esp, xshift=40mm] (led) {Red LED};
+  \node[rail, below=12mm of esp, xshift=-25mm] (v5) {5V};
+  \node[rail, below=12mm of esp, xshift=25mm] (v33) {3.3V};
+
+  \draw[->] (esp.north west) -- ++(-10mm,0) |- (pir.south) node[pos=0.30, left]{GPIO13};
+  \draw[->] (esp.north east) -- ++(10mm,0) |- (ldr.south) node[pos=0.30, right]{GPIO33};
+  \draw[->] (esp.south west) -- ++(-10mm,0) |- (buzzer.north) node[pos=0.35, left]{GPIO12};
+  \draw[->] (esp.south east) -- ++(10mm,0) |- (led.north) node[pos=0.35, right]{GPIO2};
+  \draw[dashed] (v5.north) -- ++(0,8mm) -| (pir.south) node[pos=0.40, left]{5V};
+  \draw[dashed] (v33.north) -- ++(0,8mm) -| (ldr.south) node[pos=0.40, right]{3.3V};
+  \draw[dashed] (v33.north) -- ++(0,8mm) -| (buzzer.south) node[pos=0.40, left]{3.3V};
+  \draw[dashed] (v33.north) -- ++(0,8mm) -| (led.south) node[pos=0.40, right]{3.3V};
+\end{tikzpicture}}
+\caption{Wiring diagram for the ESP32-CAM-MB-based compact kitchen security system.}
+\label{fig:wiring}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[node distance=16mm, every node/.style={font=\sffamily\small}, align=center]
+  \tikzstyle{startstop}=[rectangle, rounded corners, draw=black, fill=orange!20, minimum width=30mm, minimum height=7mm]
+  \tikzstyle{process}=[rectangle, draw=black, fill=blue!10, minimum width=32mm, minimum height=7mm]
+  \tikzstyle{decision}=[diamond, draw=black, fill=green!15, aspect=2, inner sep=1pt]
+  \tikzstyle{arrow}=[->, thick]
+
+  \node[startstop] (start) {Start};
+  \node[process, below=of start] (read) {Read sensors: PIR, LDR};
+  \node[decision, below=of read] (motionDetected) {Motion detected?};
+  \node[decision, right=30mm of motionDetected] (lightCheck) {High light level or\\flashlight detected?};
+  \node[process, below=of motionDetected] (alarmMotion) {Activate buzzer and red LED};
+  \node[process, below=of lightCheck] (alarmLight) {Activate buzzer and red LED\\(intrusion alert)};
+  \node[process, below=of alarmMotion] (capture) {Capture camera frame};
+  \node[process, below=of capture] (notify) {Send notification via Wi-Fi};
+  \node[startstop, below=of notify] (end) {End / Repeat};
+
+  \draw[arrow] (start) -- (read);
+  \draw[arrow] (read) -- (motionDetected);
+  \draw[arrow] (motionDetected) -- node[below]{yes} (alarmMotion);
+  \draw[arrow] (motionDetected) -- node[midway,above]{no} (end);
+  \draw[arrow] (motionDetected.east) -- ++(15mm,0) |- (lightCheck.west) node[pos=0.25, above]{yes};
+  \draw[arrow] (lightCheck) -- node[below]{yes} (alarmLight);
+  \draw[arrow] (lightCheck.south) -- ++(0,-8mm) -| (end.north) node[pos=0.35, right]{no};
+  \draw[arrow] (alarmMotion) -- (capture);
+  \draw[arrow] (alarmLight) -- (capture);
+  \draw[arrow] (capture) -- (notify);
+  \draw[arrow] (notify) -- (end);
+\end{tikzpicture}}
+\caption{Activity diagram showing detection and alert flows in the compact kitchen security system.}
+\label{fig:activity}
+\end{figure}
+
+\subsection{Embedded Software}
+The firmware implements a continuous monitoring loop in which sensor states are evaluated and decision rules are applied. System behaviors include:
+\begin{itemize}
+  \item Continuous monitoring of PIR motion sensor and LDR light sensor inputs.
+  \item Activating local alarms (buzzer and red LED) when motion is detected in low-light conditions.
+  \item Detecting nighttime intrusion attempts when motion is detected in dark conditions, or when motion occurs and light suddenly increases (flashlight activation).
+  \item Capturing camera frames upon detection to enable visual verification and recording.
+  \item Sending Wi-Fi notifications to remote devices when intrusion is detected.
+  \item Providing visual and audible feedback via LED and buzzer for immediate local alerting.
+\end{itemize}
+
+The firmware supports basic threshold adjustments for motion sensitivity and light level detection. The system operates continuously without requiring external triggers for arming, providing passive 24/7 monitoring. Wi-Fi connectivity enables remote notification and cloud logging when network is available.
+
+\section{Experimental Setup}
+The system was validated using a kitchen-scale prototype assembled from the available project components. Tests were conducted in the following scenarios:
+\begin{itemize}
+  \item Dark room motion detection: PIR activation in low ambient light to verify intrusion alarm.
+  \item Flashlight intrusion: Human motion combined with flashlight illumination to verify attacker detection pattern.
+  \item Light level thresholds: Varying room brightness to calibrate LDR detection sensitivity.
+  \item Camera capture and notification: Verifying that detected events trigger camera recording and Wi-Fi alerts.
+  \item False alarm filtering: Testing system response to non-threatening motion (pet-like movement).
+  \item Alarm output verification: Confirming buzzer activation and LED illumination during detection.
+\end{itemize}
+
+\section{Results}
+The prototype successfully demonstrated the following capabilities:
+\begin{itemize}
+  \item Reliable motion detection with combined PIR and LDR conditions reduced false positives compared with motion-only logic.
+  \item Nighttime intrusion patterns were successfully detected when motion occurred in conjunction with sudden light increases (flashlight-based intrusion).
+  \item Local alerting via buzzer and LED activation provided immediate notification without network dependency.
+  \item Camera capture was successfully triggered upon detection events, providing visual verification data.
+  \item Wi-Fi notifications were sent to remote devices when network connectivity was available.
+  \item System operated reliably during extended periods without manual intervention.
+\end{itemize}
+
+These results show that a multi-sensor IoT kitchen security system with minimal hardware complexity can provide effective intrusion detection with both local and remote alerting capabilities.
+
+\section{Discussion}
+The project demonstrates that combining motion detection with ambient light sensing provides practical intrusion detection for kitchen environments. Multi-sensor fusion with PIR and LDR inputs helps reduce false alarms from ambient changes while remaining sensitive to actual intrusion patterns. The integration of local alerting (buzzer and LED) with camera recording and remote Wi-Fi notifications creates a layered security approach suitable for both occupied and unoccupied monitoring scenarios.
+
+The use of an ESP32-CAM platform enables a compact design with integrated camera, Wi-Fi, and GPIO support for minimal component count. Limitations include dependency on Wi-Fi availability for remote notifications, the need for careful calibration of LDR light thresholds, and the inherent challenge of distinguishing flashlight-based intrusion from legitimate nighttime lighting. Future improvements may include adaptive threshold learning, advanced motion classification, and integration with existing smart home systems.
+
+\section{Conclusion}
+This report presents a compact IoT-based kitchen security solution built around the ESP32-CAM platform with combined PIR motion and LDR light sensing. The system supports reliable intrusion detection with local alerting via buzzer and LED, camera-based visual verification, and remote Wi-Fi notifications. Experimental validation confirms that the minimalist sensor approach provides practical detection of both nighttime intrusion and flashlight-based attacks while maintaining excellent portability and low cost.
+
+\section*{Acknowledgment}
+The authors thank the Group 6 team members for their contributions to hardware design, software implementation, testing, and documentation.
+
+\bibliographystyle{IEEEtran}
+
+%\bibliography{IOT_Report_final_Old/Bib_references}
+
+\end{document}
