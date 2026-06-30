@@ -21,10 +21,11 @@
 // ==================================================
 // PIR: không chuyển động = LOW, có chuyển động = HIGH
 // LDR: ngoài sáng = LOW, che tối = HIGH
-// Flame: không có lửa = HIGH, có lửa = LOW
+// Flame: đã ĐẢO NGƯỢC theo yêu cầu
+// Sau khi sửa: không có lửa = LOW, có lửa = HIGH
 #define PIR_ACTIVE_STATE       HIGH
 #define LDR_COVERED_STATE      HIGH
-#define FLAME_ACTIVE_STATE     LOW
+#define FLAME_ACTIVE_STATE     HIGH
 
 // ==================================================
 // 3. DEMO CONFIG
@@ -42,6 +43,18 @@ const bool ENABLE_TELEGRAM = true;
 
 // Chống spam gửi cảnh báo quá nhanh
 const unsigned long ALERT_COOLDOWN_MS = 15000;
+
+// Cảnh báo Telegram riêng cho LDR + PIR và PIR bị kích hoạt nhiều lần.
+// Chức năng này chỉ gửi Telegram, không gửi Gmail và không bật alarmLatched,
+// để không làm ảnh hưởng các kịch bản Fire/SOS/Sabotage cũ.
+const unsigned long LDR_PIR_TELEGRAM_COOLDOWN_MS = 30000;
+
+// PIR_MULTI_HIT_WINDOW_MS = cửa sổ thời gian để đếm số lần PIR chuyển từ FALSE sang TRUE.
+// PIR_MULTI_HIT_REQUIRED_COUNT = đủ số lần này thì gửi cảnh báo Telegram riêng.
+const unsigned long PIR_MULTI_HIT_WINDOW_MS = 7000;
+const int PIR_MULTI_HIT_REQUIRED_COUNT = 2;
+const unsigned long PIR_CONTINUOUS_HIGH_MS = 1200;
+const unsigned long PIR_MULTI_HIT_TELEGRAM_COOLDOWN_MS = 20000;
 
 // Cửa sổ đếm số lần bấm SOS trẻ em
 const unsigned long SOS_PRESS_WINDOW_MS = 3000;
@@ -67,23 +80,23 @@ bool sabotageEmailSent = false;
 bool intrusionEmailSent = false;
 bool sosEmailSent = false;
 
+// Theo dõi cảnh báo LDR + PIR: ánh sáng bị che/tối và có chuyển động
+bool ldrPirTelegramAlertActive = false;
+unsigned long lastLdrPirTelegramSentMs = 0;
+
+// Theo dõi PIR bị kích hoạt nhiều lần trong thời gian ngắn
+bool lastPirStateForMultiHit = false;
+int pirMultiHitCount = 0;
+unsigned long pirMultiHitWindowStartMs = 0;
+unsigned long pirHighStartMs = 0;
+unsigned long lastPirMultiHitTelegramSentMs = 0;
+
 int sosChildPressCount = 0;
 int sosAdultPressCount = 0;
 unsigned long lastSosChildPressMs = 0;
 unsigned long lastSosAdultPressMs = 0;
 bool pendingSosChild = false;
 bool pendingSosAdult = false;
-
-// Chống spam gửi cảnh báo theo loại (30 - 60 giây)
-const unsigned long TYPE_ALERT_COOLDOWN_MS = 60000; // 60 giây
-unsigned long lastSosChildAlertMs = 0;
-unsigned long lastSosAdultAlertMs = 0;
-unsigned long lastFireAlertMs = 0;
-unsigned long lastSabotageAlertMs = 0;
-unsigned long lastIntrusionAlertMs = 0;
-
-// Tránh loop gọi đệ quy khi reset demo_scenario
-bool localDemoReset = false;
 
 // ==================================================
 // 5. HÀM ĐỌC CẢM BIẾN
@@ -196,7 +209,8 @@ bool sendGoogleAlert(String type, int level, String eventId) {
   url += "&ldr=" + String(ldr_value);
   url += "&pir=" + String(pir_detected ? "1" : "0");
 
-  Serial.println("[GMAIL] Sending alert request to Google Apps Script...");
+  Serial.println("[GMAIL] Request URL:");
+  Serial.println(url);
 
   if (!http.begin(client, url)) {
     Serial.println("[GMAIL] http.begin failed");
@@ -267,40 +281,14 @@ bool sendTelegramAlert(String message) {
 // 10. GỬI CẢNH BÁO CHUNG
 // ==================================================
 void sendAlertNotification(String type, int level, String message) {
-  unsigned long now = millis();
-
-  // Kiểm tra chống spam theo loại sự kiện (60 giây)
-  if (type == "sos_child" && lastSosChildAlertMs > 0 && now - lastSosChildAlertMs < TYPE_ALERT_COOLDOWN_MS) {
-    Serial.println("[ALERT] Cooldown active for sos_child, skip sending");
-    return;
-  }
-  if (type == "sos_adult" && lastSosAdultAlertMs > 0 && now - lastSosAdultAlertMs < TYPE_ALERT_COOLDOWN_MS) {
-    Serial.println("[ALERT] Cooldown active for sos_adult, skip sending");
-    return;
-  }
-  if (type == "fire" && lastFireAlertMs > 0 && now - lastFireAlertMs < TYPE_ALERT_COOLDOWN_MS) {
-    Serial.println("[ALERT] Cooldown active for fire, skip sending");
-    return;
-  }
-  if (type == "sabotage" && lastSabotageAlertMs > 0 && now - lastSabotageAlertMs < TYPE_ALERT_COOLDOWN_MS) {
-    Serial.println("[ALERT] Cooldown active for sabotage, skip sending");
-    return;
-  }
-  if (type == "intrusion" && lastIntrusionAlertMs > 0 && now - lastIntrusionAlertMs < TYPE_ALERT_COOLDOWN_MS) {
-    Serial.println("[ALERT] Cooldown active for intrusion, skip sending");
+  if (millis() - lastAlertSentMs < ALERT_COOLDOWN_MS) {
+    Serial.println("[ALERT] Cooldown active, skip sending");
     return;
   }
 
-  // Cập nhật timestamp cho loại sự kiện tương ứng
-  if (type == "sos_child") lastSosChildAlertMs = now;
-  else if (type == "sos_adult") lastSosAdultAlertMs = now;
-  else if (type == "fire") lastFireAlertMs = now;
-  else if (type == "sabotage") lastSabotageAlertMs = now;
-  else if (type == "intrusion") lastIntrusionAlertMs = now;
+  lastAlertSentMs = millis();
 
-  lastAlertSentMs = now;
-
-  String eventId = type + "_" + String(event_counter) + "_" + String(now);
+  String eventId = type + "_" + String(event_counter) + "_" + String(millis());
 
   send_email_request = true;
   email_event_type = type;
@@ -313,16 +301,12 @@ void sendAlertNotification(String type, int level, String message) {
 
   if (gmailOk && telegramOk) {
     email_sent_status = "EMAIL_SENT";
-    addEvent("EMAIL_SENT", "Thông báo đã được gửi đến người nhà qua Gmail và Telegram.");
   } else if (gmailOk && !telegramOk) {
     email_sent_status = "EMAIL_SENT_TELEGRAM_FAILED";
-    addEvent("TELEGRAM_FAILED", "Gửi email thành công nhưng gửi Telegram thất bại.");
   } else if (!gmailOk && telegramOk) {
     email_sent_status = "EMAIL_FAILED_TELEGRAM_SENT";
-    addEvent("EMAIL_FAILED", "Gửi Telegram thành công nhưng gửi Gmail thất bại.");
   } else {
     email_sent_status = "EMAIL_FAILED";
-    addEvent("EMAIL_FAILED", "Gửi cả Gmail và Telegram thất bại.");
   }
 
   send_email_request = false;
@@ -349,46 +333,41 @@ void addEvent(String type, String message) {
 // ==================================================
 void triggerSos(bool isChild, int level) {
   alarmLatched = true;
+
   sos_level = level;
 
   if (isChild) {
     alarm_status = "SOS_CHILD_ALERT";
-    threat_level = 4;
-    sos_message = "Cảnh báo SOS trẻ em cấp độ " + String(level);
+    sos_message = "SOS child level " + String(level);
+    threat_level = level >= 3 ? 4 : 3;
 
-    addEvent("SOS_CHILD", "Trẻ em vừa kích hoạt SOS. Hệ thống đã bật còi và đèn đỏ. Đang gửi cảnh báo cho người lớn.");
+    addEvent("SOS_CHILD", "SOS child level " + String(level) + " triggered from Arduino Cloud");
 
     if (level >= 2 && !sosEmailSent) {
       sosEmailSent = true;
 
-      String message = "🆘 CẢNH BÁO SOS TRẺ EM\n"
-                       "Trẻ em vừa kích hoạt SOS từ điện thoại.\n"
-                       "Khu vực: Bếp\n"
-                       "Mức nguy hiểm: 4/4\n"
-                       "Hệ thống đã bật còi và đèn đỏ tại chỗ.\n"
-                       "Gmail cảnh báo đã được gửi cho người lớn.\n"
-                       "Vui lòng kiểm tra ngay.";
-
-      sendAlertNotification("sos_child", 4, message);
+      sendAlertNotification(
+        "sos_child",
+        level,
+        "[Kitchen Security] SOS child level " + String(level) + " tai khu vuc bep"
+      );
     }
 
   } else {
     alarm_status = "SOS_ADULT_ALERT";
-    threat_level = 4;
-    sos_message = "Cảnh báo SOS người lớn cấp độ " + String(level);
+    sos_message = "SOS adult level " + String(level);
+    threat_level = level >= 3 ? 4 : 3;
 
-    addEvent("SOS_ADULT", "Người lớn vừa kích hoạt cảnh báo khẩn cấp. Hệ thống đã bật còi và đèn đỏ. Đang gửi cảnh báo cho người lớn.");
+    addEvent("SOS_ADULT", "SOS adult level " + String(level) + " triggered from Arduino Cloud");
 
     if (level >= 2 && !sosEmailSent) {
       sosEmailSent = true;
 
-      String message = "🆘 SOS NGƯỜI LỚN\n"
-                       "Người lớn vừa kích hoạt cảnh báo khẩn cấp.\n"
-                       "Khu vực: Bếp\n"
-                       "Hệ thống đã bật còi và đèn đỏ.\n"
-                       "Vui lòng kiểm tra tình hình xung quanh thiết bị.";
-
-      sendAlertNotification("sos_adult", 4, message);
+      sendAlertNotification(
+        "sos_adult",
+        level,
+        "[Kitchen Security] SOS adult level " + String(level) + " tai khu vuc bep"
+      );
     }
   }
 }
@@ -402,23 +381,16 @@ void triggerFireAlert() {
   threat_level = 4;
   alarm_status = "FIRE_ALERT";
 
-  addEvent("FIRE", "Nguy hiểm! Hệ thống phát hiện dấu hiệu cháy tại khu vực bếp. Đang gửi cảnh báo cho người lớn.");
+  addEvent("FIRE", "Fire alert detected by Flame Sensor");
 
   if (!fireEmailSent) {
     fireEmailSent = true;
 
-    if (DEMO_SIMULATE_TEMPERATURE) {
-      kitchen_temperature = 65.0;
-    }
-
-    String message = "🔥 NGUY HIỂM! PHÁT HIỆN DẤU HIỆU CHÁY\n"
-                     "Hệ thống phát hiện dấu hiệu ngọn lửa tại khu vực bếp.\n"
-                     "Giá trị flame: " + String(flame_value) + "\n"
-                     "Nhiệt độ bếp: " + String(kitchen_temperature, 1) + "°C\n"
-                     "Còi và đèn đỏ đã được kích hoạt.\n"
-                     "Vui lòng kiểm tra khu vực bếp ngay lập tức.";
-
-    sendAlertNotification("fire", 4, message);
+    sendAlertNotification(
+      "fire",
+      4,
+      "[Kitchen Security] FIRE ALERT tai khu vuc bep"
+    );
   }
 }
 
@@ -429,20 +401,16 @@ void triggerSabotageAlert() {
   threat_level = 3;
   alarm_status = "SABOTAGE_ALERT";
 
-  addEvent("SABOTAGE", "Cảnh báo phá hoại! Thiết bị phát hiện dấu hiệu bị che hoặc can thiệp. Đang gửi cảnh báo cho người lớn.");
+  addEvent("SABOTAGE", "LDR covered and PIR detected movement");
 
   if (!sabotageEmailSent) {
     sabotageEmailSent = true;
 
-    String message = "🛠️ CẢNH BÁO PHÁ HOẠI THIẾT BỊ\n"
-                     "Thiết bị phát hiện dấu hiệu bị che/can thiệp.\n"
-                     "Khu vực: Bếp\n"
-                     "PIR phát hiện chuyển động: " + String(pir_detected ? "Có" : "Không") + "\n"
-                     "Giá trị LDR: " + String(ldr_value) + "\n"
-                     "Hệ thống đã bật còi và đèn đỏ.\n"
-                     "Vui lòng kiểm tra thiết bị ngay.";
-
-    sendAlertNotification("sabotage", 3, message);
+    sendAlertNotification(
+      "sabotage",
+      3,
+      "[Kitchen Security] SABOTAGE ALERT: LDR bi che va PIR phat hien chuyen dong"
+    );
   }
 }
 
@@ -453,30 +421,111 @@ void triggerIntrusionDemo() {
   threat_level = 3;
   alarm_status = "INTRUSION_ALERT";
 
-  addEvent("INTRUSION", "Cảnh báo đột nhập! Hệ thống phát hiện chuyển động bất thường. Đang gửi cảnh báo cho người lớn.");
+  addEvent("INTRUSION", "Demo intrusion alert triggered");
 
   if (!intrusionEmailSent) {
     intrusionEmailSent = true;
 
-    String message = "🚨 CẢNH BÁO ĐỘT NHẬP\n"
-                     "Hệ thống phát hiện chuyển động bất thường gần khu vực bếp.\n"
-                     "PIR: " + String(pir_detected ? "Có" : "Không") + "\n"
-                     "Giá trị LDR: " + String(ldr_value) + "\n"
-                     "Mức nguy hiểm: " + String(threat_level) + "/4\n"
-                     "Còi và đèn đỏ đã được kích hoạt.\n"
-                     "Vui lòng kiểm tra ngay.";
-
-    sendAlertNotification("intrusion", 3, message);
+    sendAlertNotification(
+      "intrusion",
+      3,
+      "[Kitchen Security] INTRUSION ALERT demo"
+    );
   }
 }
 
-void triggerPetIgnoredDemo() {
-  pet_detected = true;
-  alarmLatched = false;
-  threat_level = 1;
-  alarm_status = "PET_IGNORED";
+void processLdrPirTelegramAlert(bool ldrCoveredNow, bool pirNow) {
+  // LDR + PIR TRUE: báo một kiểu riêng trên Telegram.
+  // Không gọi Gmail, không bật còi/đèn, không thay đổi alarmLatched.
+  if (!system_armed) {
+    ldrPirTelegramAlertActive = false;
+    return;
+  }
 
-  addEvent("PET_IGNORED", "Hệ thống phát hiện chuyển động nhưng xác định là vật nuôi. Bỏ qua cảnh báo.");
+  bool ldrPirNow = ldrCoveredNow && pirNow;
+
+  if (!ldrPirNow) {
+    // Khi điều kiện hết TRUE, cho phép lần sau báo lại.
+    ldrPirTelegramAlertActive = false;
+    return;
+  }
+
+  bool cooldownPassed = millis() - lastLdrPirTelegramSentMs >= LDR_PIR_TELEGRAM_COOLDOWN_MS;
+
+  if (!ldrPirTelegramAlertActive && cooldownPassed) {
+    ldrPirTelegramAlertActive = true;
+    lastLdrPirTelegramSentMs = millis();
+
+    addEvent("LDR_PIR", "LDR covered and PIR detected movement - Telegram only");
+
+    sendTelegramAlert(
+      "[Kitchen Security] CANH BAO RIENG: Cam bien anh sang dang bi che/toi va PIR phat hien chuyen dong. "
+      "Day co the la co nguoi di chuyen trong khu vuc bep khi anh sang bat thuong."
+    );
+  }
+}
+
+void processPirMultiHitTelegramAlert(bool pirNow) {
+  // PIR 3 chân VCC/GND/OUT: code chỉ đọc chân OUT.
+  // Bản nhạy hơn: báo nếu PIR có 2 lần kích hoạt trong 7 giây,
+  // hoặc OUT giữ HIGH liên tục khoảng 1.2 giây.
+  // Chức năng này chỉ gửi Telegram, không gọi Gmail, không bật còi/đèn.
+  if (!system_armed) {
+    lastPirStateForMultiHit = false;
+    pirMultiHitCount = 0;
+    pirMultiHitWindowStartMs = 0;
+    pirHighStartMs = 0;
+    return;
+  }
+
+  unsigned long nowMs = millis();
+  bool pirRisingEdge = pirNow && !lastPirStateForMultiHit;
+
+  if (pirNow) {
+    if (pirHighStartMs == 0) {
+      pirHighStartMs = nowMs;
+    }
+  } else {
+    pirHighStartMs = 0;
+  }
+
+  if (pirRisingEdge) {
+    if (pirMultiHitWindowStartMs == 0 || nowMs - pirMultiHitWindowStartMs > PIR_MULTI_HIT_WINDOW_MS) {
+      pirMultiHitWindowStartMs = nowMs;
+      pirMultiHitCount = 1;
+    } else {
+      pirMultiHitCount++;
+    }
+
+    Serial.print("[PIR MULTI HIT] Count = ");
+    Serial.println(pirMultiHitCount);
+  }
+
+  bool enoughHits = pirMultiHitCount >= PIR_MULTI_HIT_REQUIRED_COUNT;
+  bool continuousHigh = pirHighStartMs != 0 && nowMs - pirHighStartMs >= PIR_CONTINUOUS_HIGH_MS;
+  bool cooldownPassed = nowMs - lastPirMultiHitTelegramSentMs >= PIR_MULTI_HIT_TELEGRAM_COOLDOWN_MS;
+
+  if ((enoughHits || continuousHigh) && cooldownPassed) {
+    lastPirMultiHitTelegramSentMs = nowMs;
+    pirMultiHitCount = 0;
+    pirMultiHitWindowStartMs = 0;
+    pirHighStartMs = nowMs;
+
+    addEvent("PIR_MULTI_HIT", "PIR detected repeated or continuous movement - Telegram only");
+
+    sendTelegramAlert(
+      "[Kitchen Security] CANH BAO RIENG: PIR phat hien chuyen dong lap lai/lien tuc trong thoi gian ngan. "
+      "Thiet bi dang thay dau hieu di chuyen bat thuong gan khu vuc bep, vui long kiem tra ngay."
+    );
+  }
+
+  // Nếu quá cửa sổ mà chưa đủ số lần thì reset bộ đếm.
+  if (pirMultiHitWindowStartMs != 0 && nowMs - pirMultiHitWindowStartMs > PIR_MULTI_HIT_WINDOW_MS) {
+    pirMultiHitWindowStartMs = 0;
+    pirMultiHitCount = 0;
+  }
+
+  lastPirStateForMultiHit = pirNow;
 }
 
 // ==================================================
@@ -491,7 +540,6 @@ void resetSystem() {
   fire_alert = false;
   sabotage_alert = false;
   intrusion_alert = false;
-  pet_detected = false;
 
   threat_level = 0;
   sos_level = 0;
@@ -516,20 +564,18 @@ void resetSystem() {
   sosChildPressCount = 0;
   sosAdultPressCount = 0;
 
+  ldrPirTelegramAlertActive = false;
+  lastPirStateForMultiHit = false;
+  pirMultiHitCount = 0;
+  pirMultiHitWindowStartMs = 0;
+
   reset_alarm = false;
   sos_child = false;
   sos_adult = false;
 
-  // Reset alert cooldowns to allow immediate testing after reset
-  lastSosChildAlertMs = 0;
-  lastSosAdultAlertMs = 0;
-  lastFireAlertMs = 0;
-  lastSabotageAlertMs = 0;
-  lastIntrusionAlertMs = 0;
-
   alarm_status = system_armed ? "ARMED" : "SAFE";
 
-  addEvent("SYSTEM_RESET", "Người dùng đã reset cảnh báo. Hệ thống đã tắt còi và đèn đỏ.");
+  addEvent("RESET", "Alarm reset by dashboard");
 }
 
 // ==================================================
@@ -562,6 +608,9 @@ void readSensorsAndProcess() {
 
   // Trong bản demo này, system_armed đi theo alarm_enabled
   system_armed = alarm_enabled;
+
+  processLdrPirTelegramAlert(ldrCoveredNow, pirNow);
+  processPirMultiHitTelegramAlert(pirNow);
 
   bool sabotageNow = system_armed && ldrCoveredNow && pirNow;
 
@@ -722,7 +771,7 @@ void onAlarmEnabledChange() {
     alarm_status = system_armed ? "ARMED" : "SAFE";
   }
 
-  addEvent("ALARM_ENABLED", alarm_enabled ? "Hệ thống bảo vệ đã được bật từ dashboard." : "Hệ thống bảo vệ đã được tắt từ dashboard.");
+  addEvent("ALARM_ENABLED", alarm_enabled ? "Alarm enabled from dashboard" : "Alarm disabled from dashboard");
 }
 
 void onResetAlarmChange() {
@@ -737,7 +786,7 @@ void onSosChildChange() {
     lastSosChildPressMs = millis();
     pendingSosChild = true;
 
-    sos_message = "Hệ thống đã nhận tín hiệu SOS trẻ em. Đang chờ xác nhận mức độ.";
+    sos_message = "SOS child press received. Count = " + String(sosChildPressCount);
     alarm_status = "SOS_INPUT_WAITING";
 
     Serial.print("[SOS CHILD] Press count = ");
@@ -754,7 +803,7 @@ void onSosAdultChange() {
     lastSosAdultPressMs = millis();
     pendingSosAdult = true;
 
-    sos_message = "Hệ thống đã nhận tín hiệu SOS người lớn. Đang chờ xác nhận mức độ.";
+    sos_message = "SOS adult press received. Count = " + String(sosAdultPressCount);
     alarm_status = "SOS_INPUT_WAITING";
 
     Serial.print("[SOS ADULT] Press count = ");
@@ -766,7 +815,7 @@ void onSosAdultChange() {
 }
 
 void onDemoModeChange() {
-  addEvent("DEMO_MODE", demo_mode ? "Chế độ demo đã được bật. Người demo có thể chọn kịch bản để chạy thử." : "Chế độ demo đã được tắt. Hệ thống quay lại xử lý theo cảm biến thật.");
+  addEvent("DEMO_MODE", demo_mode ? "Demo mode enabled" : "Demo mode disabled");
 }
 
 void onDemoScenarioChange() {
@@ -779,42 +828,24 @@ void onDemoScenarioChange() {
   Serial.println(demo_scenario);
 
   if (demo_scenario == 0) {
-    if (localDemoReset) {
-      localDemoReset = false;
-      return;
-    }
     resetSystem();
-    return;
-  }
-
-  int current_scenario = demo_scenario;
-  if (current_scenario == 1) {
-    pir_detected = true;
-    ldr_value = 900;
+  } else if (demo_scenario == 1) {
     triggerIntrusionDemo();
-  } else if (current_scenario == 2) {
-    triggerPetIgnoredDemo();
-  } else if (current_scenario == 6) {
-    pir_detected = true;
-    ldr_value = 100;
+  } else if (demo_scenario == 6) {
     triggerSabotageAlert();
-  } else if (current_scenario == 7) {
+  } else if (demo_scenario == 7) {
     triggerFireAlert();
-  } else if (current_scenario == 8) {
+  } else if (demo_scenario == 8) {
     triggerSos(true, 3);
   } else {
-    addEvent("DEMO", "Unknown demo scenario: " + String(current_scenario));
+    addEvent("DEMO", "Unknown demo scenario: " + String(demo_scenario));
   }
-
-  // Sét ngược về 0 để slider/switch trên dashboard quay về vị trí ban đầu
-  localDemoReset = true;
-  demo_scenario = 0;
 }
 
 void onCapturePhotoChange() {
   if (capture_photo) {
     photo_status = "PHOTO_NOT_IMPLEMENTED_IN_THIS_DEMO";
-    addEvent("PHOTO", "Chức năng chụp ảnh đang tạm tắt trong bản demo này do camera hiện tại chưa hỗ trợ gửi ảnh ổn định.");
+    addEvent("PHOTO", "Capture photo requested but camera capture is not implemented");
     capture_photo = false;
   }
 }

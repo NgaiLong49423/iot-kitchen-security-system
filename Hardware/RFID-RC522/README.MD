@@ -1,1 +1,0 @@
-Tài liệu tham khảo : [astminuteengineers.com/how-rfid-works-rc522-arduino-tutorial](https://lastminuteengineers.com/how-rfid-works-rc522-arduino-tutorial/)
