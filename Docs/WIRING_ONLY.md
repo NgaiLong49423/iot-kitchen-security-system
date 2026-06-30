@@ -77,6 +77,14 @@ OUT        --------> không cắm
 
 Không cắm `Echo` trực tiếp vào ESP32-CAM.
 
+`Echo` của HY-SRF05 có thể trả tín hiệu mức 5V. GPIO của ESP32-CAM dùng mức 3.3V, vì vậy phải dùng mạch chia áp trước khi đưa tín hiệu vào `GPIO12`.
+
+**Chia áp** là cách dùng điện trở để hạ điện áp tín hiệu, giúp tín hiệu từ cảm biến 5V đi vào ESP32-CAM an toàn hơn.
+
+---
+
+### Cách 1 - Cách chuẩn nếu có điện trở 2.2kΩ
+
 Dùng:
 
 ```text
@@ -84,7 +92,17 @@ R1 = 1kΩ
 R2 = 2.2kΩ
 ```
 
-Cắm như sau:
+Bảng cắm:
+
+| Thành phần | Cắm với |
+|---|---|
+| `Echo` HY-SRF05 | Một đầu `R1 1kΩ` |
+| Đầu còn lại của `R1 1kΩ` | Điểm `ECHO_SAFE` |
+| Điểm `ECHO_SAFE` | `GPIO12` ESP32-CAM |
+| Điểm `ECHO_SAFE` | Một đầu `R2 2.2kΩ` |
+| Đầu còn lại của `R2 2.2kΩ` | `GND` ESP32-CAM |
+
+Sơ đồ chữ:
 
 ```text
 HY-SRF05 Echo
@@ -96,7 +114,54 @@ HY-SRF05 Echo
                  GND
 ```
 
-**Chia áp** là cách dùng điện trở để hạ điện áp tín hiệu, giúp tín hiệu từ cảm biến 5V đi vào ESP32-CAM an toàn hơn.
+---
+
+### Cách 2 - Nếu không có điện trở 2.2kΩ
+
+Dùng:
+
+```text
+R1 = 1kΩ
+R2 = 5 điện trở 330Ω nối tiếp = 1650Ω
+```
+
+Bảng cắm:
+
+| Thành phần | Cắm với |
+|---|---|
+| `Echo` HY-SRF05 | Một đầu `R1 1kΩ` |
+| Đầu còn lại của `R1 1kΩ` | Điểm `ECHO_SAFE` |
+| Điểm `ECHO_SAFE` | `GPIO12` ESP32-CAM |
+| Điểm `ECHO_SAFE` | Một đầu điện trở `330Ω số 1` |
+| Điện trở `330Ω số 1` | Điện trở `330Ω số 2` |
+| Điện trở `330Ω số 2` | Điện trở `330Ω số 3` |
+| Điện trở `330Ω số 3` | Điện trở `330Ω số 4` |
+| Điện trở `330Ω số 4` | Điện trở `330Ω số 5` |
+| Điện trở `330Ω số 5` | `GND` ESP32-CAM |
+
+Sơ đồ chữ:
+
+```text
+HY-SRF05 Echo
+     |
+    1kΩ
+     |
+     +-----------------> GPIO12 ESP32-CAM
+     |
+   330Ω
+     |
+   330Ω
+     |
+   330Ω
+     |
+   330Ω
+     |
+   330Ω
+     |
+    GND
+```
+
+Cách 2 tạo điện áp vào `GPIO12` khoảng 3.1V khi `Echo` ở mức 5V. Mức này phù hợp hơn cho ESP32-CAM so với cắm `Echo` trực tiếp.
 
 ## 3.4 Chân dùng trong code
 
