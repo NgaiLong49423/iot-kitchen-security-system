@@ -11,7 +11,7 @@
 
 | STT | Thiết bị | Số chân chính | Vai trò trong dự án |
 |---:|---|---:|---|
-| 1 | ESP32-CAM | 16 chân header chính | Board điều khiển chính, camera, WiFi |
+| 1 | Freenove ESP32-S3 WROOM + Camera OV3660 | 40 chân header chính | Board điều khiển chính, camera OV3660, WiFi |
 | 2 | Module cảm biến ánh sáng LDR MH-Sensor-Series | 4 chân | Phát hiện ánh sáng / che cảm biến |
 | 3 | Cảm biến siêu âm HY-SRF05 | 5 chân | Đo khoảng cách vật thể |
 | 4 | Cảm biến chuyển động PIR HC-SR501 | 3 chân | Phát hiện chuyển động |
@@ -23,48 +23,100 @@
 
 ---
 
-# 2. ESP32-CAM
+# 2. Freenove ESP32-S3 WROOM + Camera OV3660
 
 ## 2.1 Vai trò
 
-ESP32-CAM là board chính của hệ thống. Board này dùng để xử lý logic, kết nối WiFi, giao tiếp với cảm biến và dùng camera tích hợp.
+Freenove ESP32-S3 WROOM là board chính của hệ thống. Board này dùng để xử lý logic, kết nối WiFi, giao tiếp với cảm biến và dùng camera OV3660.
+
+Camera OV3660 là module camera dùng cảm biến ảnh OV3660, phục vụ chức năng chụp ảnh trong hệ thống.
 
 ## 2.2 Số chân
 
-Theo sơ đồ chân được cung cấp, ESP32-CAM có **16 chân header chính**.
+Theo sơ đồ chân được cung cấp, Freenove ESP32-S3 WROOM có **40 chân header chính**, chia thành **20 chân bên trái** và **20 chân bên phải**.
 
-## 2.3 Danh sách chân
+## 2.3 Danh sách chân header chính
 
 | Vị trí theo sơ đồ | Tên chân | Nhóm chân | Ý nghĩa |
 |---|---|---|---|
+| Bên trái | `3V3` | Power | Chân nguồn 3.3V |
+| Bên trái | `RST` | Reset | Chân reset chip |
+| Bên trái | `GPIO4` | GPIO / ADC / Touch / Camera | Chân vào/ra số; có chức năng phụ `ADC1_CH3`, `TOUCH4`, `CAM_SIOD` |
+| Bên trái | `GPIO5` | GPIO / ADC / Touch / Camera | Chân vào/ra số; có chức năng phụ `ADC1_CH4`, `TOUCH5`, `CAM_SIOC` |
+| Bên trái | `GPIO6` | GPIO / ADC / Touch / Camera | Chân vào/ra số; có chức năng phụ `ADC1_CH5`, `TOUCH6`, `CAM_VSYNC` |
+| Bên trái | `GPIO7` | GPIO / ADC / Touch / Camera | Chân vào/ra số; có chức năng phụ `ADC1_CH6`, `TOUCH7`, `CAM_HREF` |
+| Bên trái | `GPIO15` | GPIO / ADC / Touch / Camera | Chân vào/ra số; có chức năng phụ `ADC2_CH4`, `U0RTS`, `CAM_XCLK` |
+| Bên trái | `GPIO16` | GPIO / ADC / UART / Camera | Chân vào/ra số; có chức năng phụ `ADC2_CH5`, `U0CTS`, `CAM_Y8` |
+| Bên trái | `GPIO17` | GPIO / ADC / UART / Camera | Chân vào/ra số; có chức năng phụ `ADC2_CH6`, `U1TXD`, `CAM_Y7` |
+| Bên trái | `GPIO18` | GPIO / ADC / UART / Camera | Chân vào/ra số; có chức năng phụ `ADC2_CH7`, `U1RXD`, `CAM_Y4` |
+| Bên trái | `GPIO8` | GPIO / ADC / Touch | Chân vào/ra số; có chức năng phụ `ADC1_CH7`, `TOUCH8` |
+| Bên trái | `GPIO3` | GPIO / ADC / Touch / Camera / JTAG | Chân vào/ra số; có chức năng phụ `ADC1_CH2`, `TOUCH3`, `CAM_Y3`, `JTAGEN` |
+| Bên trái | `GPIO46` | GPIO / Camera / Logging | Chân vào/ra số; có chức năng phụ `CAM_Y5`, `LOG` |
+| Bên trái | `GPIO9` | GPIO / ADC / Touch / Camera | Chân vào/ra số; có chức năng phụ `ADC1_CH8`, `TOUCH9`, `CAM_Y2` |
+| Bên trái | `GPIO10` | GPIO / ADC / Touch / Camera | Chân vào/ra số; có chức năng phụ `ADC1_CH9`, `TOUCH10`, `CAM_Y6` |
+| Bên trái | `GPIO11` | GPIO / ADC / Touch / Camera | Chân vào/ra số; có chức năng phụ `ADC2_CH0`, `TOUCH11`, `CAM_PCLK` |
+| Bên trái | `GPIO12` | GPIO / ADC / Touch | Chân vào/ra số; có chức năng phụ `ADC2_CH1`, `TOUCH12` |
+| Bên trái | `GPIO13` | GPIO / ADC / Touch | Chân vào/ra số; có chức năng phụ `ADC2_CH2`, `TOUCH13` |
+| Bên trái | `GPIO14` | GPIO / ADC / Touch | Chân vào/ra số; có chức năng phụ `ADC2_CH3`, `TOUCH14` |
 | Bên trái | `5V` | Power | Chân nguồn 5V |
-| Bên trái | `GND` | Ground | Chân mass / cực âm |
-| Bên trái | `GPIO12` | GPIO | Chân vào/ra số; trên sơ đồ có chức năng phụ `ADC2_5`, `HSPI_Q`, `Touch5` |
-| Bên trái | `GPIO13` | GPIO | Chân vào/ra số; trên sơ đồ có chức năng phụ `ADC2_4`, `HSPI_ID`, `Touch4` |
-| Bên trái | `GPIO15` | GPIO | Chân vào/ra số; trên sơ đồ có chức năng phụ `ADC2_3`, `HSPI_CS0`, `Touch3` |
-| Bên trái | `GPIO14` | GPIO | Chân vào/ra số; trên sơ đồ có chức năng phụ `ADC2_6`, `HSPI_CLK`, `Touch6` |
-| Bên trái | `GPIO2` | GPIO | Chân vào/ra số; trên sơ đồ có chức năng phụ `ADC2_2`, `HSPI_WP`, `Touch2` |
-| Bên trái | `GPIO4` | GPIO | Chân vào/ra số; trên sơ đồ có chức năng phụ `ADC2_0`, `HSPI_HD`, `Touch0` |
-| Bên phải | `3.3V` | Power | Chân nguồn 3.3V |
-| Bên phải | `GPIO16` | GPIO | Chân vào/ra số; trên sơ đồ có chức năng phụ `U2_RXD` |
-| Bên phải | `GPIO0` | GPIO | Chân vào/ra số; trên sơ đồ có chức năng phụ `ADC2_1`, `Touch1`, `CLK1` |
-| Bên phải | `GND` | Ground | Chân mass / cực âm |
-| Bên phải | `VCC` | Power | Chân nguồn theo thiết kế board |
-| Bên phải | `GPIO3` | GPIO / UART | Chân vào/ra số; trên sơ đồ có chức năng phụ `U0_RXD`, `CLK2` |
-| Bên phải | `GPIO1` | GPIO / UART | Chân vào/ra số; trên sơ đồ có chức năng phụ `U0_TXD`, `CLK3` |
+| Bên phải | `GPIO43` | GPIO / UART / LED | Chân vào/ra số; có chức năng phụ `U0TXD`, `LED_TX` |
+| Bên phải | `GPIO44` | GPIO / UART / LED | Chân vào/ra số; có chức năng phụ `U0RXD`, `LED_RX` |
+| Bên phải | `GPIO1` | GPIO / ADC / Touch | Chân vào/ra số; có chức năng phụ `ADC1_CH0`, `TOUCH1` |
+| Bên phải | `GPIO2` | GPIO / ADC / Touch / LED | Chân vào/ra số; có chức năng phụ `ADC1_CH1`, `TOUCH2`, `LED_ON` |
+| Bên phải | `GPIO42` | GPIO / JTAG | Chân vào/ra số; có chức năng phụ `MTMS` |
+| Bên phải | `GPIO41` | GPIO / JTAG | Chân vào/ra số; có chức năng phụ `MTDI` |
+| Bên phải | `GPIO40` | GPIO / SD / JTAG | Chân vào/ra số; có chức năng phụ `SD_DATA`, `MTDO` |
+| Bên phải | `GPIO39` | GPIO / SD / JTAG | Chân vào/ra số; có chức năng phụ `SD_CLK`, `MTCK` |
+| Bên phải | `GPIO38` | GPIO / SD | Chân vào/ra số; có chức năng phụ `SD_CMD` |
+| Bên phải | `GPIO37` | GPIO / PSRAM | Chân vào/ra số; có chức năng phụ `PSRAM` |
+| Bên phải | `GPIO36` | GPIO / PSRAM | Chân vào/ra số; có chức năng phụ `PSRAM` |
+| Bên phải | `GPIO35` | GPIO / PSRAM | Chân vào/ra số; có chức năng phụ `PSRAM` |
+| Bên phải | `GPIO0` | GPIO / Boot | Chân vào/ra số; có chức năng phụ `Boot` |
+| Bên phải | `GPIO45` | GPIO / Strap | Chân vào/ra số; có chức năng phụ `Strap` |
+| Bên phải | `GPIO48` | GPIO / WS2812 | Chân vào/ra số; có chức năng phụ `WS2812` |
+| Bên phải | `GPIO47` | GPIO | Chân vào/ra số |
+| Bên phải | `GPIO21` | GPIO | Chân vào/ra số |
+| Bên phải | `GPIO20` | GPIO / USB / ADC / UART | Chân vào/ra số; có chức năng phụ `USB_D+`, `ADC2_CH9`, `U1CTS` |
+| Bên phải | `GPIO19` | GPIO / USB / ADC / UART | Chân vào/ra số; có chức năng phụ `USB_D-`, `ADC2_CH8`, `U1RTS` |
 | Bên phải | `GND` | Ground | Chân mass / cực âm |
 
-## 2.4 Thuật ngữ chân
+## 2.4 Nhóm chân liên quan camera OV3660 theo sơ đồ
+
+| Tín hiệu camera | GPIO trên board | Ý nghĩa |
+|---|---|---|
+| `CAM_SIOD` | `GPIO4` | Đường dữ liệu cấu hình camera |
+| `CAM_SIOC` | `GPIO5` | Đường clock cấu hình camera |
+| `CAM_VSYNC` | `GPIO6` | Tín hiệu đồng bộ khung hình theo chiều dọc |
+| `CAM_HREF` | `GPIO7` | Tín hiệu tham chiếu dòng ảnh |
+| `CAM_XCLK` | `GPIO15` | Xung clock cấp cho camera |
+| `CAM_Y8` | `GPIO16` | Đường dữ liệu ảnh |
+| `CAM_Y7` | `GPIO17` | Đường dữ liệu ảnh |
+| `CAM_Y4` | `GPIO18` | Đường dữ liệu ảnh |
+| `CAM_Y3` | `GPIO3` | Đường dữ liệu ảnh |
+| `CAM_Y5` | `GPIO46` | Đường dữ liệu ảnh |
+| `CAM_Y2` | `GPIO9` | Đường dữ liệu ảnh |
+| `CAM_Y6` | `GPIO10` | Đường dữ liệu ảnh |
+| `CAM_PCLK` | `GPIO11` | Pixel clock, xung clock theo từng điểm ảnh |
+
+## 2.5 Thuật ngữ chân
 
 | Thuật ngữ | Ý nghĩa |
 |---|---|
 | `GPIO` | General Purpose Input/Output, chân vào/ra đa dụng |
 | `Power` | Chân cấp nguồn |
 | `Ground` | Chân mass / cực âm |
-| `UART` | Giao tiếp nối tiếp dùng cho truyền/nhận dữ liệu |
-| `ADC` | Analog-to-Digital Converter, bộ đọc tín hiệu analog thành số |
+| `Reset` | Chân dùng để khởi động lại chip |
+| `UART` | Universal Asynchronous Receiver/Transmitter, giao tiếp nối tiếp dùng cho truyền/nhận dữ liệu |
+| `ADC` | Analog-to-Digital Converter, bộ chuyển đổi tín hiệu analog sang số |
 | `Touch` | Chân có khả năng đọc cảm ứng điện dung |
-| `HSPI` | Một nhóm chân SPI phần cứng trên ESP32 |
+| `Camera` | Nhóm chân phục vụ giao tiếp với camera OV3660 |
+| `SD` | Nhóm chân liên quan giao tiếp thẻ nhớ SD |
+| `PSRAM` | Pseudo Static RAM, bộ nhớ RAM mở rộng tích hợp/phụ trợ cho board |
+| `USB` | Universal Serial Bus, nhóm chân liên quan kết nối USB |
+| `JTAG` | Giao tiếp dùng cho debug, tức gỡ lỗi phần cứng/phần mềm |
+| `Strap` | Strapping pin, chân cấu hình trạng thái khởi động của chip |
+| `Boot` | Chân liên quan chế độ khởi động/nạp chương trình |
+| `PWM` | Pulse Width Modulation, điều chế độ rộng xung để điều khiển mức sáng/tốc độ/tín hiệu tương tự giả lập |
 
 ---
 
@@ -362,7 +414,7 @@ Buzzer trong dự án là loại **2 chân**.
 
 | Thiết bị | Các chân |
 |---|---|
-| ESP32-CAM | `5V`, `GND`, `GPIO12`, `GPIO13`, `GPIO15`, `GPIO14`, `GPIO2`, `GPIO4`, `3.3V`, `GPIO16`, `GPIO0`, `GND`, `VCC`, `GPIO3`, `GPIO1`, `GND` |
+| Freenove ESP32-S3 WROOM + Camera OV3660 | `3V3`, `RST`, `GPIO4`, `GPIO5`, `GPIO6`, `GPIO7`, `GPIO15`, `GPIO16`, `GPIO17`, `GPIO18`, `GPIO8`, `GPIO3`, `GPIO46`, `GPIO9`, `GPIO10`, `GPIO11`, `GPIO12`, `GPIO13`, `GPIO14`, `5V`, `GPIO43`, `GPIO44`, `GPIO1`, `GPIO2`, `GPIO42`, `GPIO41`, `GPIO40`, `GPIO39`, `GPIO38`, `GPIO37`, `GPIO36`, `GPIO35`, `GPIO0`, `GPIO45`, `GPIO48`, `GPIO47`, `GPIO21`, `GPIO20`, `GPIO19`, `GND` |
 | LDR MH-Sensor-Series | `VCC`, `GND`, `DO`, `AO` |
 | HY-SRF05 | `VCC`, `Trig`, `Echo`, `OUT`, `GND` |
 | PIR HC-SR501 | `GND`, `Output/OUT`, `VCC` |
