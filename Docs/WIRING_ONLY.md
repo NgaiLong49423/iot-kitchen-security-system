@@ -1,498 +1,164 @@
-# WIRING_BY_DEVICE.md
+Dựa trên **ESP32-S3 WROOM N16R8 Freenove** trong hình và **SRS hệ thống chống trộm** (PIR + siêu âm + LDR + RTC + LED + Buzzer), dưới đây là sơ đồ nối dây phù hợp.
 
-# Sơ đồ gắn dây theo từng thiết bị với ESP32-CAM
-
-> File này trình bày theo đúng cách cắm từng thiết bị vào ESP32-CAM.  
-> Mỗi mục là một thiết bị riêng.  
-> Trong từng thiết bị sẽ ghi rõ từng dây cắm vào chân nào của ESP32-CAM.
-
----
-
-## 1. Quy ước chung
-
-Trong tài liệu này:
-
-- `VCC` là chân cấp nguồn cho thiết bị.
-- `GND` là mass/cực âm chung.
-- `GPIO` là chân vào/ra tín hiệu của ESP32-CAM.
-- Tất cả thiết bị phải nối chung `GND` với ESP32-CAM.
-- Không dùng thẻ microSD trong bản wiring này.
-- Không dùng `GPIO0` cho thiết bị ngoại vi.
+> **Lưu ý**
+>
+> * ESP32-S3 sử dụng mức logic **3.3V**.
+> * DS1307 và HY-SRF05 thường cấp **5V**.
+> * Chân **Echo của HY-SRF05 là 5V**, nên cần giảm áp xuống 3.3V trước khi đưa vào ESP32 bằng cầu chia áp (khuyến nghị).
+> * Tất cả GND của các module phải nối chung.
 
 ---
 
-# 2. PIR HC-SR501 cắm với ESP32-CAM
+# 1. PIR HC-SR505
 
-## 2.1 Bảng cắm dây
+| PIR HC-SR505 | ESP32-S3 |
+| ------------ | -------- |
+| VCC          | 5V (VIN) |
+| GND          | GND      |
+| OUT          | GPIO4    |
 
-| PIR HC-SR501 | ESP32-CAM |
-|---|---|
-| `VCC` | `5V` |
-| `GND` | `GND` |
-| `OUT` | `GPIO16` |
-
-## 2.2 Sơ đồ chữ
-
-```text
-PIR HC-SR501        ESP32-CAM
------------         ---------
-VCC       --------> 5V
-GND       --------> GND
-OUT       --------> GPIO16
-```
-
-## 2.3 Chân dùng trong code
-
-```cpp
-#define PIN_PIR_OUT 16
-```
+GPIO4 chỉ làm Input nên rất phù hợp đọc tín hiệu PIR.
 
 ---
 
-# 3. Cảm biến siêu âm HY-SRF05 cắm với ESP32-CAM
+# 2. Cảm biến ánh sáng LDR
 
-## 3.1 Bảng cắm dây
+Dùng module LDR có chân AO và DO.
 
-| HY-SRF05 | ESP32-CAM |
-|---|---|
-| `VCC` | `5V` |
-| `GND` | `GND` |
-| `Trig` | `GPIO13` |
-| `Echo` | Qua mạch chia áp rồi vào `GPIO12` |
-| `OUT` | Không cắm |
+### Chỉ dùng AO
 
-## 3.2 Sơ đồ chữ
+| LDR | ESP32-S3         |
+| --- | ---------------- |
+| VCC | 3V3              |
+| GND | GND              |
+| AO  | GPIO1 (ADC1_CH0) |
 
-```text
-HY-SRF05             ESP32-CAM
---------             ---------
-VCC        --------> 5V
-GND        --------> GND
-Trig       --------> GPIO13
-Echo       --------> chia áp --------> GPIO12
-OUT        --------> không cắm
-```
-
-## 3.3 Mạch chia áp cho Echo
-
-Không cắm `Echo` trực tiếp vào ESP32-CAM.
-
-`Echo` của HY-SRF05 có thể trả tín hiệu mức 5V. GPIO của ESP32-CAM dùng mức 3.3V, vì vậy phải dùng mạch chia áp trước khi đưa tín hiệu vào `GPIO12`.
-
-**Chia áp** là cách dùng điện trở để hạ điện áp tín hiệu, giúp tín hiệu từ cảm biến 5V đi vào ESP32-CAM an toàn hơn.
+Không cần dùng DO.
 
 ---
 
-### Cách 1 - Cách chuẩn nếu có điện trở 2.2kΩ
+# 3. RTC DS1307
 
-Dùng:
+Giao tiếp I2C.
 
-```text
-R1 = 1kΩ
-R2 = 2.2kΩ
-```
+| DS1307 | ESP32-S3 |
+| ------ | -------- |
+| VCC    | 5V       |
+| GND    | GND      |
+| SDA    | GPIO8    |
+| SCL    | GPIO9    |
 
-Bảng cắm:
-
-| Thành phần | Cắm với |
-|---|---|
-| `Echo` HY-SRF05 | Một đầu `R1 1kΩ` |
-| Đầu còn lại của `R1 1kΩ` | Điểm `ECHO_SAFE` |
-| Điểm `ECHO_SAFE` | `GPIO12` ESP32-CAM |
-| Điểm `ECHO_SAFE` | Một đầu `R2 2.2kΩ` |
-| Đầu còn lại của `R2 2.2kΩ` | `GND` ESP32-CAM |
-
-Sơ đồ chữ:
-
-```text
-HY-SRF05 Echo
-   |
-   |--- R1 1kΩ ---+--- GPIO12 ESP32-CAM
-                  |
-                R2 2.2kΩ
-                  |
-                 GND
-```
+GPIO8 và GPIO9 hoàn toàn phù hợp làm I2C.
 
 ---
 
-### Cách 2 - Nếu không có điện trở 2.2kΩ
+# 4. LED đỏ
 
-Dùng:
+Nối qua điện trở 220Ω.
 
-```text
-R1 = 1kΩ
-R2 = 5 điện trở 330Ω nối tiếp = 1650Ω
-```
-
-Bảng cắm:
-
-| Thành phần | Cắm với |
-|---|---|
-| `Echo` HY-SRF05 | Một đầu `R1 1kΩ` |
-| Đầu còn lại của `R1 1kΩ` | Điểm `ECHO_SAFE` |
-| Điểm `ECHO_SAFE` | `GPIO12` ESP32-CAM |
-| Điểm `ECHO_SAFE` | Một đầu điện trở `330Ω số 1` |
-| Điện trở `330Ω số 1` | Điện trở `330Ω số 2` |
-| Điện trở `330Ω số 2` | Điện trở `330Ω số 3` |
-| Điện trở `330Ω số 3` | Điện trở `330Ω số 4` |
-| Điện trở `330Ω số 4` | Điện trở `330Ω số 5` |
-| Điện trở `330Ω số 5` | `GND` ESP32-CAM |
-
-Sơ đồ chữ:
-
-```text
-HY-SRF05 Echo
-     |
-    1kΩ
-     |
-     +-----------------> GPIO12 ESP32-CAM
-     |
-   330Ω
-     |
-   330Ω
-     |
-   330Ω
-     |
-   330Ω
-     |
-   330Ω
-     |
-    GND
-```
-
-Cách 2 tạo điện áp vào `GPIO12` khoảng 3.1V khi `Echo` ở mức 5V. Mức này phù hợp hơn cho ESP32-CAM so với cắm `Echo` trực tiếp.
-
-## 3.4 Chân dùng trong code
-
-```cpp
-#define PIN_ULTRASONIC_TRIG 13
-#define PIN_ULTRASONIC_ECHO 12
-```
+| LED đỏ      | ESP32-S3                 |
+| ----------- | ------------------------ |
+| Anode (+)   | GPIO14 qua điện trở 220Ω |
+| Cathode (-) | GND                      |
 
 ---
 
-# 4. LDR MH-Sensor-Series cắm với ESP32-CAM
+# 5. LED xanh
 
-## 4.1 Bảng cắm dây
+Qua điện trở 220Ω.
 
-| LDR Module | ESP32-CAM |
-|---|---|
-| `VCC` | `3.3V` |
-| `GND` | `GND` |
-| `DO` | `GPIO2` |
-| `AO` | Không cắm |
-
-## 4.2 Sơ đồ chữ
-
-```text
-LDR Module          ESP32-CAM
-----------          ---------
-VCC       --------> 3.3V
-GND       --------> GND
-DO        --------> GPIO2
-AO        --------> không cắm
-```
-
-## 4.3 Chân dùng trong code
-
-```cpp
-#define PIN_LDR_DO 2
-```
-
-**DO** là Digital Output, nghĩa là tín hiệu số dạng HIGH/LOW.
+| LED xanh    | ESP32-S3                 |
+| ----------- | ------------------------ |
+| Anode (+)   | GPIO15 qua điện trở 220Ω |
+| Cathode (-) | GND                      |
 
 ---
 
-# 5. Tiny RTC DS1307 cắm với ESP32-CAM
+# 6. Buzzer 1407
 
-## 5.1 Bảng cắm dây
+Nếu là **Active Buzzer 3.3–5V**:
 
-| Tiny RTC DS1307 | ESP32-CAM |
-|---|---|
-| `VCC` | `3.3V` |
-| `GND` | `GND` |
-| `SDA` | `GPIO14` |
-| `SCL` | `GPIO15` |
-| `SQ` | Không cắm |
-| `DS` | Không cắm |
-| `BAT` | Không cắm nếu chưa dùng pin backup |
+| Buzzer | ESP32-S3 |
+| ------ | -------- |
+| (+)    | GPIO16   |
+| (-)    | GND      |
 
-## 5.2 Sơ đồ chữ
-
-```text
-Tiny RTC DS1307      ESP32-CAM
----------------      ---------
-VCC        --------> 3.3V
-GND        --------> GND
-SDA        --------> GPIO14
-SCL        --------> GPIO15
-SQ         --------> không cắm
-DS         --------> không cắm
-BAT        --------> không cắm nếu chưa dùng pin backup
-```
-
-## 5.3 Chân dùng trong code
-
-```cpp
-#define PIN_RTC_SDA 14
-#define PIN_RTC_SCL 15
-```
-
-**I2C** là giao tiếp hai dây.  
-`SDA` là dây dữ liệu.  
-`SCL` là dây xung clock.
+Nếu buzzer tiêu thụ dòng lớn (>20 mA), nên điều khiển qua transistor NPN hoặc MOSFET. Nếu là buzzer active nhỏ (5–15 mA) có thể nối trực tiếp.
 
 ---
 
-# 6. LED đỏ cắm với ESP32-CAM
+# 7. HY-SRF05
 
-## 6.1 Bảng cắm dây
+| HY-SRF05 | ESP32-S3                             |
+| -------- | ------------------------------------ |
+| VCC      | 5V                                   |
+| GND      | GND                                  |
+| TRIG     | GPIO17                               |
+| ECHO     | GPIO18 *(qua cầu chia áp 5V → 3.3V)* |
 
-| LED đỏ | ESP32-CAM |
-|---|---|
-| Anode / chân dài | Qua điện trở rồi vào `GPIO4` |
-| Cathode / chân ngắn | `GND` |
+### Cầu chia áp Echo
 
-## 6.2 Sơ đồ chữ
-
-```text
-ESP32-CAM GPIO4
-      |
-      | 
-Điện trở 220Ω hoặc 330Ω
-      |
-      |
-Anode LED đỏ
-Cathode LED đỏ
-      |
-ESP32-CAM GND
+```
+Echo ----1kΩ-----+------ GPIO18
+                 |
+                2kΩ
+                 |
+                GND
 ```
 
-## 6.3 Chân dùng trong code
+Điện áp:
 
-```cpp
-#define PIN_LED_RED 4
+```
+5V
+ ↓
+≈3.3V
 ```
 
-**Anode** là cực dương của LED, thường là chân dài.  
-**Cathode** là cực âm của LED, thường là chân ngắn.
+An toàn cho ESP32-S3.
 
 ---
 
-# 7. LED xanh cắm với ESP32-CAM
+# 8. Tổng hợp chân sử dụng
 
-## 7.1 Bảng cắm dây
-
-| LED xanh | ESP32-CAM |
-|---|---|
-| Anode / chân dài | Qua điện trở rồi vào `GPIO1` |
-| Cathode / chân ngắn | `GND` |
-
-## 7.2 Sơ đồ chữ
-
-```text
-ESP32-CAM GPIO1
-      |
-      |
-Điện trở 220Ω hoặc 330Ω
-      |
-      |
-Anode LED xanh
-Cathode LED xanh
-      |
-ESP32-CAM GND
-```
-
-## 7.3 Chân dùng trong code
-
-```cpp
-#define PIN_LED_GREEN 1
-```
+| Module        | Chân ESP32-S3 |
+| ------------- | ------------- |
+| PIR HC-SR505  | GPIO4         |
+| LDR AO        | GPIO1         |
+| DS1307 SDA    | GPIO8         |
+| DS1307 SCL    | GPIO9         |
+| LED đỏ        | GPIO14        |
+| LED xanh      | GPIO15        |
+| Buzzer        | GPIO16        |
+| HY-SRF05 TRIG | GPIO17        |
+| HY-SRF05 ECHO | GPIO18        |
 
 ---
 
-# 8. Buzzer 2 chân cắm với ESP32-CAM
+# 9. Nguồn cấp
 
-## 8.1 Bảng cắm dây
-
-| Buzzer 2 chân | ESP32-CAM |
-|---|---|
-| `+` | `GPIO3` |
-| `-` | `GND` |
-
-## 8.2 Sơ đồ chữ
-
-```text
-Buzzer              ESP32-CAM
-------              ---------
-+         --------> GPIO3
--         --------> GND
-```
-
-## 8.3 Chân dùng trong code
-
-```cpp
-#define PIN_BUZZER 3
-```
+| Module       | Điện áp                |
+| ------------ | ---------------------- |
+| ESP32-S3     | USB                    |
+| PIR HC-SR505 | 5V                     |
+| DS1307       | 5V                     |
+| HY-SRF05     | 5V                     |
+| LDR          | 3.3V                   |
+| LED đỏ       | GPIO qua điện trở 220Ω |
+| LED xanh     | GPIO qua điện trở 220Ω |
+| Buzzer       | GPIO16                 |
 
 ---
 
-# 9. Nguồn ngoài cắm với ESP32-CAM
+## Đánh giá theo SRS
 
-## 9.1 Bảng cắm dây
+Sơ đồ trên đáp ứng đầy đủ các chức năng trong SRS:
 
-| Nguồn ngoài | ESP32-CAM |
-|---|---|
-| `5V` | `5V` |
-| `GND` | `GND` |
+* ✔ Phát hiện chuyển động bằng PIR HC-SR505.
+* ✔ Đo khoảng cách bằng HY-SRF05.
+* ✔ Phân biệt ngày/đêm bằng LDR (ADC).
+* ✔ Quản lý thời gian bằng DS1307 (I2C).
+* ✔ LED xanh báo trạng thái hệ thống (ví dụ đã kích hoạt/chế độ bình thường).
+* ✔ LED đỏ báo cảnh báo.
+* ✔ Buzzer phát còi khi có sự kiện cảnh báo.
 
-## 9.2 Sơ đồ chữ
-
-```text
-Nguồn ngoài         ESP32-CAM
------------         ---------
-5V        --------> 5V
-GND       --------> GND
-```
-
-Nên dùng nguồn ngoài 5V ổn định vì ESP32-CAM dùng WiFi và camera.
-
----
-
-# 10. Bảng tổng hợp từng thiết bị
-
-| Thiết bị | Cắm vào ESP32-CAM |
-|---|---|
-| PIR HC-SR501 | `VCC -> 5V`, `GND -> GND`, `OUT -> GPIO16` |
-| HY-SRF05 | `VCC -> 5V`, `GND -> GND`, `Trig -> GPIO13`, `Echo -> chia áp -> GPIO12` |
-| LDR Module | `VCC -> 3.3V`, `GND -> GND`, `DO -> GPIO2` |
-| Tiny RTC DS1307 | `VCC -> 3.3V`, `GND -> GND`, `SDA -> GPIO14`, `SCL -> GPIO15` |
-| LED đỏ | `Anode -> điện trở -> GPIO4`, `Cathode -> GND` |
-| LED xanh | `Anode -> điện trở -> GPIO1`, `Cathode -> GND` |
-| Buzzer | `+ -> GPIO3`, `- -> GND` |
-| Nguồn ngoài | `5V -> 5V ESP32-CAM`, `GND -> GND ESP32-CAM` |
-
----
-
-# 11. Khai báo pin tổng hợp cho code
-
-```cpp
-#define PIN_PIR_OUT             16
-
-#define PIN_ULTRASONIC_TRIG     13
-#define PIN_ULTRASONIC_ECHO     12
-
-#define PIN_LDR_DO              2
-
-#define PIN_RTC_SDA             14
-#define PIN_RTC_SCL             15
-
-#define PIN_LED_RED             4
-#define PIN_LED_GREEN           1
-
-#define PIN_BUZZER              3
-```
-
----
-
-# 12. Lưu ý khi cắm thật
-
-## 12.1 Không dùng GPIO0
-
-Không cắm thiết bị nào vào `GPIO0`.
-
-`GPIO0` dùng cho chế độ upload code của ESP32-CAM.
-
-## 12.2 Không dùng microSD
-
-Không cắm thẻ microSD trong bản wiring này vì một số chân đang được dùng cho cảm biến và LED.
-
-## 12.3 GPIO1 và GPIO3 có thể ảnh hưởng upload code
-
-`GPIO1` và `GPIO3` là chân UART.
-
-**UART** là giao tiếp nạp code và xem log Serial.
-
-Trong sơ đồ này:
-
-```text
-GPIO1 -> LED xanh
-GPIO3 -> Buzzer
-```
-
-Nếu upload code bị lỗi, tháo tạm dây ở `GPIO1` và `GPIO3`, upload xong rồi cắm lại.
-
-## 12.4 Echo của HY-SRF05 phải qua chia áp
-
-Không cắm `Echo` trực tiếp vào ESP32-CAM.
-
-Phải dùng mạch chia áp trước khi đưa vào `GPIO12`.
-
----
-
-# 13. Checklist cắm dây theo từng thiết bị
-
-```text
-[ ] Nguồn ngoài: 5V -> ESP32-CAM 5V, GND -> ESP32-CAM GND.
-
-[ ] PIR: VCC -> 5V, GND -> GND, OUT -> GPIO16.
-
-[ ] HY-SRF05: VCC -> 5V, GND -> GND, Trig -> GPIO13, Echo -> chia áp -> GPIO12.
-
-[ ] LDR: VCC -> 3.3V, GND -> GND, DO -> GPIO2.
-
-[ ] RTC DS1307: VCC -> 3.3V, GND -> GND, SDA -> GPIO14, SCL -> GPIO15.
-
-[ ] LED đỏ: GPIO4 -> điện trở -> Anode, Cathode -> GND.
-
-[ ] LED xanh: GPIO1 -> điện trở -> Anode, Cathode -> GND.
-
-[ ] Buzzer: + -> GPIO3, - -> GND.
-
-[ ] Không có thiết bị nào cắm vào GPIO0.
-
-[ ] Không cắm microSD.
-```
-
----
-
-# 14. Bản chốt ngắn nhất
-
-```text
-PIR HC-SR501:
-VCC -> 5V
-GND -> GND
-OUT -> GPIO16
-
-HY-SRF05:
-VCC -> 5V
-GND -> GND
-Trig -> GPIO13
-Echo -> chia áp -> GPIO12
-OUT -> không cắm
-
-LDR:
-VCC -> 3.3V
-GND -> GND
-DO -> GPIO2
-AO -> không cắm
-
-RTC DS1307:
-VCC -> 3.3V
-GND -> GND
-SDA -> GPIO14
-SCL -> GPIO15
-
-LED đỏ:
-GPIO4 -> điện trở -> chân dài LED
-chân ngắn LED -> GND
-
-LED xanh:
-GPIO1 -> điện trở -> chân dài LED
-chân ngắn LED -> GND
-
-Buzzer:
-+ -> GPIO3
-- -> GND
-```
+Đồng thời vẫn còn rất nhiều GPIO chưa sử dụng (GPIO2, GPIO3, GPIO5–GPIO7, GPIO10–GPIO13, GPIO21, GPIO38–GPIO48...), thuận tiện nếu sau này bạn bổ sung Wi-Fi, camera, RFID, hoặc các cảm biến khác.
