@@ -1,18 +1,18 @@
 # Đặc tả yêu cầu phần mềm (SRS): Hệ thống chống trộm IoT
 
-> **Phiên bản tài liệu:** 0.6.2
-> **Trạng thái:** Bản checkpoint cập nhật phần cứng từ 0.6.1
+> **Phiên bản tài liệu:** 0.6.3
+> **Trạng thái:** Bản checkpoint cập nhật phần cứng sang Freenove ESP32-S3 WROOM + Camera OV3660
 > **Ngày tạo:** 2026-06-26
-> **Sửa đổi gần nhất:** 2026-07-01
+> **Sửa đổi gần nhất:** 2026-07-03
 > **Mục đích:** Làm nguồn yêu cầu chính cho agent, chatbot, lập trình viên và người rà soát. Nếu có mâu thuẫn với tài liệu cũ, tài liệu này được ưu tiên.
 
 ---
 
 ## Tóm tắt tài liệu
 
-Tài liệu này đặc tả yêu cầu phần mềm cho hệ thống chống trộm IoT dùng Arduino Cloud, board `ESP32-S3 CAM OV2640 N16R8`, cảm biến chuyển động/khoảng cách/ánh sáng, còi, LED, notification và dashboard theo vai trò.
+Tài liệu này đặc tả yêu cầu phần mềm cho hệ thống chống trộm IoT dùng Arduino Cloud, board `Freenove ESP32-S3 WROOM + Camera OV3660`, cảm biến chuyển động/khoảng cách/ánh sáng, còi, LED, notification và dashboard theo vai trò.
 
-Bản 0.6.2 kế thừa phạm vi nghiệp vụ của checkpoint 0.6.1: tập trung vào chống trộm cho một khu vực giám sát hiện tại là phòng bếp; không đưa lại báo cháy, Flame Sensor, đo nhiệt độ bếp hoặc RFID-RC522 vào phạm vi chính. Thay đổi chính của bản này là cập nhật nền tảng phần cứng từ ESP32-CAM cũ sang `ESP32-S3 CAM OV2640 N16R8`.
+Bản 0.6.3 kế thừa phạm vi nghiệp vụ của checkpoint 0.6.2: tập trung vào chống trộm cho một khu vực giám sát hiện tại là phòng bếp; không đưa lại báo cháy, Flame Sensor, đo nhiệt độ bếp hoặc RFID-RC522 vào phạm vi chính. Thay đổi chính của bản này là cập nhật nền tảng phần cứng từ `ESP32-S3 CAM OV2640 N16R8` sang `Freenove ESP32-S3 WROOM + Camera OV3660`.
 
 ## Mục lục
 
@@ -44,17 +44,17 @@ Bản 0.6.2 kế thừa phạm vi nghiệp vụ của checkpoint 0.6.1: tập tr
 | Tên tiếng Anh | IoT Based Anti-Theft System |
 | Tên tài liệu | SRS.md |
 | Loại tài liệu | Software Requirements Specification |
-| Phiên bản tài liệu | 0.6.2 |
-| Phiên bản nguồn | 0.6.1 |
+| Phiên bản tài liệu | 0.6.3 |
+| Phiên bản nguồn | 0.6.2 |
 | Ngày tạo | 2026-06-26 |
-| Sửa đổi gần nhất | 2026-07-01 |
+| Sửa đổi gần nhất | 2026-07-03 |
 | Người phụ trách | Group 6 / Ngô Gia Long |
 | Use Case chính | Giám sát chống trộm thông minh cho khu vực phòng bếp |
 | Khu vực giám sát hiện tại | Phòng bếp |
 | Hướng mở rộng | Nhiều module theo khu vực như bếp, phòng ngủ, cửa chính, phòng khách |
 | Cách viết | Theo cấu trúc kiểu IEEE, tối ưu để agent và người bảo trì đọc |
 | Ngôn ngữ | Tiếng Việt; giữ nguyên mã biến, enum, ID và thuật ngữ kỹ thuật bằng tiếng Anh khi cần |
-| Trạng thái hiện tại | Bản checkpoint 0.6.2; đã cập nhật board chính sang `ESP32-S3 CAM OV2640 N16R8`, giữ nguyên phạm vi nghiệp vụ chống trộm và các rule chức năng hiện có |
+| Trạng thái hiện tại | Bản checkpoint 0.6.3; đã cập nhật board chính sang `Freenove ESP32-S3 WROOM + Camera OV3660`, giữ nguyên phạm vi nghiệp vụ chống trộm và các rule chức năng hiện có |
 
 ### 0.2 Lịch sử phiên bản
 
@@ -68,6 +68,7 @@ Bản 0.6.2 kế thừa phạm vi nghiệp vụ của checkpoint 0.6.1: tập tr
 | 0.6.0 | 2026-06-29 | 2026-06-29 | Group 6 / Ngô Gia Long | Cập nhật sau rà soát mâu thuẫn: chốt ưu tiên `alarm_status`, reset tổng, tách Telegram notification và SOS email escalation, polling Google Apps Script, timeout SOS 60 giây, cấu hình authority contact trong Apps Script, tự reset notification request, trạng thái notification gần nhất, tách chụp ảnh thủ công/tự động, thêm LED xanh, rule LED đỏ nháy nội bộ, cooldown hiển thị, anti-sabotage 5 giây và pipeline tính `intrusion_score`. |
 | 0.6.1 | 2026-06-26 | 2026-07-01 | Group 6 / Ngô Gia Long | Chuẩn hóa cấu trúc tài liệu, cách trình bày, heading, thuật ngữ và câu chữ; không thay đổi phạm vi chức năng, biến Cloud, quy tắc nghiệp vụ hoặc test case demo so với checkpoint 0.6.0. |
 | 0.6.2 | 2026-06-26 | 2026-07-01 | Group 6 / Ngô Gia Long | Cập nhật nền tảng phần cứng chính từ ESP32-CAM cũ sang `ESP32-S3 CAM OV2640 N16R8`; bổ sung ghi chú về camera OV2640, bộ nhớ N16R8, ràng buộc dùng pinout/board profile đúng theo board mới; không thay đổi logic nghiệp vụ hoặc phạm vi chức năng chống trộm. |
+| 0.6.3 | 2026-06-26 | 2026-07-03 | Group 6 / Ngô Gia Long | Cập nhật nền tảng phần cứng chính từ `ESP32-S3 CAM OV2640 N16R8` sang `Freenove ESP32-S3 WROOM + Camera OV3660`; cập nhật camera từ OV2640 sang OV3660; bỏ ràng buộc N16R8 trong SRS; bổ sung ràng buộc dùng pinout, board profile và cấu hình upload đúng theo module Freenove ESP32-S3 WROOM mới; không thay đổi logic nghiệp vụ hoặc phạm vi chức năng chống trộm. |
 
 ### 0.3 Quy tắc dành cho agent và người bảo trì
 
@@ -96,7 +97,7 @@ Phần này dành cho AI agent, chatbot, lập trình viên và người bảo t
 18. Telegram notification và SOS email escalation là hai luồng khác nhau; không được tự thêm lại nhóm biến `email_*`.
 19. `capture_photo` cũ không còn dùng; phải dùng `manual_capture_photo` và `auto_capture_photo_request`.
 20. Nội dung nên đủ rõ để triển khai, nhưng không biến thành mã nguồn thô.
-21. Board chính của checkpoint hiện tại là `ESP32-S3 CAM OV2640 N16R8`; không được mặc định dùng lại pinout, board profile hoặc cấu hình upload của ESP32-CAM/AI Thinker cũ nếu chưa kiểm tra lại theo board mới.
+21. Board chính của checkpoint hiện tại là `Freenove ESP32-S3 WROOM + Camera OV3660`; không được mặc định dùng lại pinout, board profile hoặc cấu hình upload của ESP32-CAM/AI Thinker cũ hoặc ESP32-S3 CAM OV2640/N16R8 cũ nếu chưa kiểm tra lại theo module Freenove ESP32-S3 WROOM mới.
 
 ### 0.4 Quy ước thuật ngữ và trình bày
 
@@ -218,7 +219,7 @@ Hệ thống cần hỗ trợ các nhóm chức năng cấp cao sau.
 
 ### 2.3 Môi trường vận hành
 
-Hệ thống dự kiến chạy trên thiết bị vi điều khiển IoT có kết nối Arduino Cloud. Phiên bản hiện tại dùng board chính `ESP32-S3 CAM OV2640 N16R8` và giả định chỉ có một khu vực giám sát vật lý.
+Hệ thống dự kiến chạy trên thiết bị vi điều khiển IoT có kết nối Arduino Cloud. Phiên bản hiện tại dùng board chính `Freenove ESP32-S3 WROOM + Camera OV3660` và giả định chỉ có một khu vực giám sát vật lý.
 
 Các thành phần bắt buộc cho demo hiện tại gồm:
 
@@ -226,14 +227,14 @@ Thông tin board chính của checkpoint hiện tại:
 
 | Mục | Giá trị |
 |---|---|
-| Board chính | `ESP32-S3 CAM OV2640 N16R8` |
-| Camera | OV2640 |
-| Bộ nhớ module | N16R8, tương ứng 16 MB Flash và 8 MB PSRAM |
+| Board chính | `Freenove ESP32-S3 WROOM + Camera OV3660` |
+| Camera | OV3660 |
+| Bộ nhớ module | Theo biến thể board thực tế; cần kiểm tra cấu hình Flash/PSRAM trước khi nạp code |
 | Vai trò trong hệ thống | Điều khiển chính, kết nối WiFi/Arduino Cloud, xử lý camera và điều phối cảm biến |
 
 | Thành phần | Vai trò |
 |---|---|
-| `ESP32-S3 CAM OV2640 N16R8` | Board điều khiển chính, xử lý camera OV2640, kết nối WiFi/Arduino Cloud và điều phối cảm biến |
+| `Freenove ESP32-S3 WROOM + Camera OV3660` | Board điều khiển chính, xử lý camera OV3660, kết nối WiFi/Arduino Cloud và điều phối cảm biến |
 | PIR sensor | Phát hiện chuyển động |
 | HC-SR04 ultrasonic sensor | Đo khoảng cách vật thể |
 | LDR light sensor | Phát hiện ánh sáng bất thường hoặc hành vi che cảm biến |
@@ -333,7 +334,7 @@ Chi tiết bố cục dashboard có thể nằm ở tài liệu thiết kế das
 | Buzzer | Hệ thống phải bật còi cho các cảnh báo đang hoạt động theo luật sự kiện. |
 | LED đỏ | Hệ thống phải bật LED đỏ cho các cảnh báo đang hoạt động theo luật sự kiện; khi `led_red_on = true`, LED đỏ nháy theo logic nội bộ. |
 | LED xanh | Hệ thống phải bật LED xanh khi hệ thống chạy bình thường và không có cảnh báo active. |
-| Camera OV2640 trên `ESP32-S3 CAM OV2640 N16R8` | Hệ thống phải hỗ trợ chụp ảnh tự động cho đột nhập và chụp thủ công từ dashboard. |
+| Camera OV3660 trên `Freenove ESP32-S3 WROOM + Camera OV3660` | Hệ thống phải hỗ trợ chụp ảnh tự động cho đột nhập và chụp thủ công từ dashboard. |
 
 ### 4.3 Yêu cầu giao tiếp phần mềm
 
@@ -697,7 +698,7 @@ Việc gửi notification phải tuân theo rule cooldown để tránh spam cả
 
 ### BR-15. Quy tắc tự chụp ảnh khi có đột nhập
 
-Khi một `intrusion_alert` mới được kích hoạt, hệ thống phải tự động kích hoạt chụp ảnh bằng camera OV2640 trên `ESP32-S3 CAM OV2640 N16R8`.
+Khi một `intrusion_alert` mới được kích hoạt, hệ thống phải tự động kích hoạt chụp ảnh bằng camera OV3660 trên `Freenove ESP32-S3 WROOM + Camera OV3660`.
 
 Hệ thống phải cập nhật:
 
@@ -711,7 +712,7 @@ Việc chụp ảnh tự động phải tránh lặp lại liên tục khi cùng
 
 ### BR-16. Quy tắc số lượng ảnh tự động khi có đột nhập
 
-Khi một lần `intrusion_alert` mới được kích hoạt, hệ thống phải tự động chụp 1 ảnh bằng camera OV2640 trên `ESP32-S3 CAM OV2640 N16R8`.
+Khi một lần `intrusion_alert` mới được kích hoạt, hệ thống phải tự động chụp 1 ảnh bằng camera OV3660 trên `Freenove ESP32-S3 WROOM + Camera OV3660`.
 
 Sau khi ảnh tự động đầu tiên đã được xử lý, hệ thống không được tự động chụp thêm ảnh trong cùng một lần `intrusion_alert`.
 
@@ -1447,7 +1448,7 @@ Hệ thống không được thêm lại các biến cũ như `send_email_reques
 
 ### BR-67. Quy tắc polling SOS từ Google Apps Script
 
-Trong phiên bản demo, `ESP32-S3 CAM OV2640 N16R8` dùng cơ chế polling để kiểm tra trạng thái xác nhận SOS từ Google Apps Script.
+Trong phiên bản demo, `Freenove ESP32-S3 WROOM + Camera OV3660` dùng cơ chế polling để kiểm tra trạng thái xác nhận SOS từ Google Apps Script.
 
 Khi `sos_child = true` hoặc `sos_adult = true`, hệ thống phải:
 
@@ -1626,7 +1627,7 @@ Trong phiên bản hiện tại, tất cả phần cứng được liệt kê tr
 
 Các phần cứng bắt buộc gồm:
 
-- `ESP32-S3 CAM OV2640 N16R8`,
+- `Freenove ESP32-S3 WROOM + Camera OV3660`,
 - PIR sensor,
 - HC-SR04 ultrasonic sensor,
 - LDR sensor,
@@ -1679,7 +1680,7 @@ Khi một `intrusion_alert` mới được kích hoạt, nếu hệ thống chư
 
 - đặt `auto_capture_photo_request = true`,
 - đặt `photo_status = CAPTURING`,
-- xử lý chụp ảnh bằng camera OV2640 trên `ESP32-S3 CAM OV2640 N16R8`.
+- xử lý chụp ảnh bằng camera OV3660 trên `Freenove ESP32-S3 WROOM + Camera OV3660`.
 
 Sau khi xử lý xong, hệ thống phải:
 
@@ -2132,7 +2133,7 @@ Khi `pet_detected = true` nhưng chưa có `intrusion_alert`, hệ thống khôn
 
 #### Mục đích
 
-Hệ thống phải tự động chụp ảnh bằng camera OV2640 trên `ESP32-S3 CAM OV2640 N16R8` khi có cảnh báo đột nhập để ghi nhận bằng chứng.
+Hệ thống phải tự động chụp ảnh bằng camera OV3660 trên `Freenove ESP32-S3 WROOM + Camera OV3660` khi có cảnh báo đột nhập để ghi nhận bằng chứng.
 
 #### Luồng chính
 
@@ -2517,7 +2518,7 @@ Mỗi lần `intrusion_alert` mới chỉ được tự động chụp 1 ảnh. 
 
 ### CON-10. Ràng buộc board chính
 
-Checkpoint hiện tại dùng `ESP32-S3 CAM OV2640 N16R8` làm board chính. Khi triển khai code, sơ đồ chân, cấu hình Arduino IDE hoặc cấu hình upload, nhóm phát triển phải dùng đúng board profile và pinout tương ứng với board mới, không dùng mặc định cấu hình của ESP32-CAM/AI Thinker cũ.
+Checkpoint hiện tại dùng `Freenove ESP32-S3 WROOM + Camera OV3660` làm board chính. Khi triển khai code, sơ đồ chân, cấu hình Arduino IDE hoặc cấu hình upload, nhóm phát triển phải dùng đúng board profile và pinout tương ứng với module Freenove ESP32-S3 WROOM mới, không dùng mặc định cấu hình của ESP32-CAM/AI Thinker cũ hoặc ESP32-S3 CAM OV2640/N16R8 cũ.
 
 ---
 
@@ -2533,7 +2534,7 @@ Checkpoint hiện tại dùng `ESP32-S3 CAM OV2640 N16R8` làm board chính. Khi
 6. `known_device_present = true` nghĩa là ít nhất một thiết bị đáng tin được phát hiện gần khu vực giám sát.
 7. Môi trường lớp học có thể có nhiều thiết bị WiFi/MAC lạ, nên `unknown_wifi_detection_enabled` cần có thể tắt khi demo.
 8. DS1307 RTC phải được set giờ đúng để lịch tự động chạy đúng.
-9. Board `ESP32-S3 CAM OV2640 N16R8` được xem là phần cứng chính cho bản triển khai hiện tại; nếu đổi sang biến thể ESP32-S3 CAM khác, cần kiểm tra lại camera sensor, pinout và cấu hình nạp code trước khi code.
+9. Board `Freenove ESP32-S3 WROOM + Camera OV3660` được xem là phần cứng chính cho bản triển khai hiện tại; nếu đổi sang biến thể ESP32-S3 khác, cần kiểm tra lại camera sensor, pinout, Flash/PSRAM và cấu hình nạp code trước khi code.
 
 ### 11.2 Phụ thuộc
 
@@ -2544,7 +2545,7 @@ Checkpoint hiện tại dùng `ESP32-S3 CAM OV2640 N16R8` làm board chính. Khi
 | Cảm biến | Phát hiện đột nhập và phá hoại |
 | Dịch vụ thông báo | Gửi Telegram hoặc cảnh báo bên ngoài |
 | RTC module | Ghi thời gian sự kiện và hỗ trợ lịch tự động |
-| `ESP32-S3 CAM OV2640 N16R8` | Board điều khiển chính và chụp ảnh khi có cảnh báo đột nhập hoặc yêu cầu thủ công |
+| `Freenove ESP32-S3 WROOM + Camera OV3660` | Board điều khiển chính và chụp ảnh khi có cảnh báo đột nhập hoặc yêu cầu thủ công |
 
 ---
 
