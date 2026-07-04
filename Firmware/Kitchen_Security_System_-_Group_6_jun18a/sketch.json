@@ -1,6 +1,6 @@
 {
   "cpu": {
-    "fqbn": "esp32:esp32:esp32cam",
+    "fqbn": "esp32:esp32:esp32s3",
     "name": "",
     "type": "serial"
   },
