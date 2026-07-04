@@ -5,7 +5,8 @@
 > **Dự án:** Hệ thống chống trộm IoT  
 > **Board chính:** Freenove ESP32-S3 WROOM + Camera OV3660  
 > **Mục tiêu:** Cắm lại phần cứng để tránh xung đột với camera, sau đó test từng module trước khi ghép code Arduino Cloud theo SRS.  
-> **Trạng thái:** Bản hướng dẫn cắm lại và smoke test trước khi code chính.
+> **Trạng thái:** Bản hướng dẫn cắm lại và smoke test trước khi code chính.  
+> **Cập nhật RTC hiện tại:** Nhóm **chưa có level shifter**, nên RTC DS1307 sẽ được cắm tạm bằng **3V3** để tránh đưa tín hiệu SDA/SCL 5V vào ESP32-S3. Nếu sau này nâng cấp sang **DS3231** thì vẫn dùng GPIO8/GPIO13, chỉ đổi module RTC và code khởi tạo RTC.
 
 ---
 
@@ -83,10 +84,17 @@ Giải thích thuật ngữ:
 | PIR HC-SR501 / HC-SR505 | VCC | 5V | PIR thường dùng 5V |
 | PIR HC-SR501 / HC-SR505 | GND | GND | Nối chung GND |
 | PIR HC-SR501 / HC-SR505 | OUT | GPIO12 | Đọc chuyển động |
-| RTC DS1307 | VCC | 5V | Nên dùng level shifter cho SDA/SCL nếu module kéo lên 5V |
-| RTC DS1307 | GND | GND | Nối chung GND |
-| RTC DS1307 | SDA | GPIO8 qua level shifter | I2C data, dây dữ liệu |
-| RTC DS1307 | SCL | GPIO13 qua level shifter | I2C clock, dây xung |
+| RTC DS1307 — phương án hiện tại khi chưa có level shifter | VCC | 3V3 | Cắm tạm để SDA/SCL không lên 5V; an toàn hơn cho ESP32-S3 nhưng DS1307 có thể không chạy ổn |
+| RTC DS1307 — phương án hiện tại khi chưa có level shifter | GND | GND | Nối chung GND |
+| RTC DS1307 — phương án hiện tại khi chưa có level shifter | SDA | GPIO8 trực tiếp | I2C data, dây dữ liệu; không cắm qua cầu chia áp điện trở |
+| RTC DS1307 — phương án hiện tại khi chưa có level shifter | SCL | GPIO13 trực tiếp | I2C clock, dây xung; không cắm qua cầu chia áp điện trở |
+| RTC DS1307 — phương án chuẩn nếu sau này có level shifter | VCC | 5V | Chỉ dùng 5V khi SDA/SCL đi qua level shifter I2C 3.3V ↔ 5V |
+| RTC DS1307 — phương án chuẩn nếu sau này có level shifter | SDA | GPIO8 qua level shifter | Bên ESP32 vào LV, bên DS1307 vào HV |
+| RTC DS1307 — phương án chuẩn nếu sau này có level shifter | SCL | GPIO13 qua level shifter | Bên ESP32 vào LV, bên DS1307 vào HV |
+| RTC DS3231 — phương án nâng cấp khuyến nghị | VCC | 3V3 | Nếu đổi sang DS3231, cấp 3.3V để không cần level shifter |
+| RTC DS3231 — phương án nâng cấp khuyến nghị | GND | GND | Nối chung GND |
+| RTC DS3231 — phương án nâng cấp khuyến nghị | SDA | GPIO8 trực tiếp | Dùng lại pin I2C cũ |
+| RTC DS3231 — phương án nâng cấp khuyến nghị | SCL | GPIO13 trực tiếp | Dùng lại pin I2C cũ |
 | LED đỏ | Anode (+) | GPIO14 qua điện trở 220Ω | Báo cảnh báo |
 | LED đỏ | Cathode (-) | GND | Cực âm |
 | LED xanh | Anode (+) | GPIO21 qua điện trở 220Ω | Báo trạng thái bình thường |
@@ -137,26 +145,114 @@ HY-SRF05 Echo ---- 1kΩ ----+---- GPIO39
 
 ---
 
-## 6. Lưu ý với RTC DS1307
+## 6. Lưu ý với RTC DS1307 và phương án nâng cấp RTC
 
-DS1307 thường dùng 5V. Một số module RTC có điện trở kéo lên 5V trên đường SDA/SCL. Nếu đưa SDA/SCL 5V trực tiếp vào ESP32-S3 thì có thể không an toàn.
+### 6.1 Quyết định hiện tại: chưa có level shifter nên cấp DS1307 bằng 3V3
 
-Khuyến nghị:
+Hiện tại nhóm **chưa có level shifter**, nên không dùng phương án DS1307 cấp 5V rồi nối SDA/SCL trực tiếp vào ESP32-S3.
+
+Phương án cắm hiện tại:
 
 ```text
-DS1307 SDA/SCL
-→ level shifter 5V ↔ 3.3V
-→ ESP32-S3 GPIO8/GPIO13
+DS1307 VCC → 3V3 của ESP32-S3
+DS1307 GND → GND
+DS1307 SDA → GPIO8
+DS1307 SCL → GPIO13
 ```
 
-Giải thích:
+Lý do chọn phương án này:
 
-- `I2C`: giao tiếp 2 dây gồm SDA và SCL.
-- `SDA`: dây dữ liệu.
-- `SCL`: dây xung clock.
-- `Level shifter`: mạch chuyển mức điện áp giữa 5V và 3.3V.
+```text
+ESP32-S3 dùng logic 3.3V.
+Nếu DS1307 cấp 5V và module kéo SDA/SCL lên 5V,
+GPIO8/GPIO13 có thể bị quá áp.
+Cấp DS1307 bằng 3V3 giúp SDA/SCL chỉ quanh mức 3.3V,
+an toàn hơn cho ESP32-S3.
+```
 
-Nếu module RTC của nhóm chạy ổn ở 3.3V thì có thể cấp 3.3V để đơn giản hơn, nhưng cần test thực tế.
+Hạn chế của phương án này:
+
+```text
+DS1307 thường phù hợp 5V hơn 3.3V.
+Vì vậy RTC có thể không được nhận, giờ có thể chạy không ổn định,
+hoặc lúc nhận lúc không.
+```
+
+Nếu smoke test hiện `RTC DS1307: NOT FOUND`, không được tự ý đổi sang 5V rồi nối thẳng SDA/SCL vào ESP32-S3. Khi đó chọn một trong hai hướng:
+
+```text
+1. Bỏ RTC tạm thời, tiếp tục test các module khác.
+2. Đổi sang DS3231 cấp 3V3.
+3. Hoặc mua level shifter I2C rồi dùng lại DS1307 ở 5V.
+```
+
+### 6.2 Không dùng cầu chia áp điện trở cho SDA/SCL
+
+Không dùng cầu chia áp kiểu Echo HY-SRF05 cho SDA/SCL của RTC.
+
+Lý do:
+
+```text
+I2C là giao tiếp 2 dây.
+SDA là đường dữ liệu hai chiều.
+SCL là đường xung clock.
+Cầu chia áp điện trở chỉ phù hợp hơn với tín hiệu một chiều,
+ví dụ Echo của HY-SRF05 đi từ cảm biến về ESP32.
+```
+
+### 6.3 Nếu sau này có level shifter và vẫn dùng DS1307
+
+Khi có mạch chuyển mức logic I2C 3.3V ↔ 5V, có thể chuyển sang phương án chuẩn hơn cho DS1307:
+
+```text
+ESP32-S3 3V3 → LV của level shifter
+ESP32-S3 5V  → HV của level shifter
+GND          → GND chung
+
+GPIO8        → LV1
+GPIO13       → LV2
+
+DS1307 VCC   → 5V
+DS1307 GND   → GND
+DS1307 SDA   → HV1
+DS1307 SCL   → HV2
+```
+
+`Level shifter` là mạch chuyển mức tín hiệu giữa 3.3V và 5V, không phải mạch hạ áp nguồn.
+
+### 6.4 Nếu sau này nâng cấp sang DS3231
+
+Nếu không mua được level shifter, phương án nâng cấp gọn hơn là đổi RTC DS1307 sang **DS3231**. Nếu trong ghi chú cũ có viết `DS3207`, cần hiểu lại là **DS3231**; nếu đúng là một module khác tên DS3207 thì phải kiểm tra datasheet/module thực tế trước khi cắm.
+
+Cách cắm DS3231 khuyến nghị:
+
+```text
+DS3231 VCC → 3V3 của ESP32-S3
+DS3231 GND → GND
+DS3231 SDA → GPIO8
+DS3231 SCL → GPIO13
+```
+
+Khi cấp DS3231 bằng 3V3, SDA/SCL sẽ ở mức 3.3V nên không cần level shifter.
+
+Khi đổi code từ DS1307 sang DS3231 với thư viện RTClib, đổi phần khai báo RTC:
+
+```cpp
+// DS1307 hiện tại
+RTC_DS1307 rtc;
+
+// DS3231 sau này
+// RTC_DS3231 rtc;
+```
+
+Với DS3231, đoạn kiểm tra pin/bộ nhớ thời gian nên dùng `lostPower()` thay vì `isrunning()`:
+
+```cpp
+if (rtc.lostPower()) {
+  Serial.println("RTC lost power. Setting time from compile time...");
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+}
+```
 
 ---
 
@@ -205,7 +301,7 @@ Code dưới đây dùng để test:
 - LDR AO.
 - PIR.
 - HY-SRF05.
-- RTC DS1307.
+- RTC DS1307 theo phương án hiện tại VCC 3V3.
 
 ```cpp
 #include <Wire.h>
@@ -332,6 +428,7 @@ void setup() {
   Serial.println();
   Serial.println("ESP32-S3 IoT Anti-Theft Hardware Smoke Test");
   Serial.println("Using camera-safe pin map.");
+  Serial.println("RTC wiring note: DS1307 is expected to be powered from 3V3 in the current no-level-shifter setup.");
 
   pinMode(PIN_LED_RED, OUTPUT);
   pinMode(PIN_LED_GREEN, OUTPUT);
@@ -470,6 +567,8 @@ Kiểm tra:
 
 ### 10.5 RTC DS1307
 
+Phương án hiện tại của nhóm là DS1307 cấp **3V3** vì chưa có level shifter.
+
 Nếu đúng:
 
 ```text
@@ -488,9 +587,12 @@ Kiểm tra:
 ```text
 1. SDA có vào GPIO8 không.
 2. SCL có vào GPIO13 không.
-3. VCC/GND đúng chưa.
-4. Nếu RTC đang cấp 5V, nên dùng level shifter cho SDA/SCL.
+3. VCC DS1307 hiện tại có đang vào 3V3 không.
+4. GND đã nối chung chưa.
+5. Nếu vẫn NOT_FOUND, khả năng module DS1307 không chạy ổn ở 3.3V.
 ```
+
+Không xử lý lỗi bằng cách cắm DS1307 VCC vào 5V rồi nối thẳng SDA/SCL vào ESP32-S3. Nếu cần dùng DS1307 ở 5V, phải thêm level shifter I2C. Nếu không mua được level shifter, đổi sang DS3231 cấp 3V3 là hướng dễ hơn.
 
 ---
 
@@ -508,7 +610,7 @@ Chỉ chuyển sang code Arduino Cloud/SRS khi tất cả mục sau PASS:
 [ ] PIR phát hiện chuyển động sau thời gian ổn định.
 [ ] HY-SRF05 đo được khoảng cách, không bị NO_ECHO liên tục.
 [ ] Echo HY-SRF05 đã qua cầu chia áp.
-[ ] RTC DS1307 được tìm thấy qua I2C.
+[ ] RTC DS1307 được tìm thấy qua I2C khi cấp 3V3, hoặc đã ghi nhận `RTC_PENDING` để đổi sang DS3231 / thêm level shifter sau.
 [ ] GND của tất cả module đã nối chung.
 [ ] Camera OV3660 vẫn test được riêng.
 ```
@@ -661,9 +763,49 @@ Không code sai các điểm sau:
 10. BLE trusted device không được tự xóa cảnh báo đang active.
 ```
 
+
 ---
 
-## 14. Kết luận triển khai
+## 14. Ghi chú quyết định RTC hiện tại
+
+Quyết định phần cứng hiện tại:
+
+```text
+Chưa có level shifter.
+Tạm thời cắm DS1307 VCC vào 3V3.
+SDA dùng GPIO8.
+SCL dùng GPIO13.
+Không cắm DS1307 VCC 5V nếu SDA/SCL nối thẳng ESP32-S3.
+```
+
+Nếu DS1307 chạy ổn ở 3V3:
+
+```text
+Giữ phương án hiện tại để code/test tiếp.
+```
+
+Nếu DS1307 không chạy ổn ở 3V3:
+
+```text
+Không sửa dây sang 5V trực tiếp.
+Đánh dấu RTC_PENDING.
+Tiếp tục test phần chống trộm chính.
+Sau đó mua DS3231 hoặc level shifter.
+```
+
+Phương án nâng cấp khuyến nghị:
+
+```text
+Đổi sang DS3231.
+DS3231 VCC → 3V3
+DS3231 GND → GND
+DS3231 SDA → GPIO8
+DS3231 SCL → GPIO13
+```
+
+---
+
+## 15. Kết luận triển khai
 
 Thứ tự đúng của nhóm nên là:
 
