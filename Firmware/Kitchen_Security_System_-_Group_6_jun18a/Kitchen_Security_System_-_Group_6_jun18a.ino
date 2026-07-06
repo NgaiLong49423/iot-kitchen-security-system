@@ -165,6 +165,9 @@ bool performGetRequest(String url, String &outResponse, int &outCode, int redire
 bool callGoogleAppsScript(const String &eventType, const String &source, const String &message);
 bool isTelegramAllowed(const String &eventType);
 void notifySecurityTextEvent(const String &eventType, const String &source, const String &message);
+void updateTrustedDeviceStatusPlaceholders();
+void resetTrustedBleRuntimeState();
+void updateGoogleScriptStatusFromResponse(const String &response, bool ok);
 
 // ==================================================
 // CAMERA FUNCTIONS
@@ -694,15 +697,62 @@ bool performGetRequest(String url, String &outResponse, int &outCode, int redire
   return (httpCode >= 200 && httpCode < 300);
 }
 
+void updateGoogleScriptStatusFromResponse(const String &response, bool ok) {
+  if (!ok) {
+    emergency_escalation_status = "FAILED";
+    emergency_authority_message_status = "FAILED";
+    return;
+  }
+
+  // Apps Script returns compact text such as:
+  // OK:WAITING_CONFIRMATION;eventId=...;emergency_escalation_status=WAITING_CONFIRMATION;...
+  // This parser is defensive: it only updates values when the response contains them.
+  if (response.indexOf("home_address_configured=true") >= 0) {
+    home_address_configured = true;
+  } else if (response.indexOf("home_address_configured=false") >= 0) {
+    home_address_configured = false;
+  }
+
+  if (response.indexOf("emergency_escalation_status=WAITING_CONFIRMATION") >= 0 ||
+      response.indexOf("OK:WAITING_CONFIRMATION") >= 0) {
+    emergency_escalation_status = "WAITING_CONFIRMATION";
+  } else if (response.indexOf("emergency_escalation_status=CONFIRMED") >= 0) {
+    emergency_escalation_status = "CONFIRMED";
+  } else if (response.indexOf("emergency_escalation_status=SENT") >= 0) {
+    emergency_escalation_status = "SENT";
+  } else if (response.indexOf("emergency_escalation_status=FAILED") >= 0) {
+    emergency_escalation_status = "FAILED";
+  } else if (response.indexOf("emergency_escalation_status=NOT_CONFIGURED") >= 0) {
+    emergency_escalation_status = "NOT_CONFIGURED";
+  } else {
+    // Backward-compatible fallback for older Apps Script responses.
+    emergency_escalation_status = "SENT";
+  }
+
+  if (response.indexOf("emergency_authority_message_status=IDLE") >= 0) {
+    emergency_authority_message_status = "IDLE";
+  } else if (response.indexOf("emergency_authority_message_status=READY") >= 0) {
+    emergency_authority_message_status = "READY";
+  } else if (response.indexOf("emergency_authority_message_status=SENT") >= 0) {
+    emergency_authority_message_status = "SENT";
+  } else if (response.indexOf("emergency_authority_message_status=FAILED") >= 0) {
+    emergency_authority_message_status = "FAILED";
+  } else if (response.indexOf("emergency_authority_message_status=NOT_CONFIGURED") >= 0) {
+    emergency_authority_message_status = "NOT_CONFIGURED";
+  }
+}
+
 bool callGoogleAppsScript(const String &eventType, const String &source, const String &message) {
   if (!hasGoogleScriptConfig()) {
     emergency_escalation_status = "NOT_CONFIGURED";
+    emergency_authority_message_status = "NOT_CONFIGURED";
     Serial.println("[GAS] Google Apps Script is not configured.");
     return false;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
     emergency_escalation_status = "WIFI_NOT_CONNECTED";
+    emergency_authority_message_status = "FAILED";
     Serial.println("[GAS] WiFi is not connected.");
     return false;
   }
@@ -726,8 +776,12 @@ bool callGoogleAppsScript(const String &eventType, const String &source, const S
   url += "&score=" + urlEncode(String(intrusion_score));
   url += "&time=" + urlEncode(getRtcTimeString());
   url += "&message=" + urlEncode(message);
+  if (sos_authority_note.length() > 0) {
+    url += "&sos_authority_note=" + urlEncode(sos_authority_note);
+  }
 
   emergency_escalation_status = "SENDING";
+  emergency_authority_message_status = "IDLE";
 
   String response = "";
   int code = 0;
@@ -740,7 +794,7 @@ bool callGoogleAppsScript(const String &eventType, const String &source, const S
     Serial.println(response.substring(0, 200));
   }
 
-  emergency_escalation_status = ok ? "SENT" : "FAILED";
+  updateGoogleScriptStatusFromResponse(response, ok);
   return ok;
 }
 
@@ -1047,6 +1101,32 @@ String buildIntrusionReason(const HardwareSnapshot &s) {
   return reason;
 }
 
+void resetTrustedBleRuntimeState() {
+  trusted_ble_present = false;
+  trusted_ble_rssi = 0;
+  trusted_ble_last_seen_seconds = -1;
+}
+
+void updateTrustedDeviceStatusPlaceholders() {
+  // BLE scan is not implemented in this build yet.
+  // This keeps the new SRS/Thing variables consistent without changing the old manual demo flow.
+  if (!trusted_ble_detection_enabled) {
+    resetTrustedBleRuntimeState();
+    trusted_device_source = known_device_present ? "DASHBOARD_INPUT" : "NONE";
+    return;
+  }
+
+  if (trusted_ble_present) {
+    trusted_device_source = "BLE";
+    known_device_present = true;
+    return;
+  }
+
+  // When BLE scanning is enabled but no BLE device is currently found, keep the existing
+  // Dashboard/Serial controlled input working so old demos are not broken.
+  trusted_device_source = known_device_present ? "DASHBOARD_INPUT" : "NONE";
+}
+
 void updateSystemArmed() {
   system_armed = alarm_enabled && !known_device_present;
 }
@@ -1102,6 +1182,7 @@ void triggerSosAlert(const String &source) {
   sos_message = "SOS from " + source + " at " + getRtcTimeString();
   emergency_confirmation_requested = true;
   emergency_escalation_status = "WAITING_CONFIRMATION";
+  emergency_authority_message_status = "IDLE";
 
   setLastEvent("sos_alert", sos_message);
   notifySecurityTextEvent("sos_alert", source, sos_message);
@@ -1119,6 +1200,7 @@ void resetAllAlerts() {
   emergency_confirmation_requested = false;
   emergency_confirmed = false;
   emergency_escalation_status = "IDLE";
+  emergency_authority_message_status = "IDLE";
 
   auto_capture_photo_request = false;
 
@@ -1254,6 +1336,7 @@ void updateNotificationRequestPlaceholders() {
 
 void updateSecurityLogic(const HardwareSnapshot &s) {
   clampCloudConfigValues();
+  updateTrustedDeviceStatusPlaceholders();
   updateSystemArmed();
   updateSabotageLogic(s);
   updateIntrusionLogic(s);
@@ -1393,6 +1476,13 @@ void printSecurityReport() {
   Serial.print("threat_level                : "); Serial.println(threat_level);
   Serial.print("notification_sent_status    : "); Serial.println(notification_sent_status);
   Serial.print("emergency_escalation_status : "); Serial.println(emergency_escalation_status);
+  Serial.print("emergency_authority_status  : "); Serial.println(emergency_authority_message_status);
+  Serial.print("home_address_configured     : "); Serial.println(home_address_configured ? "true" : "false");
+  Serial.print("trusted_ble_detection       : "); Serial.println(trusted_ble_detection_enabled ? "true" : "false");
+  Serial.print("trusted_ble_present         : "); Serial.println(trusted_ble_present ? "true" : "false");
+  Serial.print("trusted_device_source       : "); Serial.println(trusted_device_source);
+  Serial.print("trusted_ble_rssi            : "); Serial.println(trusted_ble_rssi);
+  Serial.print("trusted_ble_last_seen_sec   : "); Serial.println(trusted_ble_last_seen_seconds);
   Serial.print("last_event                  : "); Serial.println(last_event);
   Serial.println("===========================================");
 }
@@ -1477,6 +1567,16 @@ void setup() {
   sos_message = "NONE";
   last_unknown_mac = "NONE";
   last_alert_time = "NONE";
+
+  // New SRS v0.6.7 Cloud variables: SOS authority escalation + BLE trusted device status.
+  // READWRITE values may be overwritten by Arduino Cloud after connection.
+  home_address_configured = false;
+  sos_authority_note = "";
+  emergency_authority_message_status = "IDLE";
+
+  trusted_ble_detection_enabled = false;
+  resetTrustedBleRuntimeState();
+  trusted_device_source = "NONE";
 
   rearm_countdown_remaining = 0;
   unknown_wifi_count = 0;
@@ -1617,5 +1717,34 @@ void onUnknownWifiDetectionEnabledChange() {
 }
 
 void onKnownDevicePresentChange() {
-  setLastEvent("cloud_known_device", String("known_device_present = ") + (known_device_present ? "true" : "false"));
+  updateTrustedDeviceStatusPlaceholders();
+  setLastEvent("cloud_known_device", String("known_device_present = ") + (known_device_present ? "true" : "false") +
+               ", source=" + trusted_device_source);
+}
+
+void onTrustedBleDetectionEnabledChange() {
+  if (!trusted_ble_detection_enabled) {
+    resetTrustedBleRuntimeState();
+    trusted_device_source = known_device_present ? "DASHBOARD_INPUT" : "NONE";
+  } else {
+    // Real BLE scanning will be added in the next implementation step.
+    // For now, enabling this switch only exposes the SRS variables and keeps the old manual demo flow stable.
+    trusted_device_source = known_device_present ? "DASHBOARD_INPUT" : "NONE";
+  }
+
+  setLastEvent(
+    "cloud_ble_detection",
+    String("trusted_ble_detection_enabled = ") +
+    (trusted_ble_detection_enabled ? "true" : "false") +
+    ", source=" + trusted_device_source
+  );
+}
+
+void onSosAuthorityNoteChange() {
+  // Do not print the full note to Serial/log because it may contain sensitive emergency context.
+  setLastEvent(
+    "cloud_sos_note",
+    "sos_authority_note updated, length=" + String(sos_authority_note.length()) +
+    " at " + getRtcTimeString()
+  );
 }
