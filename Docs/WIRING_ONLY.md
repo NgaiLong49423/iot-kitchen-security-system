@@ -1,12 +1,24 @@
-# WIRING_AND_TEST_PLAN.md
+# WIRING_ONLY.md
 
 # Sơ đồ cắm mạch mới và lộ trình test module cho dự án IoT Anti-Theft
 
 > **Dự án:** Hệ thống chống trộm IoT  
 > **Board chính:** Freenove ESP32-S3 WROOM + Camera OV3660  
 > **Mục tiêu:** Cắm lại phần cứng để tránh xung đột với camera, sau đó test từng module trước khi ghép code Arduino Cloud theo SRS.  
-> **Trạng thái:** Bản hướng dẫn cắm lại và smoke test trước khi code chính.  
-> **Cập nhật RTC hiện tại:** Nhóm **chưa có level shifter**, nên RTC DS1307 sẽ được cắm tạm bằng **3V3** để tránh đưa tín hiệu SDA/SCL 5V vào ESP32-S3. Nếu sau này nâng cấp sang **DS3231** thì vẫn dùng GPIO8/GPIO13, chỉ đổi module RTC và code khởi tạo RTC.
+> **Trạng thái:** Bản cập nhật sau khi chốt ưu tiên camera OV3660; PIR và RTC được chuyển sang GPIO không xung đột camera.  
+> **Cập nhật pin map:** Giữ nguyên camera OV3660; chuyển `PIR OUT` sang `GPIO40`, `RTC SDA` sang `GPIO41`, `RTC SCL` sang `GPIO42`.  
+> **Cập nhật RTC hiện tại:** Nhóm **chưa có level shifter**, nên RTC DS1307 sẽ được cắm tạm bằng **3V3** để tránh đưa tín hiệu SDA/SCL 5V vào ESP32-S3. Nếu sau này nâng cấp sang **DS3231** thì vẫn dùng GPIO41/GPIO42, chỉ đổi module RTC và code khởi tạo RTC.
+
+---
+
+## 0. Cập nhật nhanh sau khi chốt lỗi pin map
+
+| Hạng mục | Pin cũ trong tài liệu trước | Pin mới dùng hiện tại | Lý do |
+|---|---:|---:|---|
+| PIR OUT | GPIO12 | GPIO40 | GPIO12 đang thuộc nhóm chân camera trong firmware hiện tại |
+| RTC SDA | GPIO8 | GPIO41 | GPIO8 đang thuộc nhóm chân camera trong firmware hiện tại |
+| RTC SCL | GPIO13 | GPIO42 | GPIO13 đang thuộc nhóm chân camera/PCLK trong firmware hiện tại |
+| Camera OV3660 | Giữ nguyên | Giữ nguyên | Camera là phần bắt buộc theo SRS, không chuyển dây camera |
 
 ---
 
@@ -40,12 +52,13 @@ Không dùng các chân sau cho PIR, LDR, RTC, LED, buzzer hoặc HY-SRF05:
 
 ```text
 GPIO3, GPIO4, GPIO5, GPIO6, GPIO7,
-GPIO9, GPIO10, GPIO11,
+GPIO8, GPIO9, GPIO10, GPIO11,
+GPIO12, GPIO13,
 GPIO15, GPIO16, GPIO17, GPIO18,
 GPIO46
 ```
 
-Lý do: đây là nhóm chân đang liên quan đến camera OV3660 trên board Freenove ESP32-S3 WROOM.
+Lý do: đây là nhóm chân đang liên quan hoặc có nguy cơ liên quan đến camera OV3660 trên board Freenove ESP32-S3 WROOM. Đặc biệt, firmware hiện tại đang cấu hình camera dùng `GPIO8`, `GPIO12` và `GPIO13`, nên không cắm PIR/RTC vào các chân này.
 
 ### 2.2 Nhóm GPIO nên tránh nếu không thật sự cần
 
@@ -83,18 +96,18 @@ Giải thích thuật ngữ:
 | LDR | DO | Không cắm | Không cần dùng |
 | PIR HC-SR501 / HC-SR505 | VCC | 5V | PIR thường dùng 5V |
 | PIR HC-SR501 / HC-SR505 | GND | GND | Nối chung GND |
-| PIR HC-SR501 / HC-SR505 | OUT | GPIO12 | Đọc chuyển động |
+| PIR HC-SR501 / HC-SR505 | OUT | GPIO40 | Đọc chuyển động; đã chuyển khỏi GPIO12 để né chân camera |
 | RTC DS1307 — phương án hiện tại khi chưa có level shifter | VCC | 3V3 | Cắm tạm để SDA/SCL không lên 5V; an toàn hơn cho ESP32-S3 nhưng DS1307 có thể không chạy ổn |
 | RTC DS1307 — phương án hiện tại khi chưa có level shifter | GND | GND | Nối chung GND |
-| RTC DS1307 — phương án hiện tại khi chưa có level shifter | SDA | GPIO8 trực tiếp | I2C data, dây dữ liệu; không cắm qua cầu chia áp điện trở |
-| RTC DS1307 — phương án hiện tại khi chưa có level shifter | SCL | GPIO13 trực tiếp | I2C clock, dây xung; không cắm qua cầu chia áp điện trở |
+| RTC DS1307 — phương án hiện tại khi chưa có level shifter | SDA | GPIO41 trực tiếp | I2C data, dây dữ liệu; không cắm qua cầu chia áp điện trở |
+| RTC DS1307 — phương án hiện tại khi chưa có level shifter | SCL | GPIO42 trực tiếp | I2C clock, dây xung; không cắm qua cầu chia áp điện trở |
 | RTC DS1307 — phương án chuẩn nếu sau này có level shifter | VCC | 5V | Chỉ dùng 5V khi SDA/SCL đi qua level shifter I2C 3.3V ↔ 5V |
-| RTC DS1307 — phương án chuẩn nếu sau này có level shifter | SDA | GPIO8 qua level shifter | Bên ESP32 vào LV, bên DS1307 vào HV |
-| RTC DS1307 — phương án chuẩn nếu sau này có level shifter | SCL | GPIO13 qua level shifter | Bên ESP32 vào LV, bên DS1307 vào HV |
+| RTC DS1307 — phương án chuẩn nếu sau này có level shifter | SDA | GPIO41 qua level shifter | Bên ESP32 vào LV, bên DS1307 vào HV |
+| RTC DS1307 — phương án chuẩn nếu sau này có level shifter | SCL | GPIO42 qua level shifter | Bên ESP32 vào LV, bên DS1307 vào HV |
 | RTC DS3231 — phương án nâng cấp khuyến nghị | VCC | 3V3 | Nếu đổi sang DS3231, cấp 3.3V để không cần level shifter |
 | RTC DS3231 — phương án nâng cấp khuyến nghị | GND | GND | Nối chung GND |
-| RTC DS3231 — phương án nâng cấp khuyến nghị | SDA | GPIO8 trực tiếp | Dùng lại pin I2C cũ |
-| RTC DS3231 — phương án nâng cấp khuyến nghị | SCL | GPIO13 trực tiếp | Dùng lại pin I2C cũ |
+| RTC DS3231 — phương án nâng cấp khuyến nghị | SDA | GPIO41 trực tiếp | Dùng lại pin I2C đã né camera |
+| RTC DS3231 — phương án nâng cấp khuyến nghị | SCL | GPIO42 trực tiếp | Dùng lại pin I2C đã né camera |
 | LED đỏ | Anode (+) | GPIO14 qua điện trở 220Ω | Báo cảnh báo |
 | LED đỏ | Cathode (-) | GND | Cực âm |
 | LED xanh | Anode (+) | GPIO21 qua điện trở 220Ω | Báo trạng thái bình thường |
@@ -112,10 +125,10 @@ Giải thích thuật ngữ:
 
 ```cpp
 #define PIN_LDR_AO       1
-#define PIN_PIR_OUT      12
+#define PIN_PIR_OUT      40
 
-#define PIN_RTC_SDA      8
-#define PIN_RTC_SCL      13
+#define PIN_RTC_SDA      41
+#define PIN_RTC_SCL      42
 
 #define PIN_LED_RED      14
 #define PIN_LED_GREEN    21
@@ -124,6 +137,8 @@ Giải thích thuật ngữ:
 #define PIN_US_TRIG      38
 #define PIN_US_ECHO      39
 ```
+
+> Ghi chú: Pin map trên đang khớp với firmware chính hiện tại. Firmware đã khai báo `PIN_PIR_OUT = 40`, `PIN_RTC_SDA = 41`, `PIN_RTC_SCL = 42`, nên nếu bạn đã cắm dây theo bảng này thì **không cần đổi code cho lỗi pin map**.
 
 ---
 
@@ -156,8 +171,8 @@ Phương án cắm hiện tại:
 ```text
 DS1307 VCC → 3V3 của ESP32-S3
 DS1307 GND → GND
-DS1307 SDA → GPIO8
-DS1307 SCL → GPIO13
+DS1307 SDA → GPIO41
+DS1307 SCL → GPIO42
 ```
 
 Lý do chọn phương án này:
@@ -165,7 +180,7 @@ Lý do chọn phương án này:
 ```text
 ESP32-S3 dùng logic 3.3V.
 Nếu DS1307 cấp 5V và module kéo SDA/SCL lên 5V,
-GPIO8/GPIO13 có thể bị quá áp.
+GPIO41/GPIO42 có thể bị quá áp nếu kéo lên 5V.
 Cấp DS1307 bằng 3V3 giúp SDA/SCL chỉ quanh mức 3.3V,
 an toàn hơn cho ESP32-S3.
 ```
@@ -209,8 +224,8 @@ ESP32-S3 3V3 → LV của level shifter
 ESP32-S3 5V  → HV của level shifter
 GND          → GND chung
 
-GPIO8        → LV1
-GPIO13       → LV2
+GPIO41       → LV1
+GPIO42       → LV2
 
 DS1307 VCC   → 5V
 DS1307 GND   → GND
@@ -229,8 +244,8 @@ Cách cắm DS3231 khuyến nghị:
 ```text
 DS3231 VCC → 3V3 của ESP32-S3
 DS3231 GND → GND
-DS3231 SDA → GPIO8
-DS3231 SCL → GPIO13
+DS3231 SDA → GPIO41
+DS3231 SCL → GPIO42
 ```
 
 Khi cấp DS3231 bằng 3V3, SDA/SCL sẽ ở mức 3.3V nên không cần level shifter.
@@ -311,10 +326,10 @@ Code dưới đây dùng để test:
 // PIN MAP MỚI - NÉ CAMERA
 // =======================
 #define PIN_LDR_AO       1
-#define PIN_PIR_OUT      12
+#define PIN_PIR_OUT      40
 
-#define PIN_RTC_SDA      8
-#define PIN_RTC_SCL      13
+#define PIN_RTC_SDA      41
+#define PIN_RTC_SCL      42
 
 #define PIN_LED_RED      14
 #define PIN_LED_GREEN    21
@@ -585,8 +600,8 @@ RTC DS1307: NOT FOUND
 Kiểm tra:
 
 ```text
-1. SDA có vào GPIO8 không.
-2. SCL có vào GPIO13 không.
+1. SDA có vào GPIO41 không.
+2. SCL có vào GPIO42 không.
 3. VCC DS1307 hiện tại có đang vào 3V3 không.
 4. GND đã nối chung chưa.
 5. Nếu vẫn NOT_FOUND, khả năng module DS1307 không chạy ổn ở 3.3V.
@@ -773,8 +788,8 @@ Quyết định phần cứng hiện tại:
 ```text
 Chưa có level shifter.
 Tạm thời cắm DS1307 VCC vào 3V3.
-SDA dùng GPIO8.
-SCL dùng GPIO13.
+SDA dùng GPIO41.
+SCL dùng GPIO42.
 Không cắm DS1307 VCC 5V nếu SDA/SCL nối thẳng ESP32-S3.
 ```
 
@@ -799,8 +814,8 @@ Phương án nâng cấp khuyến nghị:
 Đổi sang DS3231.
 DS3231 VCC → 3V3
 DS3231 GND → GND
-DS3231 SDA → GPIO8
-DS3231 SCL → GPIO13
+DS3231 SDA → GPIO41
+DS3231 SCL → GPIO42
 ```
 
 ---

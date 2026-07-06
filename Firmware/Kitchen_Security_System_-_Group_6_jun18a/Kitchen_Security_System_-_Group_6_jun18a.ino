@@ -79,6 +79,8 @@
 #define CAM_HREF_GPIO_NUM    7
 #define CAM_PCLK_GPIO_NUM    13
 
+#define FORCE_SET_RTC_TIME_ONCE false
+
 // =======================
 // BUZZER CONFIG
 // =======================
@@ -1427,21 +1429,19 @@ void setup() {
   rtcOk = rtc.begin();
 
   if (rtcOk) {
-    Serial.println("[RTC] DS1307 found.");
-    if (!rtc.isrunning()) {
-      Serial.println("[RTC] RTC is not running. Setting from compile time.");
-      rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    }
-  } else {
-    Serial.println("[RTC] DS1307 NOT FOUND.");
+  Serial.println("[RTC] DS1307 found.");
+
+  if (FORCE_SET_RTC_TIME_ONCE) {
+    Serial.println("[RTC] Force setting RTC time from compile time.");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  } else if (!rtc.isrunning()) {
+    Serial.println("[RTC] RTC is not running. Setting from compile time.");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }
 
-  cameraReady = initCamera();
-  if (cameraReady) {
-    Serial.println("[CAM] Camera init OK.");
-  } else {
-    Serial.println("[CAM] Camera init FAILED.");
-  }
+} else {
+  Serial.println("[RTC] DS1307 NOT FOUND.");
+}
 
   // Cloud default values. The IoT Cloud may overwrite READWRITE values
   // with the latest dashboard values after connection.
@@ -1485,6 +1485,22 @@ void setup() {
   cooldown_active = false;
   emergency_confirmation_requested = false;
   emergency_confirmed = false;
+
+  // =======================
+  // CAMERA INIT
+  // =======================
+  // IMPORTANT:
+  // cameraReady must be assigned here. If setup() does not call initCamera(),
+  // manual_capture_photo will always fail with CAMERA_NOT_READY even if the camera wiring is OK.
+  cameraReady = initCamera();
+
+  if (cameraReady) {
+    Serial.println("[CAM] Camera ready.");
+    setLastEvent("camera_ready", "Camera init OK at " + getRtcTimeString());
+  } else {
+    Serial.println("[CAM] Camera NOT ready.");
+    setLastEvent("camera_init_failed", "Camera init failed at " + getRtcTimeString());
+  }
 
   initProperties();
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
