@@ -9,6 +9,7 @@ const char SSID[]               = SECRET_SSID;    // Network SSID (name)
 const char PASS[]               = SECRET_OPTIONAL_PASS;    // Network password (use for WPA, or use as key for WEP)
 const char DEVICE_KEY[]  = SECRET_DEVICE_KEY;    // Secret device password
 
+void onSosAuthorityNoteChange();
 void onAutoArmHourChange();
 void onAutoArmMinuteChange();
 void onAutoDisarmHourChange();
@@ -24,10 +25,12 @@ void onResetAlarmChange();
 void onScheduleEnabledChange();
 void onSosAdultChange();
 void onSosChildChange();
+void onTrustedBleDetectionEnabledChange();
 void onUnknownWifiDetectionEnabledChange();
 
 String alarm_status;
 String current_time;
+String emergency_authority_message_status;
 String emergency_escalation_status;
 String last_alert_time;
 String last_event;
@@ -37,7 +40,9 @@ String notification_channel;
 String notification_event_type;
 String notification_sent_status;
 String photo_status;
+String sos_authority_note;
 String sos_message;
+String trusted_device_source;
 float ultrasonic_distance;
 int auto_arm_hour;
 int auto_arm_minute;
@@ -53,6 +58,8 @@ int rearm_countdown_remaining;
 int rearm_delay_seconds;
 int sensitivity_level;
 int threat_level;
+int trusted_ble_last_seen_seconds;
+int trusted_ble_rssi;
 int unknown_wifi_count;
 bool alarm_enabled;
 bool auto_capture_photo_request;
@@ -62,6 +69,7 @@ bool demo_mode;
 bool device_tampered;
 bool emergency_confirmation_requested;
 bool emergency_confirmed;
+bool home_address_configured;
 bool intrusion_alert;
 bool known_device_present;
 bool ldr_covered;
@@ -80,6 +88,8 @@ bool send_notification_request;
 bool sos_adult;
 bool sos_child;
 bool system_armed;
+bool trusted_ble_detection_enabled;
+bool trusted_ble_present;
 bool unknown_wifi_alert;
 bool unknown_wifi_detection_enabled;
 
@@ -89,6 +99,7 @@ void initProperties(){
   ArduinoCloud.setSecretDeviceKey(DEVICE_KEY);
   ArduinoCloud.addProperty(alarm_status, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(current_time, READ, 0 * SECONDS, NULL);
+  ArduinoCloud.addProperty(emergency_authority_message_status, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(emergency_escalation_status, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(last_alert_time, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(last_event, READ, ON_CHANGE, NULL);
@@ -98,7 +109,9 @@ void initProperties(){
   ArduinoCloud.addProperty(notification_event_type, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(notification_sent_status, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(photo_status, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(sos_authority_note, READWRITE, ON_CHANGE, onSosAuthorityNoteChange);
   ArduinoCloud.addProperty(sos_message, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(trusted_device_source, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(ultrasonic_distance, READ, 0 * SECONDS, NULL);
   ArduinoCloud.addProperty(auto_arm_hour, READWRITE, ON_CHANGE, onAutoArmHourChange);
   ArduinoCloud.addProperty(auto_arm_minute, READWRITE, ON_CHANGE, onAutoArmMinuteChange);
@@ -114,6 +127,8 @@ void initProperties(){
   ArduinoCloud.addProperty(rearm_delay_seconds, READWRITE, ON_CHANGE, onRearmDelaySecondsChange);
   ArduinoCloud.addProperty(sensitivity_level, READWRITE, ON_CHANGE, onSensitivityLevelChange);
   ArduinoCloud.addProperty(threat_level, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(trusted_ble_last_seen_seconds, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(trusted_ble_rssi, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(unknown_wifi_count, READ, 0 * SECONDS, NULL);
   ArduinoCloud.addProperty(alarm_enabled, READWRITE, ON_CHANGE, onAlarmEnabledChange);
   ArduinoCloud.addProperty(auto_capture_photo_request, READ, ON_CHANGE, NULL);
@@ -123,6 +138,7 @@ void initProperties(){
   ArduinoCloud.addProperty(device_tampered, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(emergency_confirmation_requested, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(emergency_confirmed, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(home_address_configured, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(intrusion_alert, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(known_device_present, READWRITE, ON_CHANGE, onKnownDevicePresentChange);
   ArduinoCloud.addProperty(ldr_covered, READ, ON_CHANGE, NULL);
@@ -141,6 +157,8 @@ void initProperties(){
   ArduinoCloud.addProperty(sos_adult, READWRITE, ON_CHANGE, onSosAdultChange);
   ArduinoCloud.addProperty(sos_child, READWRITE, ON_CHANGE, onSosChildChange);
   ArduinoCloud.addProperty(system_armed, READ, ON_CHANGE, NULL);
+  ArduinoCloud.addProperty(trusted_ble_detection_enabled, READWRITE, ON_CHANGE, onTrustedBleDetectionEnabledChange);
+  ArduinoCloud.addProperty(trusted_ble_present, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(unknown_wifi_alert, READ, ON_CHANGE, NULL);
   ArduinoCloud.addProperty(unknown_wifi_detection_enabled, READWRITE, ON_CHANGE, onUnknownWifiDetectionEnabledChange);
 
