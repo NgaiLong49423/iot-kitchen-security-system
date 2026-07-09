@@ -1,9 +1,9 @@
 # Đặc tả yêu cầu phần mềm (SRS): Hệ thống chống trộm IoT
 
-> **Phiên bản tài liệu:** 0.6.8
-> **Trạng thái:** Bản checkpoint cập nhật cách triển khai BLE advertiser app cho trusted phone, weighted intrusion score và SOS alarm latch/reset
+> **Phiên bản tài liệu:** 0.6.9
+> **Trạng thái:** Bản checkpoint chốt chuẩn nội dung hiển thị đa kênh bằng tiếng Việt có dấu, đồng thời giữ nguyên BLE trusted phone, weighted intrusion score và SOS alarm latch/reset
 > **Ngày tạo:** 2026-06-26
-> **Sửa đổi gần nhất:** 2026-07-06
+> **Sửa đổi gần nhất:** 2026-07-10
 > **Mục đích:** Làm nguồn yêu cầu chính cho agent, chatbot, lập trình viên và người rà soát. Nếu có mâu thuẫn với tài liệu cũ, tài liệu này được ưu tiên.
 
 ---
@@ -12,7 +12,7 @@
 
 Tài liệu này đặc tả yêu cầu phần mềm cho hệ thống chống trộm IoT dùng Arduino Cloud, board `Freenove ESP32-S3 WROOM + Camera OV3660`, cảm biến chuyển động/khoảng cách/ánh sáng, còi, LED, notification và dashboard theo vai trò.
 
-Bản 0.6.8 kế thừa phạm vi nghiệp vụ của checkpoint 0.6.7: tập trung vào chống trộm cho một khu vực giám sát hiện tại là phòng bếp; không đưa lại báo cháy, Flame Sensor, đo nhiệt độ bếp hoặc RFID-RC522 vào phạm vi chính. Thay đổi chính của bản này là làm rõ quyết định triển khai FR-16 bằng **ứng dụng BLE advertiser bên thứ ba trên điện thoại**: điện thoại trusted phát `Complete Local Name` trong `Scan Response data`, ESP32-S3 phải dùng **active BLE scan** để đọc tên, không dùng MAC address hoặc Bluetooth pairing làm định danh chính. Logic SOS alarm latch/reset của 0.6.7 vẫn được giữ nguyên: SOS chỉ kết thúc khi Parent/Admin kích hoạt `reset_alarm`.
+Bản 0.6.9 kế thừa toàn bộ phạm vi nghiệp vụ của checkpoint 0.6.8 và không thay đổi thuật toán phát hiện, sơ đồ phần cứng, mức ưu tiên cảnh báo hoặc luồng SOS. Thay đổi chính của bản này là chốt **chuẩn nội dung hiển thị đa kênh** cho Serial Monitor/CLI, Arduino Cloud Dashboard, Telegram và Gmail/Google Apps Script. Mọi nội dung người dùng nhìn thấy phải viết bằng tiếng Việt có dấu, diễn đạt trung tính, rõ ràng và đủ chi tiết để người dùng hiểu hệ thống vừa phát hiện gì, đang ở trạng thái nào, đã thực hiện hành động gì và có cần thao tác tiếp hay không. Các mã biến, enum, event ID và trạng thái kỹ thuật bằng tiếng Anh vẫn được giữ làm định danh nội bộ; không được hiển thị máy móc cho người dùng mà không có phần giải thích tiếng Việt.
 
 ## Mục lục
 
@@ -44,17 +44,17 @@ Bản 0.6.8 kế thừa phạm vi nghiệp vụ của checkpoint 0.6.7: tập tr
 | Tên tiếng Anh | IoT Based Anti-Theft System |
 | Tên tài liệu | SRS.md |
 | Loại tài liệu | Software Requirements Specification |
-| Phiên bản tài liệu | 0.6.8 |
+| Phiên bản tài liệu | 0.6.9 |
 | Phiên bản nguồn | 0.6.2 |
 | Ngày tạo | 2026-06-26 |
-| Sửa đổi gần nhất | 2026-07-06 |
+| Sửa đổi gần nhất | 2026-07-10 |
 | Người phụ trách | Group 6 / Ngô Gia Long |
 | Use Case chính | Giám sát chống trộm thông minh cho khu vực phòng bếp |
 | Khu vực giám sát hiện tại | Phòng bếp |
 | Hướng mở rộng | Nhiều module theo khu vực như bếp, phòng ngủ, cửa chính, phòng khách |
 | Cách viết | Theo cấu trúc kiểu IEEE, tối ưu để agent và người bảo trì đọc |
 | Ngôn ngữ | Tiếng Việt; giữ nguyên mã biến, enum, ID và thuật ngữ kỹ thuật bằng tiếng Anh khi cần |
-| Trạng thái hiện tại | Bản checkpoint 0.6.8; giữ board chính `Freenove ESP32-S3 WROOM + Camera OV3660`, chốt triển khai BLE trusted phone bằng app BLE advertiser bên thứ ba, giữ weighted intrusion score và SOS alarm latch/reset cho DS-06/FR-10 |
+| Trạng thái hiện tại | Bản checkpoint 0.6.9; giữ nguyên kiến trúc và logic của 0.6.8, đồng thời chốt chuẩn nội dung hiển thị đa kênh bằng tiếng Việt có dấu cho Serial Monitor/CLI, Arduino Cloud, Telegram và Gmail/Google Apps Script |
 
 ### 0.2 Lịch sử phiên bản
 
@@ -74,6 +74,7 @@ Bản 0.6.8 kế thừa phạm vi nghiệp vụ của checkpoint 0.6.7: tập tr
 | 0.6.6 | 2026-06-26 | 2026-07-03 | Group 6 / Ngô Gia Long | Cập nhật DS-03/FR-04 từ intrusion score đồng trọng số sang weighted intrusion score: PIR và HY-SRF05/object-near cộng +2, LDR/light abnormal và night mode cộng +1; cập nhật ngưỡng `sensitivity_level` thành 5/4/3; làm rõ LDR và night mode là tín hiệu bối cảnh, không nên tự tạo alarm khi thiếu xác nhận vật lý mạnh. |
 | 0.6.7 | 2026-06-26 | 2026-07-03 | Group 6 / Ngô Gia Long | Chốt DS-06/FR-10 theo logic SOS alarm latch: SOS luôn bật còi/LED đỏ trong lúc chờ xác nhận, sau khi Parent/Admin ACK và sau khi gửi authority escalation; ACK không phải reset; chỉ `reset_alarm` từ Parent/Admin mới tắt còi/LED và kết thúc trạng thái SOS active. |
 | 0.6.8 | 2026-06-26 | 2026-07-06 | Group 6 / Ngô Gia Long | Chốt cách triển khai FR-16 bằng app BLE advertiser bên thứ ba trên điện thoại: dùng `Complete Local Name` trong `Scan Response data`, ESP32-S3 dùng active scan, whitelist tên `Mobile_Phone_Number1..4`, không dùng MAC address/pairing làm định danh chính; cập nhật acceptance test BLE. |
+| 0.6.9 | 2026-06-26 | 2026-07-10 | Group 6 / Ngô Gia Long | Chốt FR-18 và bộ quy tắc BR-88..BR-95 về nội dung hiển thị đa kênh: tiếng Việt có dấu, giọng trung tính, giải thích trạng thái/nguyên nhân/hành động/bước tiếp theo; áp dụng cho Serial Monitor/CLI, Arduino Cloud, Telegram và Gmail/Google Apps Script; giữ nguyên mã kỹ thuật nội bộ và không thay đổi logic nghiệp vụ. |
 
 ### 0.3 Quy tắc dành cho agent và người bảo trì
 
@@ -113,6 +114,11 @@ Phần này dành cho AI agent, chatbot, lập trình viên và người bảo t
 29. Logic phát hiện đột nhập phải dùng weighted intrusion score: PIR và HY-SRF05/object-near là tín hiệu xác nhận mạnh; LDR/light abnormal và night mode chỉ là tín hiệu bối cảnh hỗ trợ.
 30. ACK trong luồng SOS không được hiểu là reset cảnh báo. Còi/LED đỏ và trạng thái `SOS_ALERT` phải duy trì cho đến khi Parent/Admin kích hoạt `reset_alarm`.
 31. Khi triển khai BLE trusted phone bằng app advertiser bên thứ ba, không được dùng MAC address điện thoại làm định danh chính. Phải ưu tiên whitelist theo `Complete Local Name` hoặc token beacon đã cấu hình, và nếu tên nằm trong `Scan Response data` thì firmware phải dùng active BLE scan.
+32. Nội dung hiển thị cho người dùng trên Serial Monitor/CLI, Arduino Cloud, Telegram và Gmail/Google Apps Script phải dùng tiếng Việt có dấu và diễn đạt trung tính, rõ ràng.
+33. Không được hiển thị duy nhất mã kỹ thuật như `INTRUSION_ALERT`, `FAILED`, `WAITING_CONFIRMATION` hoặc tên biến như `emergency_escalation_status` cho người dùng mà không có câu giải thích tiếng Việt đi kèm.
+34. Việc chuẩn hóa câu chữ không được làm thay đổi điều kiện kích hoạt, mức ưu tiên, cooldown, reset, polling, chụp ảnh hoặc bất kỳ logic nghiệp vụ nào đã chốt.
+35. Cùng một sự kiện phải có tên và ý nghĩa nhất quán giữa các kênh; được phép thay đổi độ chi tiết theo khả năng của kênh nhưng không được mâu thuẫn nội dung.
+36. Các tài liệu dashboard cũ chỉ được dùng làm tham khảo bố cục và tên biến. SRS hiện tại là nguồn yêu cầu chính cho nội dung hiển thị.
 
 ### 0.4 Quy ước thuật ngữ và trình bày
 
@@ -212,6 +218,10 @@ Sản phẩm là một hệ thống an ninh IoT nhúng, bao gồm:
 | Anti-sabotage | Chống phá hoại/can thiệp thiết bị |
 | Cooldown | Thời gian chờ để tránh gửi cảnh báo liên tục |
 | Agent | AI/chatbot/dev tool đọc tài liệu để hỗ trợ code, sửa hoặc kiểm thử |
+| User-facing Message | Nội dung mà người dùng hoặc người kiểm thử trực tiếp nhìn thấy trên Dashboard, Telegram, Gmail, trang xác nhận hoặc Serial Monitor/CLI |
+| Internal Status Code | Mã trạng thái kỹ thuật dùng trong code và kiểm thử, ví dụ `INTRUSION_ALERT`, `SENT`, `FAILED`; mã này không thay thế cho nội dung giải thích người dùng |
+| Message Mapping | Bảng ánh xạ từ mã sự kiện/trạng thái nội bộ sang câu tiếng Việt có dấu dùng để hiển thị |
+| CLI / Serial Monitor | Kênh văn bản dùng để theo dõi hoạt động và chẩn đoán thiết bị qua cổng nối tiếp |
 
 ---
 
@@ -240,6 +250,7 @@ Hệ thống cần hỗ trợ các nhóm chức năng cấp cao sau.
 | FR-15 | Demo Acceptance Test | Đã phân rã bản demo |
 | FR-16 | Nhận diện thiết bị đáng tin bằng BLE scanning | Đã phân rã ở mức rule chính |
 | FR-17 | SOS authority escalation có địa chỉ nhà và ghi chú bổ sung | Đã phân rã ở mức Google Apps Script |
+| FR-18 | Chuẩn hóa nội dung hiển thị đa kênh bằng tiếng Việt có dấu | Đã phân rã ở mức yêu cầu và acceptance test |
 
 ### 2.2 Nhóm người dùng
 
@@ -378,6 +389,28 @@ Sau khi có xác nhận, Google Apps Script được phép gửi email escalatio
 
 Hệ thống chỉ có trách nhiệm gửi thông tin nhanh và đầy đủ nhất có thể. Hệ thống không được cam kết rằng cơ quan tiếp nhận sẽ phản hồi trong một thời gian cụ thể.
 
+
+### 3.7 Nguyên tắc nội dung hiển thị đa kênh
+
+Hệ thống có bốn nhóm kênh văn bản chính:
+
+1. Serial Monitor/CLI dùng để quan sát và chẩn đoán thiết bị.
+2. Arduino Cloud Dashboard dùng để xem trạng thái và thao tác điều khiển.
+3. Telegram dùng để nhận cảnh báo từ xa.
+4. Gmail và trang Web App của Google Apps Script dùng cho xác nhận SOS và authority escalation.
+
+Các kênh trên phải tuân theo một chuẩn nội dung thống nhất:
+
+- dùng tiếng Việt có dấu theo mã hóa UTF-8,
+- diễn đạt trung tính, không dùng giọng quá cảm tính hoặc phóng đại,
+- giải thích rõ hệ thống đang làm gì thay vì chỉ hiển thị mã trạng thái,
+- không khẳng định chắc chắn có trộm hoặc phá hoại khi hệ thống mới chỉ phát hiện tín hiệu nghi ngờ,
+- nêu hành động hệ thống đã thực hiện và thao tác tiếp theo nếu người dùng cần xử lý,
+- giữ mã kỹ thuật nội bộ để debug nhưng không dùng mã đó làm toàn bộ nội dung người dùng,
+- cùng một sự kiện phải có cùng ý nghĩa trên mọi kênh.
+
+Việc chuẩn hóa nội dung chỉ thay đổi lớp trình bày và thông báo. Nó không được thay đổi logic cảm biến, `intrusion_score`, `threat_level`, trạng thái cảnh báo, cooldown, lịch, BLE, SOS hoặc reset.
+
 ---
 
 ## 4. Yêu Cầu Giao Diện Bên Ngoài
@@ -393,6 +426,41 @@ Hệ thống cần có ba loại dashboard.
 | Admin Demo Dashboard | Admin / Người demo | Quan sát toàn bộ, kiểm thử, debug, chọn kịch bản demo | toàn bộ biến cần thiết, gồm `rearm_countdown_remaining`, `demo_mode`, `demo_scenario`, biến cảm biến, WiFi, log |
 
 Chi tiết bố cục dashboard có thể nằm ở tài liệu thiết kế dashboard riêng. SRS chỉ định nghĩa yêu cầu ở mức vai trò, widget chính và biến liên quan.
+
+### 4.1.1 Yêu cầu nội dung hiển thị cho người dùng
+
+Mỗi thông báo có ý nghĩa phải cung cấp các thành phần phù hợp với ngữ cảnh:
+
+| Thành phần | Yêu cầu |
+|---|---|
+| Tên sự kiện/trạng thái | Viết bằng tiếng Việt có dấu và dùng tên nhất quán giữa các kênh |
+| Trạng thái hiện tại | Cho biết hệ thống đang bật, tắt, cảnh báo, chờ xác nhận, đang gửi, thành công hay thất bại |
+| Nguyên nhân/tín hiệu | Nêu tín hiệu liên quan như chuyển động, vật thể ở gần, ánh sáng bất thường hoặc SOS; không suy diễn quá mức |
+| Hành động hệ thống | Nêu rõ còi/LED/camera/Telegram/email đã được kích hoạt hay chưa |
+| Bước tiếp theo | Khi cần, hướng dẫn người dùng bấm `reset_alarm`, kiểm tra kết nối, cấu hình địa chỉ hoặc xác nhận SOS |
+| Thời gian và khu vực | Hiển thị khi sự kiện là cảnh báo, SOS, email escalation hoặc log quan trọng |
+| Mã kỹ thuật | Chỉ dùng bổ sung cho debug; không được đứng một mình trong nội dung người dùng |
+
+Ví dụ cách diễn đạt phù hợp:
+
+```text
+Phát hiện dấu hiệu đột nhập trong khu vực bếp. Hệ thống đã bật còi, đèn đỏ và yêu cầu camera chụp ảnh. Cảnh báo sẽ duy trì cho đến khi người dùng đặt lại cảnh báo trên Arduino Cloud.
+```
+
+Ví dụ không phù hợp khi hiển thị cho người dùng:
+
+```text
+INTRUSION_ALERT
+```
+
+### 4.1.2 Phạm vi từng kênh
+
+| Kênh | Yêu cầu nội dung |
+|---|---|
+| Serial Monitor/CLI | Có thể giữ nhãn kỹ thuật, giá trị cảm biến và mã event để debug, nhưng mỗi sự kiện quan trọng phải có câu giải thích tiếng Việt rõ ràng |
+| Arduino Cloud | Các biến String và tên widget người dùng nhìn thấy phải dùng nội dung tiếng Việt dễ hiểu; mã enum nội bộ phải được ánh xạ sang câu hiển thị |
+| Telegram | Thông báo cảnh báo phải nêu sự kiện, thời gian, khu vực, nguyên nhân chính, hành động đã thực hiện và bước xử lý tiếp theo nếu có |
+| Gmail/Google Apps Script | Email, trang xác nhận, trang kết quả và thông báo lỗi phải dùng tiếng Việt có dấu; tên trường kỹ thuật chỉ xuất hiện ở phần chẩn đoán nếu cần |
 
 ### 4.2 Yêu cầu giao tiếp phần cứng
 
@@ -508,7 +576,7 @@ IoT_Anti_Theft_System
 | SOS | `sos_child` | bool | Read & Write | On Change | Child, Admin | Nút SOS của trẻ em |
 | SOS | `sos_adult` | bool | Read & Write | On Change | Parent, Admin | Nút SOS của người lớn |
 | SOS | `emergency_confirmation_requested` | bool | Read Only | On Change | Parent, Admin | Đã gửi email hỏi Parent/Admin xác nhận emergency escalation |
-| SOS | `sos_message` | String | Read Only | On Change | Parent, Admin | Nội dung SOS do hệ thống tạo |
+| SOS | `sos_message` | String | Read Only | On Change | Parent, Admin | Nội dung SOS bằng tiếng Việt có dấu, nêu nguồn SOS, trạng thái xử lý và hành động cần thiết |
 | SOS / Escalation | `emergency_confirmed` | bool | Read Only | On Change | Parent, Admin | Đã có ít nhất một Parent/Admin xác nhận escalation qua email |
 | SOS / Escalation | `emergency_escalation_status` | String | Read Only | On Change | Parent, Admin | Trạng thái escalation: `IDLE`, `WAITING_CONFIRMATION`, `CONFIRMED`, `SENT`, `FAILED`, `NO_CONFIRMATION_TIMEOUT` |
 | SOS / Escalation | `home_address_configured` | bool | Read Only | On Change | Parent, Admin | Google Apps Script đã có cấu hình địa chỉ nhà hợp lệ để gửi trong authority escalation |
@@ -542,15 +610,15 @@ IoT_Anti_Theft_System
 | WiFi đáng tin / WiFi lạ | `last_unknown_mac` | String | Read Only | On Change | Admin | MAC lạ gần nhất phát hiện được |
 | Camera | `manual_capture_photo` | bool | Read & Write | On Change | Parent, Admin | Yêu cầu chụp ảnh thủ công từ dashboard |
 | Camera | `auto_capture_photo_request` | bool | Read Only | On Change | Admin | Hệ thống đang yêu cầu chụp ảnh tự động do cảnh báo đột nhập |
-| Camera | `photo_status` | String | Read Only | On Change | Parent, Admin | Trạng thái chụp ảnh: `IDLE`, `CAPTURING`, `CAPTURED`, `FAILED` |
+| Camera | `photo_status` | String | Read Only | On Change | Parent, Admin | Trạng thái chụp ảnh; mã nội bộ có thể là `IDLE`, `CAPTURING`, `CAPTURED`, `FAILED` nhưng nội dung người dùng phải có câu tiếng Việt giải thích |
 | Đầu ra cảnh báo | `buzzer_on` | bool | Read Only | On Change | Parent, Admin | Trạng thái còi |
 | Đầu ra cảnh báo | `led_red_on` | bool | Read Only | On Change | Parent, Admin | Trạng thái LED đỏ; `true` nghĩa là LED đỏ đang ở chế độ nháy cảnh báo |
 | Đầu ra cảnh báo | `led_green_on` | bool | Read Only | On Change | Parent, Admin | Trạng thái LED xanh báo hệ thống đang chạy bình thường và không có cảnh báo active |
 | Thông báo | `send_notification_request` | bool | Read Only | On Change | Admin | Hệ thống yêu cầu gửi notification ra ngoài |
 | Thông báo | `notification_event_type` | String | Read Only | On Change | Admin | Loại sự kiện dùng cho nội dung notification |
-| Thông báo | `notification_sent_status` | String | Read Only | On Change | Parent, Admin | Trạng thái gửi notification: `IDLE`, `PENDING`, `SENT`, `FAILED` |
+| Thông báo | `notification_sent_status` | String | Read Only | On Change | Parent, Admin | Trạng thái gửi notification; mã nội bộ `IDLE`, `PENDING`, `SENT`, `FAILED` phải được ánh xạ sang câu tiếng Việt khi hiển thị |
 | Thông báo | `notification_channel` | String | Read Only | On Change | Admin | Kênh notification hiện tại, mặc định là `telegram` |
-| Log sự kiện | `last_event` | String | Read Only | On Change | Child, Parent, Admin | Mô tả sự kiện gần nhất |
+| Log sự kiện | `last_event` | String | Read Only | On Change | Child, Parent, Admin | Mô tả sự kiện gần nhất bằng tiếng Việt có dấu, nêu sự kiện và hành động hệ thống đã thực hiện |
 | Log sự kiện | `last_event_type` | String | Read Only | On Change | Admin | Loại sự kiện gần nhất |
 | Log sự kiện | `event_counter` | int | Read Only | On Change | Admin | Tổng số sự kiện có ý nghĩa |
 | Chống spam | `cooldown_active` | bool | Read Only | On Change | Admin | Hệ thống đang trong thời gian cooldown hay không |
@@ -1966,6 +2034,96 @@ Sau 5 giây, nếu không còn tín hiệu can thiệp nào và `sabotage_alert 
 
 Nếu trong thời gian giữ 5 giây mà tín hiệu can thiệp xuất hiện lại, hệ thống phải bắt đầu tính lại thời gian anti-sabotage theo rule tương ứng.
 
+
+### BR-88. Quy tắc giữ mã kỹ thuật và tách nội dung người dùng
+
+Tên biến, event ID, enum và mã trạng thái kỹ thuật phải được giữ ổn định để code, polling và test không bị sai. Khi hiển thị cho người dùng, hệ thống phải ánh xạ mã đó sang câu tiếng Việt có dấu.
+
+Ví dụ:
+
+```text
+Mã nội bộ: INTRUSION_ALERT
+Nội dung người dùng: Phát hiện dấu hiệu đột nhập trong khu vực bếp. Hệ thống đang bật cảnh báo tại chỗ.
+```
+
+### BR-89. Quy tắc cấu trúc thông báo có ý nghĩa
+
+Một thông báo cảnh báo, SOS, lỗi hoặc thao tác thành công phải nêu tối thiểu:
+
+1. sự kiện hoặc trạng thái hiện tại,
+2. nguyên nhân hoặc tín hiệu chính nếu có,
+3. hành động hệ thống đã thực hiện,
+4. thao tác tiếp theo của người dùng nếu cần.
+
+Đối với cảnh báo quan trọng gửi từ xa, thông báo phải bổ sung thời gian và khu vực khi dữ liệu này khả dụng.
+
+### BR-90. Quy tắc diễn đạt trung tính và không khẳng định quá mức
+
+Khi hệ thống chỉ dựa trên cảm biến và điểm nghi ngờ, nội dung phải dùng cách diễn đạt như:
+
+- `Phát hiện dấu hiệu đột nhập`,
+- `Phát hiện chuyển động bất thường`,
+- `Thiết bị có dấu hiệu bị che hoặc can thiệp`.
+
+Không được khẳng định `Có trộm`, `Kẻ trộm đã vào nhà` hoặc nội dung tương đương nếu hệ thống không có bằng chứng xác nhận chắc chắn.
+
+### BR-91. Quy tắc nội dung Serial Monitor/CLI
+
+Serial Monitor/CLI được phép hiển thị thêm mã event, giá trị cảm biến, điểm và tên hàm phục vụ debug. Tuy nhiên, sự kiện chính phải có câu tiếng Việt giải thích.
+
+Định dạng khuyến nghị:
+
+```text
+[CẢM BIẾN] PIR phát hiện chuyển động.
+[PHÂN TÍCH] Điểm nghi ngờ hiện tại: 4/4.
+[CẢNH BÁO] Phát hiện dấu hiệu đột nhập trong khu vực bếp.
+[HÀNH ĐỘNG] Đã bật còi, đèn đỏ và yêu cầu camera chụp ảnh.
+```
+
+### BR-92. Quy tắc nội dung Arduino Cloud
+
+Các biến String dùng cho người dùng như `alarm_status`, `last_event`, `photo_status`, `notification_sent_status`, `sos_message`, `emergency_escalation_status` và `emergency_authority_message_status` phải có nội dung tiếng Việt dễ hiểu hoặc có lớp ánh xạ hiển thị tương đương.
+
+Dashboard không được chỉ hiển thị mã như `FAILED` hoặc `WAITING_CONFIRMATION` mà không giải thích thao tác hoặc ý nghĩa.
+
+### BR-93. Quy tắc nội dung Telegram
+
+Mỗi thông báo Telegram quan trọng phải bao gồm, khi dữ liệu khả dụng:
+
+- tiêu đề sự kiện tiếng Việt,
+- thời gian,
+- khu vực giám sát,
+- tín hiệu/nguyên nhân chính,
+- mức nguy hiểm hoặc điểm nghi ngờ khi hữu ích,
+- hành động hệ thống đã thực hiện,
+- hướng dẫn reset hoặc kiểm tra nếu người dùng cần thao tác.
+
+Thông báo gửi kèm ảnh phải nói rõ ảnh được chụp tự động do cảnh báo hay do yêu cầu thủ công.
+
+### BR-94. Quy tắc nội dung Gmail và Google Apps Script
+
+Email xác nhận SOS, email escalation, email cập nhật kết quả, trang xác nhận và trang lỗi phải dùng tiếng Việt có dấu và giải thích đầy đủ trạng thái.
+
+Các trường kỹ thuật như `emergency_escalation_status`, `eventId` hoặc `home_address_configured` có thể được giữ trong phần chi tiết kỹ thuật, nhưng phần chính phải hiển thị bằng nhãn tiếng Việt, ví dụ:
+
+```text
+Trạng thái xử lý SOS: Đang chờ người lớn xác nhận.
+Địa chỉ hỗ trợ khẩn cấp: Chưa được cấu hình.
+```
+
+### BR-95. Quy tắc nhất quán và không thay đổi nghiệp vụ
+
+Một event phải giữ cùng ý nghĩa trên mọi kênh. Việc rút gọn hoặc mở rộng câu theo từng kênh không được làm thay đổi:
+
+- loại sự kiện,
+- mức nguy hiểm,
+- trạng thái gửi,
+- trạng thái xác nhận,
+- hành động hệ thống đã thực hiện,
+- yêu cầu reset.
+
+Chuẩn hóa nội dung không được thay đổi thuật toán hoặc luồng nghiệp vụ hiện tại.
+
 ---
 
 ## 8. Yêu Cầu Chức Năng
@@ -2366,6 +2524,8 @@ Hệ thống không gửi Telegram cho:
 
 Notification phải tuân theo cooldown phù hợp để tránh spam, đặc biệt với WiFi/MAC lạ và các cảnh báo lặp lại.
 
+Nội dung Telegram phải tuân theo BR-89, BR-90 và BR-93. Không được gửi duy nhất tên event kỹ thuật. Nội dung phải giải thích sự kiện, hành động hệ thống và bước xử lý tiếp theo khi cần.
+
 #### Acceptance Scenario
 
 Khi `intrusion_alert = true`, hệ thống phải tạo yêu cầu gửi Telegram với `notification_event_type = "intrusion_alert"`.
@@ -2651,9 +2811,18 @@ Admin Dashboard cần hiển thị thêm biến cảm biến và debug:
 - notification variables,
 - emergency variables.
 
+#### Yêu cầu nội dung
+
+- Tên widget phải viết bằng tiếng Việt có dấu.
+- Các giá trị String hướng đến người dùng phải giải thích trạng thái thay vì chỉ hiển thị mã enum.
+- Nội dung phải trung tính và đủ chi tiết để người dùng hiểu hệ thống đang làm gì.
+- Dashboard cũ có thể dùng làm tài liệu tham khảo bố cục nhưng không được ưu tiên hơn SRS này.
+
 #### Acceptance Scenario
 
 Khi demo, Child Dashboard phải bấm được SOS, Parent Dashboard phải reset được cảnh báo và Admin Dashboard phải xem được biến cảm biến/debug chính.
+
+Khi `alarm_status`, `photo_status`, `notification_sent_status` hoặc `emergency_escalation_status` thay đổi, Dashboard phải hiển thị câu tiếng Việt có dấu hoặc nội dung ánh xạ tương đương; không được chỉ hiển thị mã kỹ thuật mà không giải thích.
 
 ### FR-15. Demo Acceptance Test
 
@@ -2679,6 +2848,10 @@ Hệ thống phải có danh sách test case demo cuối để xác nhận code,
 | BLE trusted phone present | Bật `trusted_ble_detection_enabled`, ESP32-S3 active scan khi điện thoại đang advertise | `trusted_ble_present = true`, `known_device_present = true`, `trusted_device_source = BLE_PHONE`, nếu đang armed thì `DISARMED_BY_TRUSTED_DEVICE` |
 | BLE trusted phone timeout | Tắt advertiser hoặc đưa điện thoại ra xa quá timeout | `trusted_ble_present = false`, `known_device_present` được tính lại, hệ thống đi vào re-arm/ARMED theo BR-02 |
 | BLE safety when alert active | Tạo `SOS_ALERT`/`INTRUSION_ALERT`, sau đó bật lại advertiser | Cảnh báo vẫn active, còi/LED không tự tắt, chỉ `reset_alarm` mới xóa cảnh báo |
+| Nội dung Serial Monitor/CLI | Chạy một luồng intrusion hoặc SOS | Serial hiển thị câu tiếng Việt có dấu về tín hiệu, trạng thái và hành động; mã kỹ thuật chỉ là thông tin bổ sung |
+| Nội dung Arduino Cloud | Làm thay đổi `alarm_status`, `photo_status`, `notification_sent_status` | Dashboard hiển thị nội dung tiếng Việt dễ hiểu, không chỉ có enum tiếng Anh |
+| Nội dung Telegram | Kích hoạt intrusion hoặc sabotage | Telegram nêu sự kiện, thời gian, khu vực, nguyên nhân, hành động hệ thống và hướng dẫn tiếp theo khi cần |
+| Nội dung Gmail/Apps Script | Kích hoạt SOS, mở trang xác nhận và thử trường hợp thiếu cấu hình | Email/trang Web App dùng tiếng Việt có dấu, giải thích trạng thái thành công, chờ xác nhận, thất bại hoặc chưa cấu hình |
 | Photo thất bại | Camera lỗi/chụp thất bại | `photo_status = FAILED` |
 
 #### Acceptance Scenario
@@ -2809,6 +2982,58 @@ Trong demo, contact nhận escalation phải là contact mô phỏng để trán
 
 Khi `sos_child = true`, Parent/Admin xác nhận escalation và `home_address_configured = true`, Google Apps Script phải gửi email authority escalation chứa địa chỉ nhà và `sos_authority_note` nếu có; trạng thái phải chuyển sang `SENT` nếu gửi thành công hoặc `FAILED`/`NOT_CONFIGURED` nếu không gửi được.
 
+
+### FR-18. Chuẩn hóa nội dung hiển thị đa kênh bằng tiếng Việt có dấu
+
+**Trạng thái:** Đã phân rã ở mức yêu cầu và acceptance test
+
+#### Mục đích
+
+Hệ thống phải chuẩn hóa toàn bộ nội dung mà người dùng hoặc người kiểm thử nhìn thấy trên Serial Monitor/CLI, Arduino Cloud, Telegram và Gmail/Google Apps Script để người dùng hiểu chính xác hệ thống đang làm gì.
+
+#### Phạm vi
+
+| Kênh | Nội dung thuộc phạm vi |
+|---|---|
+| Serial Monitor/CLI | Log khởi động, cảm biến, phân tích điểm, thay đổi trạng thái, cảnh báo, camera, BLE, Cloud, Telegram, SOS và lỗi |
+| Arduino Cloud | Tên widget và giá trị String như `alarm_status`, `last_event`, `photo_status`, `notification_sent_status`, `sos_message`, trạng thái escalation |
+| Telegram | Tin nhắn đột nhập, SOS, sabotage, unknown WiFi, lỗi lịch, lỗi camera, ảnh tự động và ảnh thủ công |
+| Gmail/Google Apps Script | Email xác nhận SOS, email escalation, email cập nhật, trang xác nhận, trang thành công, trang lỗi và nội dung trạng thái trả về phục vụ chẩn đoán |
+
+#### Luồng yêu cầu
+
+1. Hệ thống xác định event hoặc trạng thái nội bộ.
+2. Hệ thống giữ nguyên mã kỹ thuật cần thiết cho logic và test.
+3. Hệ thống ánh xạ mã kỹ thuật sang nội dung tiếng Việt có dấu.
+4. Nội dung được tạo theo cấu trúc BR-89 và quy tắc riêng của từng kênh.
+5. Hệ thống gửi hoặc hiển thị nội dung mà không thay đổi logic nghiệp vụ của event.
+
+#### Bảng ánh xạ tối thiểu
+
+| Mã nội bộ | Nội dung người dùng tối thiểu |
+|---|---|
+| `ARMED` | Hệ thống chống trộm đang được bật và đang giám sát khu vực bếp. |
+| `DISARMED` | Chức năng chống trộm hiện đang tắt; SOS và chống phá hoại vẫn tiếp tục hoạt động. |
+| `DISARMED_BY_TRUSTED_DEVICE` | Đã phát hiện thiết bị đáng tin ở gần nên chức năng chống trộm tạm thời chưa được kích hoạt. |
+| `INTRUSION_ALERT` | Phát hiện dấu hiệu đột nhập trong khu vực bếp; cảnh báo tại chỗ đang hoạt động. |
+| `SABOTAGE_ALERT` | Phát hiện thiết bị có dấu hiệu bị che hoặc can thiệp; cảnh báo tại chỗ đang hoạt động. |
+| `SOS_ALERT` | Yêu cầu hỗ trợ khẩn cấp đang hoạt động và sẽ duy trì cho đến khi người dùng đặt lại cảnh báo. |
+| `CAPTURING` | Camera đang chụp ảnh khu vực giám sát. |
+| `CAPTURED` | Camera đã chụp và xử lý ảnh thành công. |
+| `FAILED` | Thao tác không thành công; thông báo phải nêu thao tác nào thất bại và gợi ý kiểm tra phù hợp. |
+| `WAITING_CONFIRMATION` | Đã gửi yêu cầu SOS và đang chờ người lớn xác nhận. |
+| `NOT_CONFIGURED` | Chức năng chưa được cấu hình đầy đủ; thông báo phải nêu cấu hình còn thiếu. |
+
+Bảng trên là nội dung tối thiểu. Thông báo thực tế được phép bổ sung thời gian, nguyên nhân, điểm, khu vực và hành động đã thực hiện.
+
+#### Acceptance Scenario
+
+1. Khi có `INTRUSION_ALERT`, cả Serial, Arduino Cloud và Telegram phải diễn đạt đây là dấu hiệu đột nhập, nêu hành động đã thực hiện và không khẳng định chắc chắn có trộm.
+2. Khi `photo_status = FAILED`, người dùng phải biết camera/chụp ảnh thất bại và cần kiểm tra gì; không chỉ nhìn thấy từ `FAILED`.
+3. Khi SOS đang `WAITING_CONFIRMATION`, Arduino Cloud, email và trang Apps Script phải cùng thể hiện rằng hệ thống đang chờ xác nhận và còi/LED chưa được reset.
+4. Nội dung tiếng Việt phải giữ nguyên dấu khi hiển thị hoặc gửi qua các kênh mục tiêu.
+5. Sau khi chuẩn hóa nội dung, toàn bộ test logic cũ vẫn phải cho kết quả như trước.
+
 ## 9. Yêu Cầu Phi Chức Năng
 
 ### NFR-01. Độ tin cậy
@@ -2848,6 +3073,23 @@ Thông báo/email và chụp ảnh tự động phải có cơ chế tránh lặ
 ### NFR-09. Khả năng demo
 
 Hệ thống phải hỗ trợ cấu hình phù hợp môi trường demo, ví dụ tắt phát hiện WiFi/MAC lạ bằng `unknown_wifi_detection_enabled = false` để tránh nhiễu từ nhiều điện thoại trong lớp học.
+
+
+### NFR-10. Khả năng hiểu nội dung
+
+Người dùng phải có thể hiểu trạng thái chính của hệ thống mà không cần biết tên biến, enum hoặc kiến trúc firmware.
+
+### NFR-11. Hỗ trợ tiếng Việt và mã hóa
+
+Nội dung người dùng phải dùng tiếng Việt có dấu và được xử lý bằng UTF-8 hoặc cơ chế tương thích của từng kênh. Hệ thống không được làm mất dấu, lỗi ký tự hoặc thay thế chữ tiếng Việt bằng chuỗi khó đọc.
+
+### NFR-12. Nhất quán nội dung đa kênh
+
+Cùng một event phải có cùng ý nghĩa cốt lõi trên Serial Monitor/CLI, Arduino Cloud, Telegram và Gmail/Google Apps Script. Sự khác nhau về độ dài hoặc bố cục không được dẫn đến mâu thuẫn trạng thái.
+
+### NFR-13. Tính trung thực của thông báo
+
+Thông báo không được tuyên bố một hành động đã thành công khi hệ thống chưa nhận được kết quả thành công. Ví dụ, không được ghi `Đã gửi ảnh` nếu Telegram upload thất bại hoặc chưa hoàn tất.
 
 ---
 
@@ -2894,6 +3136,19 @@ Mỗi lần `intrusion_alert` mới chỉ được tự động chụp 1 ảnh. 
 ### CON-10. Ràng buộc board chính
 
 Checkpoint hiện tại dùng `Freenove ESP32-S3 WROOM + Camera OV3660` làm board chính. Khi triển khai code, sơ đồ chân, cấu hình Arduino IDE hoặc cấu hình upload, nhóm phát triển phải dùng đúng board profile, pinout và cấu hình camera tương ứng với module mới. Không được dùng mặc định cấu hình của ESP32-CAM/AI Thinker cũ hoặc cấu hình của board ESP32-S3 CAM OV2640 trước đó.
+
+
+### CON-11. Ràng buộc mã trạng thái nội bộ
+
+Không đổi tên biến, enum, event ID hoặc giao thức response chỉ để dịch giao diện, trừ khi thay đổi đó được rà soát đầy đủ và không phá vỡ code, polling hoặc test. Ưu tiên dùng lớp ánh xạ nội dung hiển thị.
+
+### CON-12. Ràng buộc thông tin nhạy cảm
+
+Nội dung Telegram, Dashboard và Serial Monitor không được làm lộ token, mật khẩu WiFi, API key hoặc dữ liệu cấu hình nhạy cảm. Địa chỉ nhà chỉ xuất hiện trong luồng SOS đã được phép theo SRS.
+
+### CON-13. Ràng buộc thay đổi phạm vi
+
+Checkpoint 0.6.9 chỉ mở rộng yêu cầu trình bày nội dung. Không được dùng thay đổi này làm lý do sửa thuật toán phát hiện, pin map, thiết kế dashboard theo vai trò hoặc luồng escalation nếu chưa có yêu cầu riêng.
 
 ---
 
@@ -3377,6 +3632,45 @@ Trạng thái implementation hiện tại:
 ```
 
 
+
+### A.11 Chuẩn nội dung hiển thị đa kênh 0.6.9
+Dưới đây là ví dụ để tham khảo
+
+```text
+Phạm vi:
+    Serial Monitor/CLI
+    Arduino Cloud Dashboard
+    Telegram
+    Gmail/Google Apps Script
+
+Ngôn ngữ:
+    tiếng Việt có dấu
+    diễn đạt trung tính
+    đủ chi tiết để hiểu hệ thống đang làm gì
+
+Mỗi thông báo quan trọng nên nêu:
+    sự kiện/trạng thái
+    nguyên nhân hoặc tín hiệu chính
+    hành động hệ thống đã thực hiện
+    bước tiếp theo nếu cần
+    thời gian/khu vực khi phù hợp
+
+Mã kỹ thuật:
+    vẫn giữ cho code và debug
+    không hiển thị một mình cho người dùng
+    phải có câu giải thích tiếng Việt
+
+Không thay đổi:
+    thuật toán cảm biến
+    weighted intrusion score
+    threat level
+    alarm priority
+    cooldown
+    BLE trusted phone
+    SOS latch/reset
+    Google Apps Script confirmation/escalation flow
+```
+
 ---
 
-## Kết thúc bản SRS checkpoint 0.6.8
+## Kết thúc bản SRS checkpoint 0.6.9
