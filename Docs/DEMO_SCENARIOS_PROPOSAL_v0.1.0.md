@@ -1,824 +1,795 @@
-# Đề xuất kịch bản trình diễn dự án IoT Anti-Theft
+# DEMO.md
 
-> **Tên tài liệu:** DEMO_SCENARIOS_PROPOSAL.md  
-> **Phiên bản:** v0.1.0  
-> **Ngày tạo:** 2026-07-03  
-> **Trạng thái:** Bản nháp để chọn/chốt kịch bản demo  
-> **Dự án:** Hệ thống chống trộm IoT dùng Freenove ESP32-S3 WROOM + Camera OV3660  
-> **Mục đích:** Tổng hợp các kịch bản trình diễn có khả năng ăn điểm cao trước hội đồng/khách hàng.
+# Kịch bản trình diễn chính thức — Hệ thống chống trộm IoT
+
+> **Tên tài liệu:** DEMO.md  
+> **Phiên bản:** v1.0.0  
+> **Ngày cập nhật:** 2026-07-11  
+> **Dự án:** Kitchen Security System — Group 6  
+> **Board chính:** Freenove ESP32-S3 WROOM + Camera OV3660  
+> **Trạng thái:** Đã chốt phạm vi demo cuối cùng  
+> **Mục tiêu:** Chuẩn hóa 6 kịch bản trình diễn chính, loại bỏ BLE trusted phone và quét WiFi/MAC để tập trung hoàn thiện các luồng có giá trị trình diễn cao và khả thi trong thời gian còn lại.
 
 ---
 
-## 1. Cách hiểu về chế độ demo
+## 1. Phạm vi chính thức
 
-Trong tài liệu này, **demo** không có nghĩa là giả lập toàn bộ hệ thống.
+### 1.1 Chức năng giữ lại
 
-**Demo Mode** nên được hiểu là:
+Phiên bản demo cuối cùng giữ các nhóm chức năng sau:
+
+- bật/tắt chống trộm;
+- tự bật/tắt chống trộm theo lịch RTC;
+- phát hiện đột nhập bằng PIR, cảm biến siêu âm và LDR;
+- weighted intrusion score — điểm đột nhập có trọng số;
+- còi, LED đỏ và LED xanh;
+- camera OV3660;
+- chụp ảnh tự động khi có đột nhập;
+- chụp ảnh thủ công từ dashboard;
+- gửi cảnh báo và ảnh qua Telegram;
+- cảnh báo phá hoại thiết bị;
+- theo dõi tình trạng thiết bị sau khi bị phá hoại;
+- heartbeat — tín hiệu định kỳ cho biết thiết bị vẫn đang hoạt động;
+- SOS dành cho trẻ em và người lớn;
+- email xác nhận khẩn cấp qua Google Apps Script;
+- gửi escalation đến contact mô phỏng sau khi Parent/Admin xác nhận;
+- event log — thông tin sự kiện gần nhất;
+- reset tổng từ Parent/Admin;
+- dashboard theo vai trò Child, Parent và Admin;
+- nội dung hiển thị bằng tiếng Việt có dấu.
+
+### 1.2 Chức năng loại khỏi phạm vi
+
+Các nội dung sau không triển khai trong phiên bản demo cuối:
+
+- BLE trusted phone;
+- active BLE scan;
+- whitelist `Mobile_Phone_Number1..4`;
+- tự nhận diện người nhà bằng điện thoại;
+- tự tắt chống trộm khi điện thoại người nhà xuất hiện;
+- auto re-arm dựa trên sự hiện diện của điện thoại;
+- quét WiFi/MAC xung quanh;
+- cảnh báo thiết bị WiFi/MAC lạ;
+- MAC whitelist;
+- RSSI BLE;
+- các kịch bản phụ thuộc BLE hoặc quét WiFi.
+
+Các biến cũ liên quan đến BLE hoặc WiFi có thể vẫn được giữ trong code để tránh làm hỏng cấu hình Arduino Cloud, nhưng không được dùng làm chức năng chính hoặc đưa lên dashboard demo.
+
+---
+
+## 2. Nguyên tắc trình diễn
+
+Demo phải ưu tiên:
+
+- cảm biến thật;
+- còi và LED thật;
+- camera thật;
+- Telegram thật;
+- dashboard thật;
+- Google Apps Script thật;
+- reset thật;
+- log và trạng thái thật.
+
+Chỉ những tình huống có thể gây hỏng phần cứng hoặc không thể tạo an toàn trong lớp học mới được dùng controlled demo input — đầu vào demo có kiểm soát.
+
+Không được tuyên bố hệ thống làm được chức năng chưa triển khai.
+
+---
+
+## 3. Danh sách 6 kịch bản chính
+
+| Mã | Kịch bản | Giá trị nổi bật |
+|---|---|---|
+| DS-01 | Tự động bật chống trộm theo lịch RTC | Tự động hóa |
+| DS-02 | Phát hiện đột nhập ban đêm bằng nhiều cảm biến | Chống trộm đa cảm biến |
+| DS-03 | Thiết bị mất liên lạc hoặc suy giảm nghiêm trọng sau phá hoại | Khả năng chịu lỗi và escalation |
+| DS-04 | Phát hiện kẻ xấu đang che hoặc can thiệp thiết bị | Anti-sabotage |
+| DS-05 | Phụ huynh kiểm tra khu vực từ xa bằng camera | Giám sát từ xa |
+| DS-06 | Trẻ em bấm SOS và phụ huynh xác nhận khẩn cấp | Xử lý tình huống khẩn cấp |
+
+> **Lưu ý về thứ tự:** DS-03 là hậu quả tiếp theo của DS-04. Vì vậy thứ tự trình diễn thực tế là:
+>
+> `DS-01 → DS-02 → DS-04 → DS-03 → DS-05 → DS-06`
+
+---
+
+# DS-01 — Tự động bật chống trộm theo lịch RTC
+
+## 1. Bối cảnh
+
+Gia đình muốn hệ thống tự bật bảo vệ vào buổi tối mà không cần thao tác thủ công mỗi ngày.
+
+Parent/Admin đặt thời gian tự bật gần thời điểm trình diễn. RTC cung cấp thời gian cục bộ cho thiết bị.
+
+## 2. Chức năng liên quan
+
+- `schedule_enabled`
+- `auto_arm_hour`
+- `auto_arm_minute`
+- `alarm_enabled`
+- `system_armed`
+- `alarm_status`
+- `current_time`
+- `last_event`
+- `last_event_type`
+
+## 3. Luồng demo
+
+1. Parent/Admin bật `schedule_enabled`.
+2. Đặt giờ tự bật gần thời điểm hiện tại.
+3. Hệ thống tiếp tục hiển thị thời gian RTC.
+4. Khi RTC đến đúng giờ:
+   - `alarm_enabled = true`;
+   - hệ thống tính lại `system_armed`;
+   - `system_armed = true` nếu không có điều kiện ngăn cản;
+   - trạng thái hiển thị chuyển sang đang bảo vệ.
+5. LED xanh thể hiện hệ thống đang hoạt động bình thường.
+6. Event log ghi nhận hệ thống đã tự bật chống trộm theo lịch.
+
+## 4. Kết quả mong đợi
 
 ```text
-Chế độ trình diễn có kiểm soát để khách hàng/hội đồng thấy thiết bị hoạt động như thế nào.
+Chế độ chống trộm đã được tự động bật theo lịch.
+Hệ thống hiện đang bảo vệ khu vực bếp.
 ```
 
-Demo tốt phải ưu tiên dùng:
+## 5. Điểm trình bày
 
-- cảm biến thật,
-- còi/LED thật,
-- dashboard thật,
-- Telegram/notification thật,
-- camera thật,
-- reset thật,
-- log/trạng thái thật.
-
-Chỉ các đầu vào khó kiểm soát trong môi trường demo mới nên dùng **controlled demo input**.
-
-**Controlled demo input** nghĩa là **đầu vào demo có kiểm soát**, ví dụ Admin bật/tắt `known_device_present` trên dashboard thay vì phụ thuộc vào việc quét điện thoại thật trong lớp học.
+- RTC là nguồn thời gian chính.
+- Lịch chỉ thay đổi `alarm_enabled`.
+- `system_armed` là trạng thái do hệ thống tự tính, không bị dashboard hoặc lịch ép trực tiếp.
 
 ---
 
-## 2. Nguyên tắc chọn kịch bản ăn điểm
+# DS-02 — Phát hiện đột nhập ban đêm bằng nhiều cảm biến
 
-Một kịch bản demo tốt nên có ít nhất 3 yếu tố:
+## 1. Bối cảnh
 
-| Yếu tố | Ý nghĩa |
-|---|---|
-| Có bối cảnh thật | Người xem hiểu tình huống này có thể xảy ra ngoài đời |
-| Có phản ứng vật lý | Còi, LED, cảm biến, camera tạo cảm giác thiết bị chạy thật |
-| Có logic thông minh | Không chỉ đọc cảm biến đơn giản, mà có rule, score, cooldown, reset, hoặc phân quyền |
-| Có dashboard/cloud | Thể hiện IoT thật, không chỉ mạch điện local |
-| Có cảnh báo từ xa | Telegram/email giúp sản phẩm giống thiết bị thương mại |
-| Có xử lý sau cảnh báo | Reset, log, trạng thái, không để hệ thống treo |
+Sau khi hệ thống tự bật bảo vệ, một người lạ đi vào khu vực bếp và dùng đèn pin để quan sát.
 
----
+Hệ thống không phụ thuộc vào một cảm biến duy nhất mà kết hợp nhiều tín hiệu vật lý.
 
-## 3. Bộ 6 kịch bản nên ưu tiên chốt
+## 2. Chức năng liên quan
 
-Đây là bộ 6 kịch bản tôi đề xuất làm chính.
+- `pir_detected`
+- `object_near`
+- `ldr_value`
+- `ldr_delta`
+- `light_abnormal`
+- `night_mode`
+- `intrusion_score`
+- `intrusion_alert`
+- `threat_level`
+- `buzzer_on`
+- `led_red_on`
+- `led_green_on`
+- `photo_status`
+- Telegram notification
+- `last_event`
+- `last_event_type`
+- `reset_alarm`
 
-| Mã | Kịch bản | Độ ăn điểm | Lý do nên chọn |
-|---|---|---:|---|
-| DS-01 | Tự bật chống trộm ban đêm và phát hiện trộm dùng đèn pin | 10/10 | Có lịch tự động, night mode, LDR, PIR, siêu âm, camera, Telegram |
-| DS-02 | Người nhà về muộn ban đêm, hệ thống không báo nhầm | 9.5/10 | Rất giống sản phẩm thông minh dùng trong gia đình |
-| DS-03 | Đột nhập thật với chuỗi báo động đầy đủ đa cảm biến | 10/10 | Thể hiện lõi chống trộm mạnh nhất |
-| DS-04 | Trộm cố che/phá cảm biến trước khi đột nhập | 9.5/10 | Thể hiện tư duy security design, không chỉ đọc cảm biến cơ bản |
-| DS-05 | Lọc báo động giả/vật nhỏ | 9/10 | Chứng minh hệ thống không hú bừa, phù hợp sản phẩm bán được |
-| DS-06 | SOS trẻ em và xác nhận khẩn cấp | 9/10 | Có yếu tố gia đình, khẩn cấp, dashboard theo vai trò |
-
----
-
-# DS-01 — Tự bật chống trộm ban đêm và phát hiện trộm dùng đèn pin
-
-## 1. Tên kịch bản
+## 3. Weighted intrusion score
 
 ```text
-Night Scheduled Auto-Arm and Flashlight Intrusion Detection
+PIR phát hiện chuyển động       +2
+Vật thể ở gần                  +2
+Ánh sáng thay đổi bất thường   +1
+Ban đêm                        +1
 ```
-
-Tên tiếng Việt:
-
-```text
-Tự bật chống trộm ban đêm và phát hiện trộm dùng đèn pin
-```
-
-## 2. Bối cảnh
-
-Buổi tối, gia đình đi ngủ. Người dùng đã đặt lịch để hệ thống tự bật chống trộm vào một khung giờ cố định, ví dụ 23:00.
-
-Đến đúng giờ, hệ thống tự bật chế độ chống trộm. Sau đó có người lạ đột nhập vào khu vực bếp và dùng đèn pin soi trong phòng. Hệ thống phát hiện chuyển động, vật thể gần và ánh sáng thay đổi bất thường rồi kích hoạt cảnh báo.
-
-## 3. Biến/chức năng liên quan
-
-| Nhóm | Biến/chức năng |
-|---|---|
-| Lịch tự động | `schedule_enabled`, `auto_arm_hour`, `auto_arm_minute` |
-| Trạng thái bảo vệ | `alarm_enabled`, `system_armed`, `alarm_status` |
-| Ban đêm | `night_mode`, `current_time`, `current_hour` |
-| Cảm biến | `pir_detected`, `object_near`, `ldr_value`, `ldr_delta`, `light_abnormal` |
-| Đột nhập | `intrusion_score`, `intrusion_alert`, `threat_level` |
-| Cảnh báo | `buzzer_on`, `led_red_on`, `led_green_on` |
-| Camera | `auto_capture_photo_request`, `photo_status` |
-| Thông báo | `send_notification_request`, `notification_event_type`, `notification_sent_status`, `notification_channel` |
-| Reset | `reset_alarm` |
 
 ## 4. Luồng demo
 
-1. Admin/Parent bật `schedule_enabled = true`.
-2. Đặt `auto_arm_hour` và `auto_arm_minute` gần thời điểm demo.
-3. Đến đúng giờ, hệ thống tự đặt:
-   - `alarm_enabled = true`,
-   - `system_armed = true`,
-   - `alarm_status = ARMED`.
-4. Người demo đóng vai trộm:
-   - đi ngang PIR,
-   - đưa người/vật lại gần cảm biến siêu âm,
-   - dùng đèn pin soi vào LDR/khu vực bếp.
-5. Hệ thống ghi nhận:
-   - `pir_detected = true`,
-   - `object_near = true`,
-   - `light_abnormal = true`,
-   - `night_mode = true`.
-6. `intrusion_score` đạt ngưỡng.
-7. Hệ thống kích hoạt:
-   - `intrusion_alert = true`,
-   - `alarm_status = INTRUSION_ALERT`,
-   - `threat_level = 3`,
-   - `buzzer_on = true`,
-   - `led_red_on = true`,
-   - `led_green_on = false`.
-8. Camera OV3660 tự chụp ảnh:
-   - `photo_status = CAPTURING`,
-   - sau đó `photo_status = CAPTURED` hoặc `FAILED`.
-9. Telegram gửi cảnh báo đột nhập.
-10. Parent/Admin bấm `reset_alarm` để tắt cảnh báo.
-
-## 5. Điểm ăn điểm
-
-| Điểm | Giải thích |
-|---|---|
-| Lịch tự động | Chứng minh thiết bị không cần bật tay mỗi tối |
-| Night mode | Có ngữ cảnh ban đêm, giống tình huống thật |
-| Đèn pin | Rất trực quan, người xem hiểu ngay trộm đang soi đồ |
-| Sensor fusion | Hợp nhất nhiều cảm biến để giảm báo nhầm |
-| Camera + Telegram | Có bằng chứng và cảnh báo từ xa |
-| Reset | Có quy trình xử lý sau cảnh báo |
-
-**Sensor fusion** nghĩa là **hợp nhất nhiều cảm biến để ra quyết định**.
-
-## 6. Rủi ro demo
-
-| Rủi ro | Cách giảm |
-|---|---|
-| RTC chưa đúng giờ | Đặt giờ demo sát thời điểm hiện tại hoặc dùng mode demo có kiểm soát |
-| LDR không bắt rõ đèn pin | Test trước khoảng cách/độ sáng đèn pin |
-| PIR delay | Cho PIR warm-up trước khi demo |
-| Camera chụp chậm | Giảm độ phân giải ảnh khi demo |
-
----
-
-# DS-02 — Người nhà về muộn ban đêm, hệ thống không báo nhầm
-
-## 1. Tên kịch bản
-
-```text
-Trusted Device Late-Night Return and Auto Re-arm
-```
-
-Tên tiếng Việt:
-
-```text
-Người nhà về muộn ban đêm, hệ thống không báo nhầm
-```
-
-## 2. Bối cảnh
-
-Buổi tối, hệ thống đã tự bật chống trộm. Một người nhà về muộn và đi qua khu vực bếp. Vì thiết bị đáng tin được nhận diện, hệ thống tạm tắt bảo vệ khu vực để không báo nhầm.
-
-Sau khi người nhà rời đi, hệ thống tự đếm ngược và bật lại chống trộm.
-
-## 3. Biến/chức năng liên quan
-
-| Nhóm | Biến/chức năng |
-|---|---|
-| Thiết bị đáng tin | `known_device_present` |
-| Bảo vệ | `alarm_enabled`, `system_armed`, `alarm_status` |
-| Tự bật lại | `rearm_delay_seconds`, `rearm_countdown_remaining` |
-| Cảm biến | `pir_detected`, `object_near` |
-| Reset/log | `last_event`, `last_event_type`, `event_counter` |
-
-## 4. Luồng demo
-
-1. Hệ thống đang ở trạng thái:
-   - `alarm_enabled = true`,
-   - `system_armed = true`,
-   - `alarm_status = ARMED`.
-2. Admin bật `known_device_present = true`.
-3. Hệ thống chuyển:
-   - `system_armed = false`,
-   - `alarm_status = DISARMED_BY_TRUSTED_DEVICE`.
-4. Người demo đi qua PIR/siêu âm.
-5. Hệ thống không kích hoạt `intrusion_alert`.
-6. Admin tắt `known_device_present = false`.
-7. Hệ thống bắt đầu đếm:
-   - `rearm_countdown_remaining`.
-8. Hết countdown, hệ thống chuyển:
-   - `system_armed = true`,
-   - `alarm_status = ARMED`.
-9. Sau khi armed lại, nếu có tín hiệu đột nhập thật thì hệ thống báo động.
-
-## 5. Điểm ăn điểm
-
-| Điểm | Giải thích |
-|---|---|
-| Không báo nhầm người nhà | Rất đúng nhu cầu khách hàng |
-| Tự re-arm | Cho thấy hệ thống thông minh và tự động |
-| Dashboard rõ ràng | Người xem thấy trạng thái thay đổi trực tiếp |
-| Có logic trạng thái | Không chỉ bật/tắt còi đơn giản |
-
-## 6. Ghi chú
-
-Nếu phát hiện thiết bị đáng tin thật chưa ổn định, có thể dùng `known_device_present` từ Admin Dashboard như **controlled demo input**.
-
----
-
-# DS-03 — Đột nhập thật với chuỗi báo động đầy đủ đa cảm biến
-
-## 1. Tên kịch bản
-
-```text
-Multi-Sensor Intrusion Full Alarm Chain
-```
-
-Tên tiếng Việt:
-
-```text
-Đột nhập thật với chuỗi báo động đầy đủ đa cảm biến
-```
-
-## 2. Bối cảnh
-
-Nhà đang ở trạng thái bảo vệ. Người lạ đột nhập vào khu vực bếp. Hệ thống dùng nhiều tín hiệu cùng lúc để xác nhận đột nhập, sau đó bật còi/LED, gửi Telegram, chụp ảnh và ghi log.
-
-## 3. Biến/chức năng liên quan
-
-| Nhóm | Biến/chức năng |
-|---|---|
-| Cảm biến | `pir_detected`, `object_near`, `light_abnormal` |
-| Điểm nghi ngờ | `intrusion_score`, `sensitivity_level` |
-| Cảnh báo | `intrusion_alert`, `alarm_status`, `threat_level` |
-| Đầu ra | `buzzer_on`, `led_red_on`, `led_green_on` |
-| Camera | `auto_capture_photo_request`, `photo_status` |
-| Telegram | `send_notification_request`, `notification_event_type`, `notification_sent_status` |
-| Log | `last_event`, `last_event_type`, `event_counter` |
-| Reset | `reset_alarm` |
-
-## 4. Luồng demo
-
-1. Bật `alarm_enabled = true`.
-2. Đảm bảo `system_armed = true`.
-3. Người demo tạo tín hiệu đột nhập:
-   - đi qua PIR,
-   - tiến gần siêu âm,
-   - tạo ánh sáng bất thường hoặc che cảm biến theo tình huống.
-4. Hệ thống tăng `intrusion_score`.
-5. Khi đủ ngưỡng:
-   - `intrusion_alert = true`,
-   - `alarm_status = INTRUSION_ALERT`,
-   - `buzzer_on = true`,
-   - `led_red_on = true`,
-   - `led_green_on = false`.
-6. Telegram gửi cảnh báo.
-7. Camera chụp ảnh tự động.
-8. Event log cập nhật.
+1. Hệ thống đang ở trạng thái bảo vệ.
+2. Người demo đi ngang qua PIR.
+3. Người demo tiến gần cảm biến siêu âm.
+4. Người demo chiếu đèn pin vào khu vực LDR.
+5. Hệ thống cập nhật các tín hiệu và tính `intrusion_score`.
+6. Khi đủ ngưỡng:
+   - `intrusion_alert = true`;
+   - còi bật;
+   - LED đỏ bật hoặc nháy;
+   - LED xanh tắt;
+   - camera tự chụp ảnh;
+   - Telegram gửi cảnh báo và ảnh;
+   - event log được cập nhật.
+7. Người demo rời khỏi cảm biến.
+8. Cảnh báo vẫn được giữ, không tự tắt khi điểm nghi ngờ giảm.
 9. Parent/Admin bấm `reset_alarm`.
 
-## 5. Điểm ăn điểm
+## 5. Kết quả mong đợi
 
-Đây là kịch bản lõi của sản phẩm. Nó chứng minh hệ thống thật sự chống trộm, không chỉ có dashboard.
+```text
+CẢNH BÁO ĐỘT NHẬP
+
+Hệ thống phát hiện chuyển động, vật thể ở gần và thay đổi ánh sáng bất thường trong thời gian bảo vệ.
+
+Còi và đèn cảnh báo đã được kích hoạt.
+Camera đã chụp ảnh và gửi đến phụ huynh.
+Vui lòng kiểm tra khu vực và reset cảnh báo sau khi an toàn.
+```
+
+## 6. Điểm trình bày
+
+- Sensor fusion — kết hợp nhiều cảm biến.
+- Không tự tắt cảnh báo khi kẻ trộm rời khỏi vùng quét.
+- Camera và Telegram tạo bằng chứng từ xa.
+- Reset là thao tác có chủ đích của Parent/Admin.
 
 ---
 
-# DS-04 — Trộm cố che/phá cảm biến trước khi đột nhập
+# DS-04 — Phát hiện kẻ xấu đang che hoặc can thiệp thiết bị
 
-## 1. Tên kịch bản
+## 1. Bối cảnh
 
-```text
-Anti-Sabotage Before Intrusion
-```
+Kẻ xấu nhận ra thiết bị chống trộm và cố che cảm biến hoặc áp vật sát thiết bị để vô hiệu hóa hệ thống trước khi đột nhập.
 
-Tên tiếng Việt:
+Đây là giai đoạn hệ thống phát hiện hành vi phá hoại đang diễn ra.
 
-```text
-Trộm cố che/phá cảm biến trước khi đột nhập
-```
+## 2. Chức năng liên quan
 
-## 2. Bối cảnh
+- `ldr_covered`
+- `object_near`
+- `device_tampered`
+- `sabotage_alert`
+- `alarm_status`
+- `threat_level`
+- `buzzer_on`
+- `led_red_on`
+- Telegram notification
+- `last_event`
+- `last_event_type`
+- `reset_alarm`
 
-Kẻ xấu phát hiện có thiết bị chống trộm nên cố tình che cảm biến ánh sáng hoặc đặt vật sát cảm biến để vô hiệu hóa hệ thống. Hệ thống nhận ra hành vi phá hoại và báo động.
+## 3. Quy tắc quan trọng
 
-## 3. Biến/chức năng liên quan
+Anti-sabotage — chống phá hoại — hoạt động độc lập với:
 
-| Nhóm | Biến/chức năng |
-|---|---|
-| LDR | `ldr_covered` |
-| Khoảng cách | `object_near` |
-| Sabotage | `sabotage_alert`, `device_tampered` |
-| Cảnh báo | `alarm_status`, `threat_level` |
-| Đầu ra | `buzzer_on`, `led_red_on`, `led_green_on` |
-| Telegram | `notification_event_type`, `notification_sent_status` |
-| Reset | `reset_alarm` |
+- `alarm_enabled`;
+- `system_armed`.
+
+Ngay cả khi chống trộm đang tắt, thiết bị vẫn phải phát hiện hành vi che hoặc can thiệp.
 
 ## 4. Luồng demo
 
-1. Nói rõ: Anti-Sabotage hoạt động độc lập với `alarm_enabled` và `system_armed`.
-2. Che LDR liên tục khoảng 5 giây hoặc đưa vật sát cảm biến siêu âm 5 giây.
-3. Hệ thống chuyển:
-   - `sabotage_alert = true`,
-   - `alarm_status = SABOTAGE_ALERT`,
-   - `threat_level = 4`,
-   - `buzzer_on = true`,
-   - `led_red_on = true`,
-   - `led_green_on = false`.
-4. Telegram gửi cảnh báo sabotage.
-5. Bấm `reset_alarm`.
+1. Có thể đặt `alarm_enabled = false` để chứng minh anti-sabotage hoạt động độc lập.
+2. Người demo che LDR hoặc đặt vật quá gần cảm biến trong thời gian đủ dài.
+3. Hệ thống xác nhận hành vi bất thường:
+   - `device_tampered = true`;
+   - `sabotage_alert = true`;
+   - `alarm_status = SABOTAGE_ALERT`;
+   - `threat_level` chuyển sang mức nghiêm trọng.
+4. Hệ thống:
+   - bật còi;
+   - bật hoặc nháy LED đỏ;
+   - gửi Telegram cảnh báo cho gia đình;
+   - ghi nhận thời điểm và loại sự kiện;
+   - bắt đầu theo dõi tình trạng hoạt động của thiết bị.
+5. Không reset ngay vì DS-03 sẽ tiếp tục từ trạng thái này.
 
-## 5. Điểm ăn điểm
+## 5. Nội dung cảnh báo đề xuất
 
-| Điểm | Giải thích |
-|---|---|
-| Có tư duy an ninh thật | Tính đến việc kẻ xấu cố phá thiết bị |
-| Độc lập với chống trộm | Dù tắt chống trộm, sabotage vẫn chạy |
-| Rất trực quan | Che cảm biến là người xem hiểu ngay |
+```text
+CẢNH BÁO PHÁ HOẠI THIẾT BỊ
 
-**Anti-sabotage** nghĩa là **chống phá hoại/can thiệp thiết bị**.
+Hệ thống phát hiện cảm biến đang bị che hoặc có vật áp sát trong thời gian bất thường.
+
+Thiết bị vẫn đang hoạt động nhưng có nguy cơ bị can thiệp.
+Hệ thống đã kích hoạt cảnh báo và đang tiếp tục theo dõi tình trạng thiết bị.
+
+Vui lòng kiểm tra khu vực ngay.
+```
+
+## 6. Điểm trình bày
+
+DS-04 trả lời câu hỏi:
+
+> Hệ thống có phát hiện được khi kẻ xấu đang cố vô hiệu hóa thiết bị hay không?
+
+DS-04 chưa kết luận thiết bị đã hỏng. Nó chỉ xác nhận hành vi can thiệp nghiêm trọng đang xảy ra.
 
 ---
 
-# DS-05 — Lọc báo động giả/vật nhỏ
+# DS-03 — Thiết bị mất liên lạc hoặc suy giảm nghiêm trọng sau phá hoại
 
-## 1. Tên kịch bản
+## 1. Bối cảnh
+
+DS-03 là giai đoạn tiếp theo của DS-04.
+
+Sau khi hệ thống đã phát hiện hành vi che hoặc can thiệp, thiết bị tiếp tục gặp một trong các dấu hiệu nghiêm trọng:
+
+- mất heartbeat;
+- mất kết nối Cloud;
+- camera không còn phản hồi;
+- cảm biến siêu âm liên tục trả về lỗi;
+- nhiều chức năng đồng thời không còn hoạt động;
+- hệ thống mất một phần khả năng giám sát.
+
+Hệ thống không khẳng định tuyệt đối rằng kẻ trộm đã phá hỏng một module cụ thể. Hệ thống chỉ kết luận trung tính:
+
+> Ngay sau hành vi phá hoại, thiết bị đã mất liên lạc hoặc mất một phần khả năng bảo vệ. Có nguy cơ thiết bị đã bị vô hiệu hóa.
+
+## 2. Tên trạng thái đề xuất
 
 ```text
-False Positive / Pet-Like Motion Filtering
+CRITICAL_SECURITY_COMPROMISE
 ```
 
-Tên tiếng Việt:
+Ý nghĩa:
 
 ```text
-Lọc báo động giả hoặc chuyển động giống vật nhỏ
+Hệ thống an ninh đang ở tình trạng nghiêm trọng,
+một phần khả năng giám sát có thể đã bị vô hiệu hóa.
 ```
 
-## 2. Bối cảnh
+## 3. Heartbeat
 
-Có chuyển động ngắn hoặc vật nhỏ đi ngang khu vực bếp. Hệ thống không báo động ngay mà đánh giá tín hiệu giống vật nhỏ/báo nhầm.
+Heartbeat là tín hiệu định kỳ cho biết board vẫn đang hoạt động.
 
-## 3. Biến/chức năng liên quan
+Ví dụ:
 
-| Nhóm | Biến/chức năng |
-|---|---|
-| Cảm biến | `pir_detected`, `object_near`, `light_abnormal` |
-| Lọc báo nhầm | `pet_detected` |
-| Điểm | `intrusion_score`, `sensitivity_level` |
-| Mức nguy hiểm | `threat_level` |
-| Log | `last_event`, `last_event_type` |
-| Telegram | Không gửi Telegram khẩn cấp nếu chưa có `intrusion_alert` |
+```text
+Mỗi 10 giây:
+ESP32-S3 gửi DEVICE_ALIVE đến Google Apps Script.
+```
 
-## 4. Luồng demo
+Google Apps Script lưu:
 
-1. Bật `alarm_enabled = true`.
-2. Đảm bảo `system_armed = true`.
-3. Tạo tín hiệu ngắn dưới 5 giây:
-   - vật nhỏ đi ngang,
-   - hoặc chuyển động rất ngắn.
-4. Hệ thống đặt:
-   - `pet_detected = true`,
-   - `threat_level = 1`,
-   - `last_event_type = pet_or_false_positive`.
-5. Hệ thống không bật còi.
-6. Hệ thống không gửi Telegram khẩn cấp.
-7. Sau đó tạo tín hiệu mạnh hơn để chứng minh hệ thống vẫn báo đột nhập thật khi đủ bằng chứng.
+- thời điểm heartbeat gần nhất;
+- trạng thái phá hoại gần nhất;
+- thời điểm bắt đầu mất liên lạc.
 
-## 5. Điểm ăn điểm
+## 4. Điều kiện kích hoạt
 
-Kịch bản này rất quan trọng vì sản phẩm chống trộm thương mại phải tránh báo động giả.
+Không kích hoạt DS-03 chỉ vì một lần đọc lỗi.
 
-**False positive** nghĩa là **báo động giả**, tức báo nguy hiểm dù thực tế không nguy hiểm.
+Điều kiện đề xuất:
+
+```text
+SABOTAGE_ALERT đang active
++
+mất heartbeat hoặc lỗi hệ thống nghiêm trọng
++
+lỗi kéo dài quá thời gian cho phép
+=
+CRITICAL_SECURITY_COMPROMISE
+```
+
+Ví dụ:
+
+```text
+Đã phát hiện phá hoại
++
+không nhận heartbeat trong 30–60 giây
+=
+thiết bị có thể đã mất nguồn, mất mạng hoặc bị vô hiệu hóa
+```
+
+Hoặc:
+
+```text
+Đã phát hiện phá hoại
++
+camera thất bại nhiều lần liên tiếp
++
+cảm biến siêu âm không phản hồi
+=
+khả năng giám sát đã suy giảm nghiêm trọng
+```
+
+## 5. Luồng demo
+
+### Giai đoạn A — Tiếp nối DS-04
+
+1. `sabotage_alert` vẫn đang active.
+2. Hệ thống tiếp tục gửi heartbeat và kiểm tra tình trạng các chức năng.
+3. Người demo dùng controlled demo input để mô phỏng:
+   - mất heartbeat;
+   - mất kết nối thiết bị;
+   - hoặc nhiều module không phản hồi.
+
+Không phá camera hoặc phần cứng thật trong lớp học.
+
+### Giai đoạn B — Xác nhận suy giảm nghiêm trọng
+
+4. Apps Script hoặc firmware phát hiện điều kiện nghiêm trọng.
+5. Hệ thống chuyển sang:
+
+```text
+CRITICAL_SECURITY_COMPROMISE
+```
+
+6. Dashboard và Telegram hiển thị:
+
+```text
+CẢNH BÁO AN NINH NGHIÊM TRỌNG
+
+Trước đó, hệ thống đã phát hiện hành vi che hoặc can thiệp thiết bị.
+
+Ngay sau cảnh báo, thiết bị đã mất liên lạc hoặc mất một phần khả năng giám sát.
+
+Các nguyên nhân có thể gồm:
+- Thiết bị bị mất nguồn
+- Kết nối mạng bị ngắt
+- Một hoặc nhiều thành phần không còn phản hồi
+- Thiết bị có thể đã bị vô hiệu hóa sau hành vi phá hoại
+
+Hệ thống không thể tiếp tục xác nhận đầy đủ tình trạng tại khu vực.
+```
+
+### Giai đoạn C — Xin phép gửi escalation
+
+7. Google Apps Script gửi email khẩn cấp cho Parent/Admin.
+8. Email trình bày:
+   - khu vực xảy ra sự cố;
+   - thời điểm phát hiện phá hoại;
+   - thời điểm mất liên lạc;
+   - trạng thái thiết bị;
+   - các khả năng có thể xảy ra;
+   - địa chỉ nhà;
+   - ô nhập ghi chú bổ sung.
+9. Parent/Admin bấm:
+
+```text
+XÁC NHẬN GỬI BÁO CÁO KHẨN CẤP
+```
+
+10. Apps Script gửi báo cáo đến contact cơ quan chức năng mô phỏng.
+11. Hệ thống ghi nhận:
+   - đã yêu cầu xác nhận;
+   - đã được xác nhận;
+   - đã gửi escalation;
+   - hoặc gửi thất bại.
+
+## 6. Nội dung email xác nhận đề xuất
+
+```text
+CẢNH BÁO AN NINH NGHIÊM TRỌNG
+
+Trước đó, hệ thống đã phát hiện hành vi phá hoại tại khu vực bếp.
+
+Ngay sau sự kiện, thiết bị đã mất liên lạc hoặc mất một phần khả năng giám sát.
+
+Hệ thống nghi ngờ thiết bị có thể đã bị mất nguồn, mất kết nối hoặc bị vô hiệu hóa.
+
+Vui lòng kiểm tra tình hình và xác nhận có gửi báo cáo khẩn cấp đến contact tiếp nhận hay không.
+```
+
+## 7. Nội dung báo cáo gửi contact mô phỏng
+
+```text
+BÁO CÁO SỰ CỐ AN NINH NGHIÊM TRỌNG
+
+Khu vực: Phòng bếp
+Thời điểm phát hiện phá hoại: ...
+Thời điểm mất liên lạc hoặc suy giảm chức năng: ...
+
+Diễn biến:
+1. Hệ thống phát hiện hành vi che hoặc can thiệp thiết bị.
+2. Cảnh báo phá hoại đã được kích hoạt.
+3. Ngay sau đó, thiết bị mất liên lạc hoặc nhiều chức năng không còn phản hồi.
+4. Gia đình đã xác nhận gửi báo cáo khẩn cấp.
+
+Địa chỉ: ...
+Ghi chú của gia đình: ...
+```
+
+## 8. Giới hạn phải nói đúng
+
+Nếu ESP32 bị mất điện hoàn toàn, chính ESP32 không thể gửi Telegram hoặc email.
+
+Trong trường hợp đó, Google Apps Script phát hiện mất heartbeat và gửi email từ phía Cloud.
+
+Mất heartbeat không chứng minh chắc chắn rằng kẻ trộm đã cắt điện. Nó cũng có thể do:
+
+- mất WiFi;
+- router bị tắt;
+- board bị treo;
+- dây nguồn bị rút;
+- thiết bị bị phá hỏng.
+
+Do đó, nội dung phải dùng các cụm:
+
+```text
+nghi ngờ
+có nguy cơ
+có thể đã bị vô hiệu hóa
+mất liên lạc sau hành vi phá hoại
+```
+
+Không được khẳng định tuyệt đối:
+
+```text
+Kẻ trộm đã cắt điện thiết bị.
+```
+
+## 9. Điểm trình bày
+
+DS-03 trả lời câu hỏi:
+
+> Nếu kẻ xấu phá thiết bị thành công hoặc làm thiết bị mất liên lạc thì hệ thống còn làm được gì?
+
+Giá trị nổi bật:
+
+- theo dõi heartbeat từ Cloud;
+- phát hiện mất liên lạc sau hành vi phá hoại;
+- không phụ thuộc hoàn toàn vào ESP32 còn hoạt động;
+- xin phép gia đình trước khi gửi escalation;
+- không tự ý gửi đến contact tiếp nhận;
+- báo cáo trung tính và không kết luận quá mức bằng chứng.
 
 ---
 
-# DS-06 — SOS trẻ em và xác nhận khẩn cấp
+# DS-05 — Phụ huynh kiểm tra khu vực từ xa bằng camera
 
-## 1. Tên kịch bản
+## 1. Bối cảnh
 
-```text
-Child SOS and Emergency Escalation
-```
+Phụ huynh đang ở ngoài nhà và muốn kiểm tra nhanh khu vực bếp mà không cần tạo cảnh báo đột nhập.
 
-Tên tiếng Việt:
+## 2. Chức năng liên quan
 
-```text
-SOS trẻ em và xác nhận khẩn cấp
-```
-
-## 2. Bối cảnh
-
-Trẻ em ở nhà gặp tình huống nguy hiểm và bấm SOS trên dashboard đơn giản. Hệ thống bật cảnh báo tại chỗ, gửi notification cho Parent/Admin và yêu cầu xác nhận escalation.
-
-## 3. Biến/chức năng liên quan
-
-| Nhóm | Biến/chức năng |
-|---|---|
-| SOS | `sos_child`, `sos_adult`, `sos_message` |
-| Escalation | `emergency_confirmation_requested`, `emergency_confirmed`, `emergency_escalation_status` |
-| Cảnh báo | `alarm_status`, `threat_level` |
-| Đầu ra | `buzzer_on`, `led_red_on`, `led_green_on` |
-| Notification | `notification_event_type`, `notification_sent_status` |
-| Reset | `reset_alarm` |
-
-## 4. Luồng demo
-
-1. Mở Child SOS Dashboard.
-2. Bấm `sos_child = true`.
-3. Hệ thống chuyển:
-   - `alarm_status = SOS_ALERT`,
-   - `threat_level = 4`,
-   - `buzzer_on = true`,
-   - `led_red_on = true`,
-   - `led_green_on = false`,
-   - `last_event_type = sos_alert`.
-4. Parent/Admin nhận notification.
-5. Google Apps Script gửi email xác nhận.
-6. Parent/Admin xác nhận.
-7. `emergency_escalation_status` chuyển qua các trạng thái:
-   - `WAITING_CONFIRMATION`,
-   - `CONFIRMED`,
-   - `SENT`.
-8. Parent/Admin bấm `reset_alarm`.
-
-## 5. Điểm ăn điểm
-
-| Điểm | Giải thích |
-|---|---|
-| Có dashboard theo vai trò | Trẻ em chỉ cần một nút SOS đơn giản |
-| Có thông báo từ xa | Parent/Admin nhận cảnh báo |
-| Có escalation | Tình huống khẩn cấp có quy trình xử lý |
-| Có yếu tố gia đình | Dễ thuyết phục khách hàng |
-
-**Escalation** nghĩa là **leo thang xử lý khẩn cấp**.
-
----
-
-# DS-07 — Phụ huynh kiểm tra bếp từ xa bằng camera
-
-## 1. Tên kịch bản
-
-```text
-Remote Manual Camera Check
-```
-
-Tên tiếng Việt:
-
-```text
-Phụ huynh kiểm tra bếp từ xa bằng camera
-```
-
-## 2. Bối cảnh
-
-Phụ huynh đang ở ngoài nhà. Dashboard báo có tín hiệu nghi ngờ nhẹ hoặc phụ huynh muốn kiểm tra bếp. Người dùng bấm chụp ảnh thủ công từ dashboard.
+- `manual_capture_photo`
+- `photo_status`
+- camera OV3660
+- Telegram
+- `last_event`
+- `last_event_type`
 
 ## 3. Luồng demo
 
 1. Mở Parent Dashboard.
-2. Bấm `manual_capture_photo = true`.
-3. Hệ thống chuyển:
-   - `photo_status = CAPTURING`.
-4. Camera OV3660 chụp ảnh.
-5. Hệ thống chuyển:
-   - `photo_status = CAPTURED`.
-6. Nếu thất bại:
-   - `photo_status = FAILED`,
-   - `last_event_type = photo_capture_failed`.
+2. Bấm nút chụp ảnh thủ công.
+3. Hệ thống cập nhật:
 
-## 4. Điểm ăn điểm
+```text
+Đang chụp ảnh
+```
 
-Kịch bản này làm sản phẩm giống thiết bị thương mại hơn vì người dùng có thể kiểm tra nhà từ xa.
+4. Camera chụp ảnh.
+5. Ảnh được gửi qua Telegram.
+6. Trạng thái cập nhật:
 
-## 5. Vị trí khuyến nghị
+```text
+Đã chụp và gửi ảnh thành công.
+```
 
-Không nên để DS-07 là kịch bản chính độc lập nếu thời gian trình bày ngắn. Nên gộp vào DS-01 hoặc DS-03 như một bước phụ.
+7. Nếu chụp thất bại:
+   - hệ thống báo camera không khả dụng;
+   - không làm treo các chức năng còn lại;
+   - ghi nhận lỗi vào event log.
+
+## 4. Điểm trình bày
+
+- Không cần chờ cảnh báo mới kiểm tra được nhà.
+- Phụ huynh có thể chủ động quan sát từ xa.
+- Giống tính năng của sản phẩm an ninh thương mại.
 
 ---
 
-# DS-08 — Mất Internet nhưng cảnh báo tại chỗ vẫn hoạt động
+# DS-06 — Trẻ em bấm SOS và phụ huynh xác nhận khẩn cấp
 
-## 1. Tên kịch bản
+## 1. Bối cảnh
 
-```text
-Offline Local Alarm Resilience
-```
+Trẻ em ở nhà gặp tình huống nguy hiểm và cần một thao tác đơn giản để gọi trợ giúp.
 
-Tên tiếng Việt:
+## 2. Chức năng liên quan
 
-```text
-Mất Internet nhưng cảnh báo tại chỗ vẫn hoạt động
-```
-
-## 2. Bối cảnh
-
-WiFi/Cloud bị mất tạm thời. Trong lúc đó, trộm vẫn đột nhập. Hệ thống không gửi Telegram được ngay nhưng còi và LED vẫn hoạt động tại chỗ.
+- `sos_child`
+- `sos_adult`
+- `sos_message`
+- `emergency_confirmation_requested`
+- `emergency_confirmed`
+- `emergency_escalation_status`
+- `emergency_authority_message_status`
+- `sos_authority_note`
+- `home_address_configured`
+- `buzzer_on`
+- `led_red_on`
+- Telegram
+- Google Apps Script
+- `reset_alarm`
 
 ## 3. Luồng demo
 
-1. Cho hệ thống đang armed.
-2. Ngắt WiFi hoặc giả lập trạng thái notification fail.
-3. Tạo tín hiệu đột nhập.
-4. Hệ thống vẫn bật:
-   - `buzzer_on = true`,
-   - `led_red_on = true`,
-   - `alarm_status = INTRUSION_ALERT`.
-5. Notification có thể:
-   - `notification_sent_status = FAILED`,
-   - hoặc `PENDING`.
-6. Khi mạng ổn định lại, hệ thống cập nhật Cloud/notification nếu có triển khai retry.
+1. Mở Child Dashboard.
+2. Trẻ em bấm nút SOS.
+3. Hệ thống:
+   - chuyển sang `SOS_ALERT`;
+   - bật còi;
+   - bật hoặc nháy LED đỏ;
+   - gửi Telegram cho gia đình;
+   - gửi yêu cầu xác nhận qua Google Apps Script;
+   - giữ cảnh báo tại chỗ.
+4. Parent/Admin mở email.
+5. Parent/Admin đọc:
+   - nguồn SOS;
+   - khu vực;
+   - thời gian;
+   - địa chỉ;
+   - trạng thái hiện tại.
+6. Parent/Admin nhập ghi chú bổ sung.
+7. Parent/Admin xác nhận gửi escalation.
+8. Apps Script gửi báo cáo đến contact mô phỏng.
+9. Email xác nhận không tắt còi và LED.
+10. Parent/Admin bấm `reset_alarm` sau khi đã xử lý tình huống.
 
-## 4. Điểm ăn điểm
+## 4. Quy tắc quan trọng
 
-Đây là kịch bản rất chuyên nghiệp vì sản phẩm thật không nên mất mạng là vô dụng.
+```text
+ACK không phải reset.
+```
 
-## 5. Rủi ro
+Việc xác nhận email chỉ cho phép gửi escalation. Còi, LED đỏ và trạng thái SOS phải duy trì cho đến khi Parent/Admin chủ động reset.
 
-Không nên chọn làm kịch bản chính nếu chưa code retry WiFi ổn định, vì ngắt/mở WiFi khi demo dễ rủi ro.
+## 5. Nội dung cảnh báo đề xuất
+
+```text
+SOS KHẨN CẤP
+
+Trẻ em đã kích hoạt nút SOS tại khu vực bếp.
+
+Còi và đèn cảnh báo đang hoạt động.
+Yêu cầu xác nhận đã được gửi đến phụ huynh.
+
+Vui lòng kiểm tra tình hình ngay.
+Xác nhận email không tự tắt báo động.
+```
+
+## 6. Điểm trình bày
+
+- Dashboard đơn giản theo đúng vai trò trẻ em.
+- Telegram thông báo nhanh.
+- Email cho phép Parent/Admin xác nhận.
+- Có địa chỉ và ghi chú bổ sung.
+- Có quy trình escalation nhưng không tự gửi mà chưa có sự đồng ý.
 
 ---
 
-# DS-09 — WiFi/MAC lạ là cảnh báo sớm, không báo bừa
-
-## 1. Tên kịch bản
+## 4. Thứ tự trình diễn chính thức
 
 ```text
-Unknown WiFi/MAC Pre-Warning
+1. DS-01 — Tự bật chống trộm theo lịch RTC
+2. DS-02 — Phát hiện đột nhập ban đêm
+3. DS-04 — Phát hiện hành vi phá hoại
+4. DS-03 — Mất liên lạc hoặc suy giảm sau phá hoại
+5. DS-05 — Chụp ảnh kiểm tra từ xa
+6. DS-06 — SOS trẻ em và escalation khẩn cấp
 ```
 
-Tên tiếng Việt:
+Lý do DS-04 được trình diễn trước DS-03:
 
 ```text
-WiFi/MAC lạ là cảnh báo sớm, không báo bừa
+DS-04 = phát hiện kẻ xấu đang phá thiết bị
+DS-03 = hậu quả nghiêm trọng nếu thiết bị mất liên lạc hoặc suy giảm sau đó
 ```
-
-## 2. Bối cảnh
-
-Có thiết bị WiFi/MAC lạ gần khu vực bếp. Hệ thống không báo động ngay, chỉ ghi nhận cảnh báo sớm. Khi MAC lạ đi kèm cảm biến vật lý đáng nghi, hệ thống mới tăng mức nguy cơ.
-
-## 3. Luồng demo
-
-Pha 1 — chỉ có MAC lạ:
-
-1. Bật `unknown_wifi_detection_enabled = true`.
-2. Tạo hoặc mô phỏng `unknown_wifi_alert = true`.
-3. Dashboard hiện:
-   - `unknown_wifi_count`,
-   - `last_unknown_mac`,
-   - `threat_level = 1`.
-4. Hệ thống không bật còi.
-5. Hệ thống không đặt `intrusion_alert = true`.
-
-Pha 2 — MAC lạ + cảm biến vật lý:
-
-1. Tạo thêm `pir_detected = true` hoặc `object_near = true`.
-2. `intrusion_score` tăng.
-3. Nếu đủ ngưỡng, hệ thống kích hoạt intrusion alert.
-
-## 4. Điểm ăn điểm
-
-Kịch bản này chứng minh hệ thống không báo bừa chỉ vì xung quanh có thiết bị lạ.
-
-## 5. Rủi ro
-
-Nhiều điện thoại hiện nay có **MAC randomization**, nghĩa là **tự đổi MAC để bảo vệ quyền riêng tư**, nên demo thật có thể nhiễu. Nên dùng controlled demo input nếu chọn kịch bản này.
 
 ---
 
-# DS-10 — Bàn giao/lắp đặt: kỹ thuật viên test nhanh toàn bộ thiết bị
+## 5. Các thay đổi cần triển khai để DS-03 hoạt động thật
 
-## 1. Tên kịch bản
+### 5.1 Firmware ESP32-S3
+
+Cần bổ sung:
+
+- gửi heartbeat định kỳ đến Google Apps Script;
+- trạng thái `critical_security_compromise`;
+- ghi nhận thời điểm sabotage bắt đầu;
+- kiểm tra lỗi camera hoặc cảm biến lặp lại;
+- phân biệt lỗi một lần và lỗi kéo dài;
+- gửi sự kiện critical damage/compromise đến Apps Script nếu ESP32 vẫn còn kết nối;
+- thông báo tiếng Việt rõ ràng;
+- giữ các chức năng còn hoạt động khi một chức năng bị lỗi.
+
+### 5.2 Google Apps Script
+
+Cần bổ sung:
+
+- endpoint nhận heartbeat;
+- lưu heartbeat gần nhất;
+- lưu trạng thái sabotage;
+- kiểm tra timeout heartbeat;
+- event mới, ví dụ:
 
 ```text
-Installation and Handover Test Mode
+critical_security_compromise
 ```
 
-Tên tiếng Việt:
+- email xác nhận dành riêng cho sự cố phá hoại nghiêm trọng;
+- form nhập ghi chú;
+- gửi authority escalation sau khi Parent/Admin xác nhận;
+- không trộn event này với `sos_alert`;
+- thông báo bằng tiếng Việt có dấu;
+- chống gửi email lặp cho cùng một sự kiện.
 
-```text
-Bàn giao/lắp đặt: kỹ thuật viên test nhanh toàn bộ thiết bị
-```
+### 5.3 Dashboard
 
-## 2. Bối cảnh
+Admin Dashboard nên hiển thị:
 
-Kỹ thuật viên lắp thiết bị tại nhà khách hàng. Trước khi bàn giao, kỹ thuật viên bật chế độ demo/test để kiểm tra cảm biến, còi, LED, camera và Telegram.
+- trạng thái heartbeat;
+- thời điểm thiết bị hoạt động gần nhất;
+- cảnh báo phá hoại;
+- trạng thái suy giảm nghiêm trọng;
+- trạng thái gửi email xác nhận;
+- trạng thái escalation;
+- event gần nhất.
 
-## 3. Luồng demo
+Parent Dashboard nên hiển thị:
 
-1. Admin bật `demo_mode = true`.
-2. Chọn `demo_scenario`.
-3. Test từng nhóm:
-   - PIR,
-   - siêu âm,
-   - LDR,
-   - buzzer,
-   - LED đỏ/xanh,
-   - camera,
-   - Telegram.
-4. Sau khi bàn giao:
-   - `demo_mode = false`,
-   - hệ thống quay về vận hành thật.
-
-## 4. Điểm ăn điểm
-
-Kịch bản này giúp giải thích vì sao hệ thống cần `demo_mode`: không phải giả lập để che lỗi, mà là công cụ trình diễn/bàn giao có kiểm soát.
-
-## 5. Vị trí khuyến nghị
-
-Nên để kịch bản này ở phần phụ hoặc phần giới thiệu chế độ demo, không nên làm top 6 chính.
+- cảnh báo nghiêm trọng;
+- tình trạng liên lạc thiết bị;
+- trạng thái xác nhận;
+- trạng thái gửi báo cáo;
+- nút reset khi thiết bị vẫn còn kết nối.
 
 ---
 
-# DS-11 — Lỗi cấu hình lịch tự động được xử lý an toàn
+## 6. Những nội dung không được nói quá khi demo
 
-## 1. Tên kịch bản
+Không được nói:
 
-```text
-Schedule Configuration Safety Check
-```
+- hệ thống biết chắc kẻ trộm đã cắt điện;
+- hệ thống biết chính xác module nào bị phá nếu không có kiểm tra riêng;
+- hệ thống vẫn gửi được từ ESP32 khi ESP32 đã mất điện;
+- hệ thống tự động gửi email đến cơ quan chức năng mà không cần xác nhận;
+- hệ thống đã triển khai BLE hoặc quét WiFi.
 
-Tên tiếng Việt:
+Nên nói:
 
-```text
-Lỗi cấu hình lịch tự động được xử lý an toàn
-```
-
-## 2. Bối cảnh
-
-Người dùng cấu hình giờ tự bật và tự tắt chống trộm trùng nhau, hoặc nhập giờ/phút không hợp lệ. Hệ thống không tự bật/tắt bừa mà ghi lỗi rõ ràng.
-
-## 3. Luồng demo
-
-1. Bật `schedule_enabled = true`.
-2. Đặt:
-   - `auto_arm_hour:auto_arm_minute`,
-   - trùng với `auto_disarm_hour:auto_disarm_minute`.
-3. Hệ thống không đổi `alarm_enabled`.
-4. Hệ thống cập nhật:
-   - `last_event_type = schedule_config_error`,
-   - `alarm_status = ERROR` nếu cần.
-5. Telegram có thể gửi cảnh báo lỗi cấu hình nếu SRS yêu cầu.
-
-## 4. Điểm ăn điểm
-
-Cho thấy hệ thống có xử lý lỗi cấu hình, không chạy bừa.
-
-## 5. Vị trí khuyến nghị
-
-Nên để làm test case kỹ thuật, không nên đưa vào top 6 demo chính vì ít hấp dẫn khách hàng.
+- thiết bị mất liên lạc ngay sau hành vi phá hoại;
+- hệ thống nghi ngờ thiết bị đã bị mất nguồn, mất mạng hoặc bị vô hiệu hóa;
+- Cloud phát hiện mất heartbeat;
+- gia đình được yêu cầu xác nhận trước khi gửi báo cáo;
+- contact tiếp nhận hiện là contact mô phỏng phục vụ demo.
 
 ---
 
-# DS-12 — Camera lỗi nhưng hệ thống không sập
+## 7. Kịch bản dự phòng
 
-## 1. Tên kịch bản
+### 7.1 Camera lỗi nhưng cảnh báo vẫn hoạt động
 
-```text
-Camera Failure Handling
-```
+- camera không chụp được;
+- còi và LED vẫn hoạt động;
+- Telegram gửi cảnh báo văn bản;
+- event log ghi nhận camera không khả dụng.
 
-Tên tiếng Việt:
+### 7.2 Internet mất nhưng báo động cục bộ vẫn hoạt động
 
-```text
-Camera lỗi nhưng hệ thống không sập
-```
+- PIR, siêu âm và LDR vẫn được xử lý;
+- còi và LED vẫn hoạt động;
+- Cloud và Telegram tạm thời không cập nhật;
+- không tuyên bố có retry nếu chưa triển khai.
 
-## 2. Bối cảnh
+### 7.3 Cảnh báo không tự tắt khi tín hiệu cảm biến biến mất
 
-Khi có đột nhập, camera chụp ảnh thất bại vì lỗi kết nối, thiếu PSRAM hoặc lỗi khởi tạo camera. Hệ thống vẫn giữ cảnh báo chính, không bị treo.
-
-## 3. Luồng demo
-
-1. Tạo intrusion alert.
-2. Camera thử chụp ảnh.
-3. Nếu chụp thất bại:
-   - `photo_status = FAILED`,
-   - `last_event_type = photo_capture_failed`,
-   - `notification_event_type = photo_capture_failed` nếu cần.
-4. Còi/LED vẫn hoạt động.
-5. `intrusion_alert` vẫn giữ.
-6. Parent/Admin vẫn reset được.
-
-## 4. Điểm ăn điểm
-
-Đây là kịch bản xử lý lỗi tốt, cho thấy hệ thống có tính ổn định.
-
-## 5. Vị trí khuyến nghị
-
-Không nên làm kịch bản chính nếu camera đang chạy ổn. Chỉ dùng nếu hội đồng hỏi: “Nếu camera lỗi thì sao?”
-
----
-
-# DS-13 — Cảnh báo ưu tiên khi nhiều sự kiện xảy ra cùng lúc
-
-## 1. Tên kịch bản
-
-```text
-Alarm Priority Handling
-```
-
-Tên tiếng Việt:
-
-```text
-Xử lý ưu tiên khi nhiều cảnh báo xảy ra cùng lúc
-```
-
-## 2. Bối cảnh
-
-Đang có cảnh báo đột nhập thì trẻ em bấm SOS hoặc thiết bị bị phá hoại. Hệ thống phải ưu tiên trạng thái nguy hiểm hơn thay vì ghi đè bừa.
-
-## 3. Luồng demo gợi ý
-
-1. Tạo `intrusion_alert = true`.
-2. Khi intrusion đang active, bấm `sos_child = true`.
-3. Hệ thống phải ưu tiên:
-   - `alarm_status = SOS_ALERT`,
-   - `threat_level = 4`.
-4. Log vẫn nên ghi nhận sự kiện SOS.
-5. Reset tổng bằng `reset_alarm`.
-
-## 4. Điểm ăn điểm
-
-Kịch bản này thể hiện tư duy hệ thống và trạng thái. Tuy nhiên, nó khó hơn, dễ phát sinh tranh luận nếu chưa code kỹ.
-
-## 5. Vị trí khuyến nghị
-
-Để làm kịch bản nâng cao hoặc trả lời câu hỏi của hội đồng, không nên đưa vào top 6 chính nếu thời gian gấp.
-
----
-
-## 4. Bảng so sánh để chọn nhanh
-
-| Mã | Kịch bản | Nên làm chính? | Độ khó code | Độ rủi ro lúc demo | Độ ăn điểm |
-|---|---|---:|---:|---:|---:|
-| DS-01 | Auto-arm ban đêm + trộm soi đèn pin | Có | Trung bình | Trung bình | Rất cao |
-| DS-02 | Người nhà về muộn + auto re-arm | Có | Trung bình | Thấp nếu dùng dashboard input | Rất cao |
-| DS-03 | Đột nhập full chain | Có | Trung bình-cao | Trung bình | Rất cao |
-| DS-04 | Anti-sabotage | Có | Trung bình | Thấp-trung bình | Rất cao |
-| DS-05 | False positive / pet filtering | Có | Trung bình-cao | Trung bình | Cao |
-| DS-06 | Child SOS + escalation | Có | Trung bình | Trung bình nếu email chậm | Cao |
-| DS-07 | Manual camera check | Phụ | Trung bình | Trung bình | Khá cao |
-| DS-08 | Mất Internet vẫn báo local | Phụ/nâng cao | Cao | Cao | Cao |
-| DS-09 | Unknown WiFi/MAC pre-warning | Phụ/nâng cao | Cao | Cao | Khá cao |
-| DS-10 | Installation/handover test mode | Phụ | Thấp-trung bình | Thấp | Trung bình |
-| DS-11 | Schedule config error | Test kỹ thuật | Thấp | Thấp | Trung bình |
-| DS-12 | Camera failure handling | Test kỹ thuật | Trung bình | Trung bình | Trung bình |
-| DS-13 | Alarm priority handling | Nâng cao | Cao | Trung bình-cao | Cao |
-
----
-
-## 5. Bộ kịch bản tôi khuyên chốt cuối cùng
-
-Nếu chỉ được chọn 6 kịch bản, nên chọn:
-
-```text
-DS-01 — Tự bật chống trộm ban đêm và phát hiện trộm dùng đèn pin
-DS-02 — Người nhà về muộn ban đêm, hệ thống không báo nhầm
-DS-03 — Đột nhập thật với chuỗi báo động đầy đủ đa cảm biến
-DS-04 — Trộm cố che/phá cảm biến trước khi đột nhập
-DS-05 — Lọc báo động giả/vật nhỏ
-DS-06 — SOS trẻ em và xác nhận khẩn cấp
-```
-
-## 6. Thứ tự trình bày khuyến nghị
-
-Thứ tự nên kể như một câu chuyện sản phẩm:
-
-```text
-1. Ban đêm hệ thống tự bật chống trộm.
-2. Người nhà về muộn, hệ thống nhận diện và không báo nhầm.
-3. Người nhà rời đi, hệ thống tự re-arm.
-4. Trộm vào bếp dùng đèn pin, hệ thống phát hiện và báo động.
-5. Trộm cố che/phá cảm biến, hệ thống vẫn phát hiện sabotage.
-6. Trẻ em bấm SOS, hệ thống gửi cảnh báo khẩn cấp.
-```
-
-Nếu cần đủ 6 scenario tách riêng, dùng đúng DS-01 đến DS-06 như trên.
-
----
-
-## 7. Gợi ý chốt chiến lược demo
-
-Nên chuẩn bị 2 tầng:
-
-### Tầng chính — 6 kịch bản bắt buộc
-
-Đây là phần trình bày trước hội đồng/khách hàng.
-
-### Tầng backup — kịch bản phụ
-
-Dùng khi hội đồng hỏi thêm:
-
-- Nếu mất mạng thì sao? → DS-08.
-- Nếu MAC lạ thì sao? → DS-09.
-- Nếu camera lỗi thì sao? → DS-12.
-- Nếu người dùng nhập lịch sai thì sao? → DS-11.
-- Nếu nhiều cảnh báo cùng lúc thì sao? → DS-13.
+- kẻ trộm rời khỏi vùng cảm biến;
+- cảnh báo vẫn được giữ;
+- chỉ Parent/Admin mới reset được.
 
 ---
 
 ## 8. Kết luận
 
-Bộ kịch bản nên chốt không chỉ chứng minh thiết bị chạy được, mà còn chứng minh sản phẩm có khả năng bán cho khách hàng:
+Bộ 6 kịch bản cuối cùng thể hiện 6 giá trị sản phẩm khác nhau:
 
 ```text
-Tự động bật bảo vệ
-Không báo nhầm người nhà
-Phát hiện đột nhập thật
-Chống phá hoại
-Giảm báo động giả
-Hỗ trợ SOS khẩn cấp
+DS-01: Tự động hóa
+DS-02: Phát hiện đột nhập đa cảm biến
+DS-04: Phát hiện hành vi phá hoại
+DS-03: Phát hiện mất liên lạc và escalation sau phá hoại
+DS-05: Giám sát hình ảnh từ xa
+DS-06: Xử lý SOS khẩn cấp
 ```
 
-Đây là bộ câu chuyện mạnh nhất cho dự án hiện tại.
+Chuỗi DS-04 → DS-03 là điểm nhấn kỹ thuật của bản demo:
+
+```text
+Phát hiện đang bị phá
+→ Theo dõi tình trạng thiết bị
+→ Thiết bị mất liên lạc hoặc suy giảm
+→ Cloud phát hiện tình trạng nghiêm trọng
+→ Gia đình xác nhận
+→ Gửi báo cáo khẩn cấp đến contact mô phỏng
+```
+
+Đây là hướng trình diễn mạnh, có câu chuyện rõ ràng và không phụ thuộc vào BLE hoặc quét WiFi.
