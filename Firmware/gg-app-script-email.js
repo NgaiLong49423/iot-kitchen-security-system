@@ -44,6 +44,10 @@ const CONFIG = {
     // Optional. If non-empty, ESP32-S3 must call with &key=YOUR_TOKEN.
     WEB_APP_TOKEN: '',
 
+    // Keep email confirmation and status links on the same deployed Web App
+    // endpoint that the ESP32-S3 calls. Do not replace this with an old URL.
+    PUBLIC_WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbxQ3ik2vGu4f4ygHQXUtswjMmpfDSKtb381Sz5UFLzDDc2JNAnNewI6UV311sC2bKPdPQ/exec',
+
     // Parent/Admin recipients who receive SOS confirmation email.
     FAMILY_RECIPIENTS: [
         'longgiango511@gmail.com',
@@ -58,9 +62,9 @@ const CONFIG = {
         'hong123aa@gmail.com'
     ],
 
-    // Home address must be configured here or in Script Properties.
-    // Script Property HOME_ADDRESS has priority over this constant.
-    HOME_ADDRESS: 'DEMO_ADDRESS_NOT_CONFIGURED',
+    // Demo address used only for the project escalation flow.
+    // Script Property HOME_ADDRESS still has priority over this constant.
+    HOME_ADDRESS: 'Lô E2a-7, Đường D1, Khu Công nghệ cao, Phường Tăng Nhơn Phú, TP. Hồ Chí Minh',
 
     // Optional fallback values when ESP32-S3 does not send them.
     DEFAULT_DEVICE_NAME: 'Freenove ESP32-S3 Kitchen Security',
@@ -896,7 +900,8 @@ function isAuthorized(params) {
 
 function getHomeAddress() {
     const fromProperty = PropertiesService.getScriptProperties().getProperty('HOME_ADDRESS');
-    return firstNonEmpty(fromProperty, CONFIG.HOME_ADDRESS, '');
+    const configuredProperty = fromProperty === 'DEMO_ADDRESS_NOT_CONFIGURED' ? '' : fromProperty;
+    return firstNonEmpty(configuredProperty, CONFIG.HOME_ADDRESS, '');
 }
 
 function isHomeAddressConfigured() {
@@ -909,7 +914,7 @@ function hasAuthorityRecipients() {
 }
 
 function buildUrl(query) {
-    const baseUrl = ScriptApp.getService().getUrl();
+    const baseUrl = CONFIG.PUBLIC_WEB_APP_URL || ScriptApp.getService().getUrl();
     const parts = [];
 
     Object.keys(query).forEach(function (key) {

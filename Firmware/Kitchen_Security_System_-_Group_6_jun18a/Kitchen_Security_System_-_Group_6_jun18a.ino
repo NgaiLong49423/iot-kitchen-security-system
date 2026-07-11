@@ -93,21 +93,22 @@ const int BUZZER_TONE_HZ = 2500;
 // SECURITY CONFIG
 // =======================
 const float OBJECT_NEAR_THRESHOLD_CM = 50.0;
-const float OBJECT_TOO_CLOSE_THRESHOLD_CM = 8.0;
+const float OBJECT_TOO_CLOSE_THRESHOLD_CM = 15.0;
 
 // If covering the LDR makes the analog value go high, keep true.
 // If covering the LDR makes the analog value go low, change this to false.
 const bool LDR_COVER_WHEN_HIGH = true;
-const int LDR_COVERED_THRESHOLD_HIGH = 3800;
+const int LDR_COVERED_THRESHOLD_HIGH = 2000;
 const int LDR_COVERED_THRESHOLD_LOW = 500;
 
 const int LDR_DELTA_ABNORMAL_THRESHOLD = 500;
-const unsigned long SABOTAGE_HOLD_MS = 5000;
+const unsigned long SABOTAGE_HOLD_MS = 3000;
+const unsigned long INTRUSION_HOLD_MS = 2000;
 
 const unsigned long SENSOR_UPDATE_INTERVAL_MS = 500;
 const unsigned long SERIAL_REPORT_INTERVAL_MS = 2000;
 const unsigned long RED_BLINK_INTERVAL_MS = 250;
-const unsigned long GOOGLE_HEARTBEAT_INTERVAL_MS = 10000;
+const unsigned long GOOGLE_HEARTBEAT_INTERVAL_MS = 30000;
 const unsigned long GOOGLE_HTTP_TIMEOUT_MS = 5000;
 const unsigned long SENSOR_BOOT_GRACE_MS = 3000;
 
@@ -121,11 +122,13 @@ unsigned long sabotageConditionStartedAt = 0;
 
 bool sosActive = false;
 String sosSource = "NONE";
+int activeDemoScenario = 0;
 
 int rawIntrusionScore = 0;
 int lastIntrusionScoreAtTrigger = 0;
 int lastRawIntrusionScoreAtTrigger = 0;
 String lastIntrusionReason = "NONE";
+unsigned long intrusionConditionStartedAt = 0;
 
 String lastScheduleTriggerKey = "";
 
@@ -305,7 +308,8 @@ bool captureSecurityPhoto(const String &reason) {
 
   bool shouldSendToTelegram =
     reason == "MANUAL_DASHBOARD" ||
-    reason == "AUTO_INTRUSION_ALERT";
+    reason == "AUTO_INTRUSION_ALERT" ||
+    reason == "AUTO_SABOTAGE_ALERT";
 
   bool telegramPhotoSent = false;
 
@@ -351,13 +355,26 @@ bool captureSecurityPhoto(const String &reason) {
 }
 
 void processCameraRequests() {
+  bool demoLockActive = demo_mode && activeDemoScenario != 0;
+
   if (manual_capture_photo) {
-    captureSecurityPhoto("MANUAL_DASHBOARD");
+    if (!demoLockActive || activeDemoScenario == 5) {
+      captureSecurityPhoto("MANUAL_DASHBOARD");
+    } else {
+      photo_status = "Yêu cầu chụp ảnh bị chặn bởi chế độ demo";
+    }
     manual_capture_photo = false;
   }
 
   if (auto_capture_photo_request) {
-    captureSecurityPhoto("AUTO_INTRUSION_ALERT");
+    if (!demoLockActive || activeDemoScenario == 2 || activeDemoScenario == 3 || activeDemoScenario == 4) {
+      String reason = notification_event_type == "sabotage_alert"
+        ? "AUTO_SABOTAGE_ALERT"
+        : "AUTO_INTRUSION_ALERT";
+      captureSecurityPhoto(reason);
+    } else {
+      photo_status = "Chụp ảnh tự động bị chặn bởi chế độ demo";
+    }
     auto_capture_photo_request = false;
   }
 }
@@ -1322,9 +1339,19 @@ void triggerSabotageAlert() {
     device_health_status = "Đang theo dõi sau cảnh báo phá hoại";
     setLastEvent(
       "sabotage_alert",
-      "Cảnh báo phá hoại: thiết bị phát hiện LDR bị che hoặc có vật áp sát bất thường lúc " +
+      "Cảnh báo phá hoại: thiết bị phát hiện vật thể áp sát đồng thời che cảm biến ánh sáng lúc " +
       getRtcTimeString() + ". Hệ thống đang theo dõi heartbeat để phát hiện mất liên lạc."
     );
+    threat_level = 4;
+
+    // A sabotage event has the same immediate local response as an intrusion:
+    // alarm outputs are applied on this loop and a security photo is sent once.
+    auto_capture_photo_request = true;
+    photo_status = "Đang chuẩn bị chụp ảnh phá hoại";
+    send_notification_request = true;
+    notification_event_type = "sabotage_alert";
+    notification_sent_status = "Đang chụp ảnh để gửi cảnh báo phá hoại";
+
     notifySecurityTextEvent("sabotage_alert", "DEVICE", last_event);
     callGoogleAppsScript("sabotage_alert", "DEVICE", last_event);
   }
@@ -1395,6 +1422,8 @@ void resetAllAlerts() {
   notification_sent_status = "Chưa có cảnh báo cần gửi";
 
   sabotageConditionStartedAt = 0;
+  intrusionConditionStartedAt = 0;
+  activeDemoScenario = 0;
 
   incrementEventCounter();
   setLastEvent("alarm_reset", "Đã reset cảnh báo tại thiết bị lúc " + getRtcTimeString() + ". Vui lòng kiểm tra thực tế trước khi bật lại bảo vệ.");
@@ -1406,7 +1435,9 @@ void resetAllAlerts() {
 }
 
 void updateSabotageLogic(const HardwareSnapshot &s) {
-  bool sabotageCondition = s.ldrCovered || s.objectTooClose;
+  // Demo anti-sabotage requires both physical signs at the same time:
+  // an object is very close and the light sensor is covered.
+  bool sabotageCondition = s.ldrCovered && s.objectTooClose;
 
   if (sabotageCondition) {
     if (sabotageConditionStartedAt == 0) {
@@ -1436,8 +1467,23 @@ void updateIntrusionLogic(const HardwareSnapshot &s) {
     return;
   }
 
-  if (system_armed && intrusion_score >= getIntrusionThreshold()) {
-    triggerIntrusionAlert(s);
+  // Intrusion requires two physical signals together. Very close objects
+  // are reserved for the anti-sabotage flow and do not create intrusion.
+  bool intrusionCondition = system_armed &&
+                            s.pirDetected &&
+                            s.objectNear &&
+                            !s.objectTooClose;
+
+  if (intrusionCondition) {
+    if (intrusionConditionStartedAt == 0) {
+      intrusionConditionStartedAt = millis();
+    }
+
+    if (!intrusion_alert && millis() - intrusionConditionStartedAt >= INTRUSION_HOLD_MS) {
+      triggerIntrusionAlert(s);
+    }
+  } else if (!intrusion_alert) {
+    intrusionConditionStartedAt = 0;
   }
 
   // Important: intrusion_alert is latched. It does not auto-clear when score drops.
@@ -1503,7 +1549,12 @@ void updateThreatLevel() {
     return;
   }
 
-  if (sabotage_alert || intrusion_alert) {
+  if (sabotage_alert) {
+    threat_level = 4;
+    return;
+  }
+
+  if (intrusion_alert) {
     threat_level = 3;
     return;
   }
@@ -1555,8 +1606,19 @@ void updateSecurityLogic(const HardwareSnapshot &s) {
   clampCloudConfigValues();
   updateTrustedDeviceStatusPlaceholders();
   updateSystemArmed();
-  updateSabotageLogic(s);
-  updateIntrusionLogic(s);
+
+  // Demo lock: only the selected real scenario is allowed to react.
+  if (demo_mode && activeDemoScenario != 0) {
+    if (activeDemoScenario == 2) {
+      updateIntrusionLogic(s);
+    } else if (activeDemoScenario == 3 || activeDemoScenario == 4) {
+      updateSabotageLogic(s);
+    }
+  } else {
+    updateSabotageLogic(s);
+    updateIntrusionLogic(s);
+  }
+
   updateAlarmStatus();
   updateThreatLevel();
   updateDeviceHealthStatus();
@@ -1569,6 +1631,10 @@ void updateSecurityLogic(const HardwareSnapshot &s) {
 // ==================================================
 
 void updateScheduleLogic() {
+  if (demo_mode && activeDemoScenario != 0 && activeDemoScenario != 1) {
+    return;
+  }
+
   if (!schedule_enabled || !rtcOk) {
     return;
   }
@@ -1606,24 +1672,46 @@ void applyDemoScenario() {
     return;
   }
 
-  if (demo_scenario == 10) {
-    known_device_present = true;
-    setLastEvent("demo_known_device", "Demo legacy: bật known_device_present. Biến này không còn dùng trong luồng chính v0.7.0.");
-    demo_scenario = 0;
-  } else if (demo_scenario == 11) {
-    known_device_present = false;
-    setLastEvent("demo_known_device", "Demo legacy: tắt known_device_present.");
-    demo_scenario = 0;
-  } else if (demo_scenario == 20) {
-    triggerSosAlert("CHILD_DEMO");
-    demo_scenario = 0;
-  } else if (demo_scenario == 21) {
-    resetAllAlerts();
-    demo_scenario = 0;
-  } else if (demo_scenario == 30) {
-    triggerDemoCriticalCompromise();
-    demo_scenario = 0;
+  if (demo_scenario == 0) {
+    return;
   }
+
+  if (activeDemoScenario == demo_scenario) {
+    // Arduino Cloud may resend the same READWRITE value after reconnect.
+    // Do not replay a demo event or send another notification.
+    demo_scenario = 0;
+    return;
+  }
+
+  activeDemoScenario = demo_scenario;
+
+  if (demo_scenario == 1) {
+    setLastEvent("demo_ds01_ready", "Demo DS-01 đã chọn: chờ giờ tự bật/tắt theo lịch đã cấu hình.");
+  } else if (demo_scenario == 2) {
+    alarm_enabled = true;
+    updateSystemArmed();
+    intrusionConditionStartedAt = 0;
+    setLastEvent("demo_ds02_ready", "Demo DS-02 đã chọn: chờ PIR và vật thể trong vùng 15-50 cm liên tục 2 giây.");
+  } else if (demo_scenario == 3) {
+    alarm_enabled = false;
+    updateSystemArmed();
+    sabotageConditionStartedAt = 0;
+    setLastEvent("demo_ds04_ready", "Demo DS-04 đã chọn: chờ vật thể áp sát và che cảm biến ánh sáng liên tục 3 giây.");
+  } else if (demo_scenario == 4) {
+    alarm_enabled = false;
+    updateSystemArmed();
+    sabotageConditionStartedAt = 0;
+    setLastEvent("demo_ds03_ready", "Demo DS-03 đã chọn: cần phát hiện phá hoại trước, sau đó rút nguồn để kiểm tra mất heartbeat.");
+  } else if (demo_scenario == 5) {
+    setLastEvent("demo_ds05_ready", "Demo DS-05 đã chọn: chờ yêu cầu chụp ảnh thủ công từ Dashboard.");
+  } else if (demo_scenario == 6) {
+    setLastEvent("demo_ds06_ready", "Demo DS-06 đã chọn: chờ nút SOS từ trẻ em hoặc phụ huynh/Admin.");
+  } else {
+    activeDemoScenario = 0;
+    setLastEvent("demo_invalid", "Số demo không hợp lệ. Chỉ dùng các số từ 1 đến 6.");
+  }
+
+  demo_scenario = 0;
 }
 
 // ==================================================
@@ -1640,6 +1728,7 @@ void printHelp() {
   Serial.println("p : trigger Parent/Admin SOS");
   Serial.println("x : demo critical compromise after sabotage");
   Serial.println("r : reset all alerts");
+  Serial.println("Dashboard demo lock: 1=DS01, 2=DS02, 3=DS04, 4=DS03, 5=DS05, 6=DS06");
   Serial.println("1 : sensitivity_level = 1, threshold = 5");
   Serial.println("2 : sensitivity_level = 2, threshold = 4");
   Serial.println("3 : sensitivity_level = 3, threshold = 3");
@@ -1695,13 +1784,17 @@ void printSecurityReport() {
   Serial.print("system_armed                : "); Serial.println(system_armed ? "true" : "false");
   Serial.print("pir_detected                : "); Serial.println(pir_detected ? "true" : "false");
   Serial.print("ultrasonic_distance         : "); Serial.print(ultrasonic_distance); Serial.println(" cm");
+  Serial.print("object_near                 : "); Serial.println(object_near ? "true" : "false");
   Serial.print("ldr_value                   : "); Serial.println(ldr_value);
+  Serial.print("ldr_covered                 : "); Serial.println(ldr_covered ? "true" : "false");
   Serial.print("intrusion_score             : "); Serial.println(intrusion_score);
   Serial.print("threat_level                : "); Serial.println(threat_level);
+  Serial.print("sabotage_alert              : "); Serial.println(sabotage_alert ? "true" : "false");
   Serial.print("notification_sent_status    : "); Serial.println(notification_sent_status);
   Serial.print("emergency_escalation_status : "); Serial.println(emergency_escalation_status);
   Serial.print("emergency_authority_status  : "); Serial.println(emergency_authority_message_status);
   Serial.print("home_address_configured     : "); Serial.println(home_address_configured ? "true" : "false");
+  Serial.print("active_demo_scenario        : "); Serial.println(activeDemoScenario);
   Serial.print("trusted_ble_detection       : "); Serial.println(trusted_ble_detection_enabled ? "true" : "false");
   Serial.print("trusted_ble_present         : "); Serial.println(trusted_ble_present ? "true" : "false");
   Serial.print("trusted_device_source       : "); Serial.println(trusted_device_source);
@@ -1894,14 +1987,22 @@ void onResetAlarmChange() {
 
 void onSosChildChange() {
   if (sos_child) {
-    triggerSosAlert("CHILD");
+    if (!demo_mode || activeDemoScenario == 0 || activeDemoScenario == 6) {
+      triggerSosAlert("CHILD");
+    } else {
+      setLastEvent("demo_blocked_sos", "Nút SOS bị chặn vì chế độ demo đang chọn kịch bản khác.");
+    }
     sos_child = false;
   }
 }
 
 void onSosAdultChange() {
   if (sos_adult) {
-    triggerSosAlert("PARENT_ADMIN");
+    if (!demo_mode || activeDemoScenario == 0 || activeDemoScenario == 6) {
+      triggerSosAlert("PARENT_ADMIN");
+    } else {
+      setLastEvent("demo_blocked_sos", "Nút SOS bị chặn vì chế độ demo đang chọn kịch bản khác.");
+    }
     sos_adult = false;
   }
 }
@@ -1912,6 +2013,9 @@ void onSensitivityLevelChange() {
 }
 
 void onDemoModeChange() {
+  if (!demo_mode) {
+    activeDemoScenario = 0;
+  }
   setLastEvent("cloud_demo_mode", demo_mode ? "Đã bật chế độ demo có kiểm soát." : "Đã tắt chế độ demo.");
 }
 
@@ -1921,8 +2025,14 @@ void onDemoScenarioChange() {
 
 void onManualCapturePhotoChange() {
   if (manual_capture_photo) {
-    photo_status = "Đã nhận yêu cầu chụp ảnh thủ công";
-    setLastEvent("manual_capture_requested", "Phụ huynh/Admin yêu cầu chụp ảnh thủ công lúc " + getRtcTimeString() + ".");
+    if (!demo_mode || activeDemoScenario == 0 || activeDemoScenario == 5) {
+      photo_status = "Đã nhận yêu cầu chụp ảnh thủ công";
+      setLastEvent("manual_capture_requested", "Phụ huynh/Admin yêu cầu chụp ảnh thủ công lúc " + getRtcTimeString() + ".");
+    } else {
+      manual_capture_photo = false;
+      photo_status = "Yêu cầu chụp ảnh bị chặn bởi chế độ demo";
+      setLastEvent("demo_blocked_manual_photo", "Yêu cầu chụp ảnh bị chặn vì chế độ demo đang chọn kịch bản khác.");
+    }
   }
 }
 
