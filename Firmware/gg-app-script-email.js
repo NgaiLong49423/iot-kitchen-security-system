@@ -72,6 +72,7 @@ const CONFIG = {
 
     HEARTBEAT_PROPERTY_KEY: 'KSS_LAST_HEARTBEAT',
     ACTIVE_SABOTAGE_EVENT_KEY: 'KSS_ACTIVE_SABOTAGE_EVENT_ID',
+    ACTIVE_SOS_EVENT_KEY: 'KSS_ACTIVE_SOS_EVENT_ID',
     HEARTBEAT_TIMEOUT_SECONDS: 60
 };
 
@@ -332,7 +333,27 @@ function buildBaseSecurityRecord(params, eventId, eventType, sourceFallback) {
 function handleSosRequest(params, eventType) {
     const now = nowText();
     const source = normalizeSource(params.source || eventType || 'UNKNOWN');
-    const eventId = params.eventId || createEventId('SOS');
+    const requestedEventId = params.eventId || '';
+    const activeEventId = getActiveSosEventId_();
+
+    // A dashboard callback or retry must not create another confirmation email
+    // while the previous SOS is still awaiting confirmation.
+    if (!requestedEventId && activeEventId) {
+        const activeRecord = loadEventRecord(activeEventId);
+        if (activeRecord && activeRecord.monitoring_status !== STATUS.RESOLVED) {
+            return textResponse(
+                'OK:WAITING_CONFIRMATION' +
+                ';eventId=' + activeRecord.eventId +
+                ';emergency_confirmation_requested=' + String(Boolean(activeRecord.emergency_confirmation_requested)) +
+                ';emergency_confirmed=' + String(Boolean(activeRecord.emergency_confirmed)) +
+                ';emergency_escalation_status=' + activeRecord.emergency_escalation_status +
+                ';emergency_authority_message_status=' + activeRecord.emergency_authority_message_status +
+                ';home_address_configured=' + String(activeRecord.homeAddressConfigured)
+            );
+        }
+    }
+
+    const eventId = requestedEventId || createEventId('SOS');
 
     const record = {
         eventId: eventId,
@@ -359,6 +380,7 @@ function handleSosRequest(params, eventType) {
     };
 
     saveEventRecord(record);
+    setActiveSosEventId_(record.eventId);
     sendSosConfirmationEmail(record);
 
     return textResponse(
@@ -511,6 +533,9 @@ function handleResolve(params) {
 
     if (getActiveSabotageEventId_() === eventId) {
         clearActiveSabotageEventId_();
+    }
+    if (getActiveSosEventId_() === eventId) {
+        clearActiveSosEventId_();
     }
 
     return textResponse('OK:RESOLVED;eventId=' + eventId);
@@ -840,6 +865,18 @@ function getActiveSabotageEventId_() {
 
 function setActiveSabotageEventId_(eventId) {
     PropertiesService.getScriptProperties().setProperty(CONFIG.ACTIVE_SABOTAGE_EVENT_KEY, eventId);
+}
+
+function getActiveSosEventId_() {
+    return PropertiesService.getScriptProperties().getProperty(CONFIG.ACTIVE_SOS_EVENT_KEY) || '';
+}
+
+function setActiveSosEventId_(eventId) {
+    PropertiesService.getScriptProperties().setProperty(CONFIG.ACTIVE_SOS_EVENT_KEY, eventId);
+}
+
+function clearActiveSosEventId_() {
+    PropertiesService.getScriptProperties().deleteProperty(CONFIG.ACTIVE_SOS_EVENT_KEY);
 }
 
 function clearActiveSabotageEventId_() {

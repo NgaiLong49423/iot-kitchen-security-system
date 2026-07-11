@@ -50,7 +50,7 @@
 
 #define PIN_LED_RED      14
 #define PIN_LED_GREEN    21
-#define PIN_BUZZER       47
+#define PIN_BUZZER       10
 
 #define PIN_US_TRIG      38
 #define PIN_US_ECHO      39
@@ -108,6 +108,8 @@ const unsigned long SENSOR_UPDATE_INTERVAL_MS = 500;
 const unsigned long SERIAL_REPORT_INTERVAL_MS = 2000;
 const unsigned long RED_BLINK_INTERVAL_MS = 250;
 const unsigned long GOOGLE_HEARTBEAT_INTERVAL_MS = 10000;
+const unsigned long GOOGLE_HTTP_TIMEOUT_MS = 5000;
+const unsigned long SENSOR_BOOT_GRACE_MS = 3000;
 
 RTC_DS1307 rtc;
 bool rtcOk = false;
@@ -129,6 +131,7 @@ String lastScheduleTriggerKey = "";
 
 unsigned long lastGoogleScriptCallMs = 0;
 String lastGoogleScriptEventKey = "";
+unsigned long bootCompletedAtMs = 0;
 
 struct HardwareSnapshot {
   int ldrValue;
@@ -691,7 +694,7 @@ bool performGetRequest(String url, String &outResponse, int &outCode, int redire
 
   WiFiClientSecure client;
   client.setInsecure();
-  client.setTimeout(15000);
+  client.setTimeout(GOOGLE_HTTP_TIMEOUT_MS);
 
   if (!client.connect(host.c_str(), port)) {
     Serial.println("[HTTP] Connection failed.");
@@ -705,7 +708,7 @@ bool performGetRequest(String url, String &outResponse, int &outCode, int redire
   client.print("Connection: close\r\n\r\n");
 
   unsigned long start = millis();
-  while (client.connected() && !client.available() && millis() - start < 15000) {
+  while (client.connected() && !client.available() && millis() - start < GOOGLE_HTTP_TIMEOUT_MS) {
     delay(10);
   }
 
@@ -1024,7 +1027,7 @@ void setBuzzerPhysical(bool on) {
 }
 
 void applyAlarmOutputs() {
-  bool anyAlarmActive = sosActive || sabotage_alert || intrusion_alert;
+  bool anyAlarmActive = sosActive || sabotage_alert || intrusion_alert || critical_security_compromise;
 
   buzzer_on = anyAlarmActive;
   led_red_on = anyAlarmActive;
@@ -1428,6 +1431,11 @@ void updateIntrusionLogic(const HardwareSnapshot &s) {
   // Simplified intrusion logic based strictly on requirements
   intrusion_score = rawIntrusionScore;
 
+  // Ignore transient PIR/ultrasonic readings immediately after power-up.
+  if (bootCompletedAtMs != 0 && millis() - bootCompletedAtMs < SENSOR_BOOT_GRACE_MS) {
+    return;
+  }
+
   if (system_armed && intrusion_score >= getIntrusionThreshold()) {
     triggerIntrusionAlert(s);
   }
@@ -1728,6 +1736,15 @@ void setup() {
   setRedLedPhysical(false);
   setGreenLedPhysical(true);
   setBuzzerPhysical(false);
+
+  // These are runtime alarm latches. They must start clear after a reboot;
+  // the physical sensors are evaluated again after the boot grace period.
+  intrusion_alert = false;
+  sabotage_alert = false;
+  critical_security_compromise = false;
+  device_tampered = false;
+  sosActive = false;
+  bootCompletedAtMs = millis();
 
   analogReadResolution(12);
 
