@@ -107,6 +107,7 @@ const unsigned long SABOTAGE_HOLD_MS = 5000;
 const unsigned long SENSOR_UPDATE_INTERVAL_MS = 500;
 const unsigned long SERIAL_REPORT_INTERVAL_MS = 2000;
 const unsigned long RED_BLINK_INTERVAL_MS = 250;
+const unsigned long GOOGLE_HEARTBEAT_INTERVAL_MS = 10000;
 
 RTC_DS1307 rtc;
 bool rtcOk = false;
@@ -163,11 +164,13 @@ bool sendTelegramMessage(const String &message);
 bool sendTelegramPhoto(camera_fb_t *fb, const String &caption);
 bool performGetRequest(String url, String &outResponse, int &outCode, int redirectDepth = 0);
 bool callGoogleAppsScript(const String &eventType, const String &source, const String &message);
+void processGoogleAppsScriptHeartbeat();
+void resolveGoogleAppsScriptCurrentEvent();
 bool isTelegramAllowed(const String &eventType);
 void notifySecurityTextEvent(const String &eventType, const String &source, const String &message);
 void updateTrustedDeviceStatusPlaceholders();
 void resetTrustedBleRuntimeState();
-void updateGoogleScriptStatusFromResponse(const String &response, bool ok);
+void updateGoogleScriptStatusFromResponse(const String &response, bool ok, bool isHeartbeatEvent = false);
 
 // ==================================================
 // CAMERA FUNCTIONS
@@ -223,7 +226,7 @@ bool initCamera() {
   if (err != ESP_OK) {
     Serial.print("[CAM] Camera init failed. Error code: 0x");
     Serial.println((uint32_t)err, HEX);
-    photo_status = "INIT_FAILED";
+    photo_status = "Camera khởi động thất bại";
     return false;
   }
 
@@ -231,7 +234,7 @@ bool initCamera() {
 
   if (sensor == NULL) {
     Serial.println("[CAM] Sensor pointer is NULL.");
-    photo_status = "SENSOR_NULL";
+    photo_status = "Không đọc được cảm biến camera";
     return false;
   }
 
@@ -249,13 +252,13 @@ bool initCamera() {
     Serial.println("[CAM] Camera detected, but PID is not OV3660.");
   }
 
-  photo_status = "IDLE";
+  photo_status = "Camera sẵn sàng";
   return true;
 }
 
 bool captureSecurityPhoto(const String &reason) {
   if (!cameraReady) {
-    photo_status = "CAMERA_NOT_READY";
+    photo_status = "Camera chưa sẵn sàng";
     setLastEvent("photo_capture_failed", "Camera not ready for " + reason + " at " + getRtcTimeString());
     Serial.println("[CAM] Capture skipped: camera not ready.");
     return false;
@@ -263,13 +266,13 @@ bool captureSecurityPhoto(const String &reason) {
 
   // Avoid accidental repeated captures too fast (hardware cooldown)
   if (millis() - lastCameraCaptureMs < 1500) {
-    photo_status = "COOLDOWN";
+    photo_status = "Camera đang chờ ổn định";
     Serial.println("[CAM] Capture skipped: short camera cooldown.");
     return false;
   }
 
   lastCameraCaptureMs = millis();
-  photo_status = "CAPTURING";
+  photo_status = "Đang chụp ảnh";
 
   Serial.println();
   Serial.println("========== SECURITY PHOTO CAPTURE ==========");
@@ -279,8 +282,8 @@ bool captureSecurityPhoto(const String &reason) {
   camera_fb_t *fb = esp_camera_fb_get();
 
   if (fb == NULL) {
-    photo_status = "FAILED";
-    notification_sent_status = "PHOTO_FAILED";
+    photo_status = "Chụp ảnh thất bại";
+    notification_sent_status = "Không có ảnh để gửi";
     setLastEvent("photo_capture_failed", "Photo capture failed for " + reason + " at " + getRtcTimeString());
     Serial.println("[CAM] Capture failed: framebuffer is NULL.");
     Serial.println("============================================");
@@ -305,8 +308,8 @@ bool captureSecurityPhoto(const String &reason) {
 
   if (shouldSendToTelegram) {
     if (!isTelegramAllowed(reason)) {
-      photo_status = "TG_COOLDOWN";
-      notification_sent_status = "COOLDOWN";
+      photo_status = "Tạm dừng gửi ảnh để tránh lặp cảnh báo";
+      notification_sent_status = "Đang chặn gửi lặp để tránh spam";
       Serial.println("[TG] Skipped photo notification by cooldown.");
       esp_camera_fb_return(fb);
       return false;
@@ -314,7 +317,7 @@ bool captureSecurityPhoto(const String &reason) {
 
     notification_channel = "telegram";
     notification_event_type = reason;
-    notification_sent_status = "SENDING_PHOTO";
+    notification_sent_status = "Đang gửi ảnh qua Telegram";
 
     String caption = buildCommonCaption("photo_capture", reason);
     telegramPhotoSent = sendTelegramPhoto(fb, caption);
@@ -324,18 +327,16 @@ bool captureSecurityPhoto(const String &reason) {
 
   if (shouldSendToTelegram) {
     if (telegramPhotoSent) {
-      photo_status = "CAPTURED_SENT";
-      notification_sent_status = "SENT";
+      photo_status = "Đã chụp và gửi ảnh";
+      notification_sent_status = "Đã gửi thông báo";
     } else {
-      photo_status = "CAPTURED_SEND_FAILED";
-      if (notification_sent_status != "NOT_CONFIGURED" &&
-          notification_sent_status != "WIFI_NOT_CONNECTED" &&
-          notification_sent_status != "CONNECT_FAILED") {
-        notification_sent_status = "FAILED";
+      photo_status = "Đã chụp ảnh nhưng gửi thất bại";
+      if (!isKnownNotificationFailureStatus()) {
+        notification_sent_status = "Gửi thông báo thất bại";
       }
     }
   } else {
-    photo_status = "CAPTURED";
+    photo_status = "Đã chụp ảnh";
   }
 
   setLastEvent("photo_captured", "Photo captured for " + reason + " at " + getRtcTimeString());
@@ -390,6 +391,68 @@ String getRtcTimeString() {
   return text;
 }
 
+String eventTitleVi(const String &type) {
+  if (type == "intrusion_alert") return "Cảnh báo đột nhập";
+  if (type == "sabotage_alert") return "Cảnh báo phá hoại thiết bị";
+  if (type == "sos_alert") return "Yêu cầu SOS khẩn cấp";
+  if (type == "photo_capture") return "Chụp ảnh an ninh";
+  if (type == "photo_captured") return "Đã chụp ảnh";
+  if (type == "photo_capture_failed") return "Không chụp được ảnh";
+  if (type == "alarm_reset") return "Đã reset cảnh báo";
+  if (type == "schedule_auto_arm") return "Tự bật bảo vệ theo lịch";
+  if (type == "schedule_auto_disarm") return "Tự tắt bảo vệ theo lịch";
+  if (type == "camera_ready") return "Camera sẵn sàng";
+  if (type == "camera_init_failed") return "Camera chưa sẵn sàng";
+  if (type == "system_boot") return "Thiết bị vừa khởi động";
+  return type;
+}
+
+String sourceTitleVi(const String &source) {
+  if (source == "CHILD" || source == "CHILD_DEMO" || source == "CHILD_SERIAL") return "Trẻ em";
+  if (source == "PARENT_ADMIN" || source == "PARENT_ADMIN_SERIAL") return "Phụ huynh/Admin";
+  if (source == "DEVICE") return "Thiết bị";
+  return source;
+}
+
+String escalationStatusVi(const String &code) {
+  if (code == "IDLE") return "Chưa có yêu cầu khẩn cấp";
+  if (code == "SENDING") return "Đang gửi yêu cầu xác nhận";
+  if (code == "WAITING_CONFIRMATION") return "Đang chờ phụ huynh/Admin xác nhận";
+  if (code == "CONFIRMED") return "Đã được phụ huynh/Admin xác nhận";
+  if (code == "SENT") return "Đã gửi email đến contact mô phỏng";
+  if (code == "FAILED") return "Gửi thất bại, cần kiểm tra cấu hình hoặc mạng";
+  if (code == "NOT_CONFIGURED") return "Chưa cấu hình đủ địa chỉ hoặc contact mô phỏng";
+  if (code == "WIFI_NOT_CONNECTED") return "Thiết bị chưa có WiFi để gửi yêu cầu";
+  if (code == "MONITORING") return "Đang theo dõi sau cảnh báo phá hoại";
+  return code;
+}
+
+String authorityStatusVi(const String &code) {
+  if (code == "IDLE") return "Chưa gửi contact mô phỏng";
+  if (code == "READY") return "Sẵn sàng gửi sau xác nhận";
+  if (code == "SENT") return "Đã gửi contact mô phỏng";
+  if (code == "FAILED") return "Gửi contact mô phỏng thất bại";
+  if (code == "NOT_CONFIGURED") return "Chưa cấu hình contact mô phỏng";
+  return code;
+}
+
+void setEscalationStatus(const String &code) {
+  emergency_escalation_status = escalationStatusVi(code);
+}
+
+void setAuthorityStatus(const String &code) {
+  emergency_authority_message_status = authorityStatusVi(code);
+}
+
+bool isKnownNotificationFailureStatus() {
+  return notification_sent_status == "NOT_CONFIGURED" ||
+         notification_sent_status == "WIFI_NOT_CONNECTED" ||
+         notification_sent_status == "CONNECT_FAILED" ||
+         notification_sent_status == "Chưa cấu hình Telegram" ||
+         notification_sent_status == "Không có WiFi để gửi Telegram" ||
+         notification_sent_status == "Không kết nối được Telegram";
+}
+
 void setLastEvent(const String &type, const String &message) {
   last_event_type = type;
   last_event = message;
@@ -439,24 +502,23 @@ bool hasGoogleScriptConfig() {
 
 String buildCommonCaption(const String &eventType, const String &reason) {
   String text = "";
-  text += "Device: ";
+  text += "Sự kiện: ";
+  text += eventTitleVi(eventType);
+  text += "\nThiết bị: ";
   text += SECRET_DEVICE_NAME;
-  text += "\nLocation: ";
+  text += "\nKhu vực: ";
   text += SECRET_DEVICE_LOCATION;
-  text += "\nEvent: ";
-  text += eventType;
-  text += "\nReason: ";
-  text += reason;
-  text += "\nStatus: ";
+  text += "\nNguồn/kịch bản: ";
+  text += sourceTitleVi(reason);
+  text += "\nTrạng thái: ";
   text += alarm_status;
-  text += "\nThreat level: ";
+  text += "\nMức nguy hiểm: ";
   text += String(threat_level);
-  text += "\nIntrusion score: ";
+  text += "\nĐiểm nghi ngờ: ";
   text += String(intrusion_score);
-  text += "\nTime: ";
+  text += "\nThời gian: ";
   text += getRtcTimeString();
-  text += "\nLast event: ";
-  text += last_event_type;
+  text += "\nHành động tiếp theo: Vui lòng kiểm tra khu vực và chỉ bấm reset_alarm sau khi an toàn.";
   return text;
 }
 
@@ -464,13 +526,13 @@ bool sendTelegramMessage(const String &message) {
   notification_channel = "telegram";
 
   if (!hasTelegramConfig()) {
-    notification_sent_status = "NOT_CONFIGURED";
+    notification_sent_status = "Chưa cấu hình Telegram";
     Serial.println("[TG] Telegram is not configured.");
     return false;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    notification_sent_status = "WIFI_NOT_CONNECTED";
+    notification_sent_status = "Không có WiFi để gửi Telegram";
     Serial.println("[TG] WiFi is not connected.");
     return false;
   }
@@ -480,7 +542,7 @@ bool sendTelegramMessage(const String &message) {
   client.setTimeout(15000);
 
   if (!client.connect("api.telegram.org", 443)) {
-    notification_sent_status = "CONNECT_FAILED";
+    notification_sent_status = "Không kết nối được Telegram";
     Serial.println("[TG] Connect failed.");
     return false;
   }
@@ -511,7 +573,7 @@ bool sendTelegramMessage(const String &message) {
   Serial.print("[TG] sendMessage status: ");
   Serial.println(statusLine);
 
-  notification_sent_status = ok ? "SENT" : "FAILED";
+  notification_sent_status = ok ? "Đã gửi thông báo" : "Gửi thông báo thất bại";
   return ok;
 }
 
@@ -519,19 +581,19 @@ bool sendTelegramPhoto(camera_fb_t *fb, const String &caption) {
   notification_channel = "telegram";
 
   if (!hasTelegramConfig()) {
-    notification_sent_status = "NOT_CONFIGURED";
+    notification_sent_status = "Chưa cấu hình Telegram";
     Serial.println("[TG] Telegram is not configured.");
     return false;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    notification_sent_status = "WIFI_NOT_CONNECTED";
+    notification_sent_status = "Không có WiFi để gửi Telegram";
     Serial.println("[TG] WiFi is not connected.");
     return false;
   }
 
   if (fb == NULL || fb->buf == NULL || fb->len == 0) {
-    notification_sent_status = "PHOTO_EMPTY";
+    notification_sent_status = "Không có ảnh để gửi";
     Serial.println("[TG] Photo buffer is empty.");
     return false;
   }
@@ -541,7 +603,7 @@ bool sendTelegramPhoto(camera_fb_t *fb, const String &caption) {
   client.setTimeout(20000);
 
   if (!client.connect("api.telegram.org", 443)) {
-    notification_sent_status = "CONNECT_FAILED";
+    notification_sent_status = "Không kết nối được Telegram";
     Serial.println("[TG] Photo connect failed.");
     return false;
   }
@@ -588,7 +650,7 @@ bool sendTelegramPhoto(camera_fb_t *fb, const String &caption) {
   Serial.print("[TG] sendPhoto status: ");
   Serial.println(statusLine);
 
-  notification_sent_status = ok ? "SENT" : "FAILED";
+  notification_sent_status = ok ? "Đã gửi ảnh qua Telegram" : "Gửi ảnh qua Telegram thất bại";
   return ok;
 }
 
@@ -697,11 +759,27 @@ bool performGetRequest(String url, String &outResponse, int &outCode, int redire
   return (httpCode >= 200 && httpCode < 300);
 }
 
-void updateGoogleScriptStatusFromResponse(const String &response, bool ok) {
+void updateGoogleScriptStatusFromResponse(const String &response, bool ok, bool isHeartbeatEvent) {
   if (!ok) {
-    emergency_escalation_status = "FAILED";
-    emergency_authority_message_status = "FAILED";
+    if (isHeartbeatEvent) {
+      heartbeat_status = "Gửi heartbeat thất bại";
+    } else {
+      setEscalationStatus("FAILED");
+      setAuthorityStatus("FAILED");
+    }
     return;
+  }
+
+  if (response.indexOf("OK:HEARTBEAT") >= 0) {
+    heartbeat_status = "Đang liên lạc bình thường";
+    last_heartbeat_time = getRtcTimeString();
+    return;
+  }
+
+  if (response.indexOf("OK:SABOTAGE_MONITORING") >= 0 ||
+      response.indexOf("OK:MONITORING") >= 0) {
+    setEscalationStatus("MONITORING");
+    setAuthorityStatus("IDLE");
   }
 
   // Apps Script returns compact text such as:
@@ -714,45 +792,62 @@ void updateGoogleScriptStatusFromResponse(const String &response, bool ok) {
   }
 
   if (response.indexOf("emergency_escalation_status=WAITING_CONFIRMATION") >= 0 ||
-      response.indexOf("OK:WAITING_CONFIRMATION") >= 0) {
-    emergency_escalation_status = "WAITING_CONFIRMATION";
+      response.indexOf("OK:WAITING_CONFIRMATION") >= 0 ||
+      response.indexOf("OK:CRITICAL_WAITING_CONFIRMATION") >= 0) {
+    setEscalationStatus("WAITING_CONFIRMATION");
   } else if (response.indexOf("emergency_escalation_status=CONFIRMED") >= 0) {
-    emergency_escalation_status = "CONFIRMED";
+    setEscalationStatus("CONFIRMED");
   } else if (response.indexOf("emergency_escalation_status=SENT") >= 0) {
-    emergency_escalation_status = "SENT";
+    setEscalationStatus("SENT");
   } else if (response.indexOf("emergency_escalation_status=FAILED") >= 0) {
-    emergency_escalation_status = "FAILED";
+    setEscalationStatus("FAILED");
   } else if (response.indexOf("emergency_escalation_status=NOT_CONFIGURED") >= 0) {
-    emergency_escalation_status = "NOT_CONFIGURED";
-  } else {
+    setEscalationStatus("NOT_CONFIGURED");
+  } else if (response.indexOf("OK:SABOTAGE_MONITORING") < 0 &&
+             response.indexOf("OK:MONITORING") < 0) {
     // Backward-compatible fallback for older Apps Script responses.
-    emergency_escalation_status = "SENT";
+    setEscalationStatus("SENT");
   }
 
   if (response.indexOf("emergency_authority_message_status=IDLE") >= 0) {
-    emergency_authority_message_status = "IDLE";
+    setAuthorityStatus("IDLE");
   } else if (response.indexOf("emergency_authority_message_status=READY") >= 0) {
-    emergency_authority_message_status = "READY";
+    setAuthorityStatus("READY");
   } else if (response.indexOf("emergency_authority_message_status=SENT") >= 0) {
-    emergency_authority_message_status = "SENT";
+    setAuthorityStatus("SENT");
   } else if (response.indexOf("emergency_authority_message_status=FAILED") >= 0) {
-    emergency_authority_message_status = "FAILED";
+    setAuthorityStatus("FAILED");
   } else if (response.indexOf("emergency_authority_message_status=NOT_CONFIGURED") >= 0) {
-    emergency_authority_message_status = "NOT_CONFIGURED";
+    setAuthorityStatus("NOT_CONFIGURED");
+  }
+
+  if (response.indexOf("OK:CRITICAL_WAITING_CONFIRMATION") >= 0) {
+    critical_security_compromise = true;
+    device_health_status = "Sự cố nghiêm trọng sau phá hoại";
   }
 }
 
 bool callGoogleAppsScript(const String &eventType, const String &source, const String &message) {
+  bool isHeartbeatEvent = eventType == "heartbeat";
+
   if (!hasGoogleScriptConfig()) {
-    emergency_escalation_status = "NOT_CONFIGURED";
-    emergency_authority_message_status = "NOT_CONFIGURED";
+    if (isHeartbeatEvent) {
+      heartbeat_status = "Chưa cấu hình Apps Script";
+    } else {
+      setEscalationStatus("NOT_CONFIGURED");
+      setAuthorityStatus("NOT_CONFIGURED");
+    }
     Serial.println("[GAS] Google Apps Script is not configured.");
     return false;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    emergency_escalation_status = "WIFI_NOT_CONNECTED";
-    emergency_authority_message_status = "FAILED";
+    if (isHeartbeatEvent) {
+      heartbeat_status = "Không có WiFi để gửi heartbeat";
+    } else {
+      setEscalationStatus("WIFI_NOT_CONNECTED");
+      setAuthorityStatus("FAILED");
+    }
     Serial.println("[GAS] WiFi is not connected.");
     return false;
   }
@@ -780,8 +875,12 @@ bool callGoogleAppsScript(const String &eventType, const String &source, const S
     url += "&sos_authority_note=" + urlEncode(sos_authority_note);
   }
 
-  emergency_escalation_status = "SENDING";
-  emergency_authority_message_status = "IDLE";
+  if (isHeartbeatEvent) {
+    heartbeat_status = "Đang gửi heartbeat";
+  } else {
+    setEscalationStatus("SENDING");
+    setAuthorityStatus("IDLE");
+  }
 
   String response = "";
   int code = 0;
@@ -794,8 +893,64 @@ bool callGoogleAppsScript(const String &eventType, const String &source, const S
     Serial.println(response.substring(0, 200));
   }
 
-  updateGoogleScriptStatusFromResponse(response, ok);
+  updateGoogleScriptStatusFromResponse(response, ok, isHeartbeatEvent);
+  if (isHeartbeatEvent && !ok) {
+    heartbeat_status = "Gửi heartbeat thất bại";
+  }
   return ok;
+}
+
+void processGoogleAppsScriptHeartbeat() {
+  static unsigned long lastHeartbeatMs = 0;
+
+  if (lastHeartbeatMs != 0 && millis() - lastHeartbeatMs < GOOGLE_HEARTBEAT_INTERVAL_MS) {
+    return;
+  }
+
+  lastHeartbeatMs = millis();
+
+  if (!hasGoogleScriptConfig()) {
+    heartbeat_status = "Chưa cấu hình Apps Script";
+    return;
+  }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    heartbeat_status = "Không có WiFi để gửi heartbeat";
+    return;
+  }
+
+  bool ok = callGoogleAppsScript("heartbeat", "DEVICE", "Heartbeat từ thiết bị lúc " + getRtcTimeString());
+  if (ok) {
+    heartbeat_status = "Đang liên lạc bình thường";
+    last_heartbeat_time = getRtcTimeString();
+  }
+}
+
+void resolveGoogleAppsScriptCurrentEvent() {
+  if (!hasGoogleScriptConfig() || WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+
+  String url = String(SECRET_GOOGLE_SCRIPT_URL);
+  url += "?action=resolve";
+  url += "&device=" + urlEncode(String(SECRET_DEVICE_NAME));
+  url += "&location=" + urlEncode(String(SECRET_DEVICE_LOCATION));
+  url += "&time=" + urlEncode(getRtcTimeString());
+  url += "&message=" + urlEncode("Device reset_alarm resolved local alerts.");
+
+  String response = "";
+  int code = 0;
+  bool ok = performGetRequest(url, response, code);
+
+  Serial.print("[GAS] resolve HTTP code: ");
+  Serial.println(code);
+  if (response.length() > 0) {
+    Serial.print("[GAS] resolve response: ");
+    Serial.println(response.substring(0, 160));
+  }
+  if (!ok) {
+    Serial.println("[GAS] resolve failed, local reset still completed.");
+  }
 }
 
 bool isTelegramAllowed(const String &eventType) {
@@ -826,7 +981,7 @@ bool isTelegramAllowed(const String &eventType) {
 
 void notifySecurityTextEvent(const String &eventType, const String &source, const String &message) {
   if (!isTelegramAllowed(eventType)) {
-    notification_sent_status = "COOLDOWN";
+    notification_sent_status = "Đang chặn gửi lặp để tránh spam";
     Serial.println("[TG] Skipped text notification by cooldown.");
     return;
   }
@@ -836,12 +991,12 @@ void notifySecurityTextEvent(const String &eventType, const String &source, cons
   notification_channel = "telegram";
 
   String text = buildCommonCaption(eventType, source);
-  text += "\nMessage: ";
+  text += "\nNội dung: ";
   text += message;
 
-  notification_sent_status = "SENDING";
+  notification_sent_status = "Đang gửi thông báo";
   bool sent = sendTelegramMessage(text);
-  notification_sent_status = sent ? "SENT" : "FAILED";
+  notification_sent_status = sent ? "Đã gửi thông báo" : "Gửi thông báo thất bại";
 }
 
 // ==================================================
@@ -1077,25 +1232,19 @@ int calculateRawIntrusionScore(const HardwareSnapshot &s) {
     score += 1;
   }
 
-  // Tuân thủ luật 3.5 SRS: WiFi/MAC lạ được cộng 1 điểm nếu có cảm biến vật lý nghi ngờ đi kèm
-  if (unknown_wifi_alert && (s.pirDetected || s.objectNear || s.lightAbnormal)) {
-    score += 1;
-  }
-
   return score;
 }
 
 String buildIntrusionReason(const HardwareSnapshot &s) {
   String reason = "";
 
-  if (s.pirDetected) reason += "PIR(+2) ";
-  if (s.objectNear) reason += "OBJECT_NEAR(+2) ";
-  if (s.lightAbnormal) reason += "LIGHT_ABNORMAL(+1) ";
-  if (s.nightMode) reason += "NIGHT_MODE(+1) ";
-  if (unknown_wifi_alert) reason += "UNKNOWN_WIFI(+1) ";
+  if (s.pirDetected) reason += "chuyển động PIR (+2); ";
+  if (s.objectNear) reason += "vật thể ở gần (+2); ";
+  if (s.lightAbnormal) reason += "ánh sáng thay đổi bất thường (+1); ";
+  if (s.nightMode) reason += "đang trong khung giờ ban đêm (+1); ";
 
   if (reason.length() == 0) {
-    reason = "NONE";
+    reason = "chưa có tín hiệu đáng kể";
   }
 
   return reason;
@@ -1128,7 +1277,7 @@ void updateTrustedDeviceStatusPlaceholders() {
 }
 
 void updateSystemArmed() {
-  system_armed = alarm_enabled && !known_device_present;
+  system_armed = alarm_enabled;
 }
 
 void triggerIntrusionAlert(const HardwareSnapshot &s) {
@@ -1142,9 +1291,9 @@ void triggerIntrusionAlert(const HardwareSnapshot &s) {
 
     setLastEvent(
       "intrusion_alert",
-      "Intrusion score=" + String(lastIntrusionScoreAtTrigger) +
-      " reason=" + lastIntrusionReason +
-      " at " + getRtcTimeString()
+      "Cảnh báo đột nhập: điểm nghi ngờ " + String(lastIntrusionScoreAtTrigger) +
+      ", tín hiệu liên quan: " + lastIntrusionReason +
+      ". Hệ thống đã bật còi/LED đỏ và yêu cầu chụp ảnh lúc " + getRtcTimeString() + "."
     );
 
     Serial.println();
@@ -1155,10 +1304,10 @@ void triggerIntrusionAlert(const HardwareSnapshot &s) {
     Serial.println(lastIntrusionReason);
 
     auto_capture_photo_request = true;
-    photo_status = "AUTO_CAPTURE_REQUESTED";
+    photo_status = "Đang chuẩn bị chụp ảnh tự động";
     send_notification_request = true;
     notification_event_type = "intrusion_alert";
-    notification_sent_status = "CAPTURING_PHOTO";
+    notification_sent_status = "Đang chụp ảnh để gửi cảnh báo";
   }
 }
 
@@ -1166,8 +1315,15 @@ void triggerSabotageAlert() {
   if (!sabotage_alert) {
     sabotage_alert = true;
     incrementEventCounter();
-    setLastEvent("sabotage_alert", "Sabotage alert at " + getRtcTimeString());
+    device_tampered = true;
+    device_health_status = "Đang theo dõi sau cảnh báo phá hoại";
+    setLastEvent(
+      "sabotage_alert",
+      "Cảnh báo phá hoại: thiết bị phát hiện LDR bị che hoặc có vật áp sát bất thường lúc " +
+      getRtcTimeString() + ". Hệ thống đang theo dõi heartbeat để phát hiện mất liên lạc."
+    );
     notifySecurityTextEvent("sabotage_alert", "DEVICE", last_event);
+    callGoogleAppsScript("sabotage_alert", "DEVICE", last_event);
   }
 }
 
@@ -1179,14 +1335,38 @@ void triggerSosAlert(const String &source) {
   sosActive = true;
   sosSource = source;
 
-  sos_message = "SOS from " + source + " at " + getRtcTimeString();
+  sos_message = "SOS từ " + sourceTitleVi(source) + " lúc " + getRtcTimeString() +
+                ". Còi/LED đỏ sẽ tiếp tục bật cho đến khi phụ huynh/Admin reset.";
   emergency_confirmation_requested = true;
-  emergency_escalation_status = "WAITING_CONFIRMATION";
-  emergency_authority_message_status = "IDLE";
+  setEscalationStatus("WAITING_CONFIRMATION");
+  setAuthorityStatus("IDLE");
 
   setLastEvent("sos_alert", sos_message);
   notifySecurityTextEvent("sos_alert", source, sos_message);
   callGoogleAppsScript("sos_alert", source, sos_message);
+}
+
+void triggerDemoCriticalCompromise() {
+  if (!sabotage_alert) {
+    sabotage_alert = true;
+    device_tampered = true;
+    incrementEventCounter();
+  }
+
+  critical_security_compromise = true;
+  threat_level = 4;
+  device_health_status = "Sự cố nghiêm trọng sau phá hoại";
+  heartbeat_status = "Demo: mô phỏng mất heartbeat sau phá hoại";
+  alarm_status = "Sự cố nghiêm trọng sau phá hoại";
+
+  setLastEvent(
+    "critical_security_compromise",
+    "Demo DS-03: mô phỏng thiết bị mất liên lạc hoặc suy giảm nghiêm trọng sau cảnh báo phá hoại lúc " +
+    getRtcTimeString() + ". Đây là đầu vào demo có kiểm soát, không cần rút nguồn thật."
+  );
+
+  notifySecurityTextEvent("critical_security_compromise", "DEVICE", last_event);
+  callGoogleAppsScript("critical_security_compromise", "DEVICE", last_event);
 }
 
 void resetAllAlerts() {
@@ -1199,19 +1379,23 @@ void resetAllAlerts() {
 
   emergency_confirmation_requested = false;
   emergency_confirmed = false;
-  emergency_escalation_status = "IDLE";
-  emergency_authority_message_status = "IDLE";
+  critical_security_compromise = false;
+  device_tampered = false;
+  device_health_status = "Đã reset cảnh báo";
+  setEscalationStatus("IDLE");
+  setAuthorityStatus("IDLE");
 
   auto_capture_photo_request = false;
 
   send_notification_request = false;
   notification_event_type = "NONE";
-  notification_sent_status = "IDLE";
+  notification_sent_status = "Chưa có cảnh báo cần gửi";
 
   sabotageConditionStartedAt = 0;
 
   incrementEventCounter();
-  setLastEvent("alarm_reset", "Alarm reset at " + getRtcTimeString());
+  setLastEvent("alarm_reset", "Đã reset cảnh báo tại thiết bị lúc " + getRtcTimeString() + ". Vui lòng kiểm tra thực tế trước khi bật lại bảo vệ.");
+  resolveGoogleAppsScriptCurrentEvent();
 
   setBuzzerPhysical(false);
   setRedLedPhysical(false);
@@ -1253,31 +1437,56 @@ void updateIntrusionLogic(const HardwareSnapshot &s) {
 
 void updateAlarmStatus() {
   if (sosActive) {
-    alarm_status = "SOS_ALERT";
+    alarm_status = "SOS khẩn cấp đang hoạt động";
+    return;
+  }
+
+  if (critical_security_compromise) {
+    alarm_status = "Sự cố nghiêm trọng sau phá hoại";
     return;
   }
 
   if (sabotage_alert) {
-    alarm_status = "SABOTAGE_ALERT";
+    alarm_status = "Cảnh báo phá hoại thiết bị";
     return;
   }
 
   if (intrusion_alert) {
-    alarm_status = "INTRUSION_ALERT";
+    alarm_status = "Cảnh báo đột nhập";
     return;
   }
 
   if (system_armed) {
-    alarm_status = "ARMED";
+    alarm_status = "Đang bảo vệ khu vực bếp";
     return;
   }
 
   if (known_device_present) {
-    alarm_status = "DISARMED_BY_TRUSTED_DEVICE";
+    alarm_status = "Đang tắt bảo vệ";
     return;
   }
 
-  alarm_status = "DISARMED";
+  alarm_status = "Đang tắt bảo vệ";
+}
+
+void updateDeviceHealthStatus() {
+  if (critical_security_compromise) {
+    device_health_status = "Sự cố nghiêm trọng sau phá hoại";
+    return;
+  }
+
+  if (sabotage_alert) {
+    device_health_status = "Đang theo dõi sau cảnh báo phá hoại";
+    return;
+  }
+
+  if (heartbeat_status.length() == 0) {
+    heartbeat_status = "Chưa gửi heartbeat";
+  }
+
+  if (device_health_status.length() == 0) {
+    device_health_status = "Thiết bị hoạt động bình thường";
+  }
 }
 
 void updateThreatLevel() {
@@ -1329,8 +1538,8 @@ void updateNotificationRequestPlaceholders() {
   send_notification_request = false;
   notification_event_type = "NONE";
 
-  if (notification_sent_status.length() == 0 || notification_sent_status == "PENDING_PHASE5") {
-    notification_sent_status = "IDLE";
+  if (notification_sent_status.length() == 0 || notification_sent_status == "PENDING_PHASE5" || notification_sent_status == "IDLE") {
+    notification_sent_status = "Chưa có cảnh báo cần gửi";
   }
 }
 
@@ -1342,6 +1551,7 @@ void updateSecurityLogic(const HardwareSnapshot &s) {
   updateIntrusionLogic(s);
   updateAlarmStatus();
   updateThreatLevel();
+  updateDeviceHealthStatus();
   updateNotificationRequestPlaceholders();
   applyAlarmOutputs();
 }
@@ -1366,7 +1576,7 @@ void updateScheduleLogic() {
     alarm_enabled = true;
     lastScheduleTriggerKey = key;
     incrementEventCounter();
-    setLastEvent("schedule_auto_arm", "Auto arm at " + getRtcTimeString());
+    setLastEvent("schedule_auto_arm", "Hệ thống đã tự bật bảo vệ theo lịch lúc " + getRtcTimeString() + ".");
     return;
   }
 
@@ -1374,7 +1584,7 @@ void updateScheduleLogic() {
     alarm_enabled = false;
     lastScheduleTriggerKey = key;
     incrementEventCounter();
-    setLastEvent("schedule_auto_disarm", "Auto disarm at " + getRtcTimeString());
+    setLastEvent("schedule_auto_disarm", "Hệ thống đã tự tắt chế độ phát hiện đột nhập theo lịch lúc " + getRtcTimeString() + ". SOS và chống phá hoại vẫn hoạt động.");
     return;
   }
 }
@@ -1390,17 +1600,20 @@ void applyDemoScenario() {
 
   if (demo_scenario == 10) {
     known_device_present = true;
-    setLastEvent("demo_known_device", "Demo: known_device_present = true");
+    setLastEvent("demo_known_device", "Demo legacy: bật known_device_present. Biến này không còn dùng trong luồng chính v0.7.0.");
     demo_scenario = 0;
   } else if (demo_scenario == 11) {
     known_device_present = false;
-    setLastEvent("demo_known_device", "Demo: known_device_present = false");
+    setLastEvent("demo_known_device", "Demo legacy: tắt known_device_present.");
     demo_scenario = 0;
   } else if (demo_scenario == 20) {
     triggerSosAlert("CHILD_DEMO");
     demo_scenario = 0;
   } else if (demo_scenario == 21) {
     resetAllAlerts();
+    demo_scenario = 0;
+  } else if (demo_scenario == 30) {
+    triggerDemoCriticalCompromise();
     demo_scenario = 0;
   }
 }
@@ -1417,6 +1630,7 @@ void printHelp() {
   Serial.println("k : toggle known_device_present locally");
   Serial.println("c : trigger Child SOS");
   Serial.println("p : trigger Parent/Admin SOS");
+  Serial.println("x : demo critical compromise after sabotage");
   Serial.println("r : reset all alerts");
   Serial.println("1 : sensitivity_level = 1, threshold = 5");
   Serial.println("2 : sensitivity_level = 2, threshold = 4");
@@ -1441,6 +1655,8 @@ void handleSerialCommand(char command) {
     triggerSosAlert("CHILD_SERIAL");
   } else if (command == 'p' || command == 'P') {
     triggerSosAlert("PARENT_ADMIN_SERIAL");
+  } else if (command == 'x' || command == 'X') {
+    triggerDemoCriticalCompromise();
   } else if (command == 'r' || command == 'R') {
     resetAllAlerts();
   } else if (command == '1') {
@@ -1554,25 +1770,29 @@ void setup() {
   if (auto_disarm_hour < 0 || auto_disarm_hour > 23) auto_disarm_hour = 6;
   if (auto_disarm_minute < 0 || auto_disarm_minute > 59) auto_disarm_minute = 0;
 
-  alarm_status = "BOOTING";
+  alarm_status = "Đang khởi động thiết bị";
   last_event_type = "system_boot";
-  last_event = "System boot at " + getRtcTimeString();
+  last_event = "Thiết bị vừa khởi động lúc " + getRtcTimeString() + ". Hệ thống đang kiểm tra cảm biến, camera và kết nối cloud.";
   current_time = getRtcTimeString();
 
-  emergency_escalation_status = "IDLE";
+  setEscalationStatus("IDLE");
   notification_channel = "telegram";
   notification_event_type = "NONE";
-  notification_sent_status = "IDLE";
-  photo_status = "IDLE";
-  sos_message = "NONE";
+  notification_sent_status = "Chưa có cảnh báo cần gửi";
+  photo_status = "Camera chưa có yêu cầu chụp";
+  sos_message = "Chưa có SOS";
   last_unknown_mac = "NONE";
-  last_alert_time = "NONE";
+  last_alert_time = "Chưa có cảnh báo";
+  heartbeat_status = "Chưa gửi heartbeat";
+  last_heartbeat_time = "Chưa có heartbeat";
+  device_health_status = "Thiết bị hoạt động bình thường";
+  critical_security_compromise = false;
 
   // New SRS v0.6.7 Cloud variables: SOS authority escalation + BLE trusted device status.
   // READWRITE values may be overwritten by Arduino Cloud after connection.
   home_address_configured = false;
   sos_authority_note = "";
-  emergency_authority_message_status = "IDLE";
+  setAuthorityStatus("IDLE");
 
   trusted_ble_detection_enabled = false;
   resetTrustedBleRuntimeState();
@@ -1596,10 +1816,10 @@ void setup() {
 
   if (cameraReady) {
     Serial.println("[CAM] Camera ready.");
-    setLastEvent("camera_ready", "Camera init OK at " + getRtcTimeString());
+    setLastEvent("camera_ready", "Camera đã sẵn sàng lúc " + getRtcTimeString() + ".");
   } else {
     Serial.println("[CAM] Camera NOT ready.");
-    setLastEvent("camera_init_failed", "Camera init failed at " + getRtcTimeString());
+    setLastEvent("camera_init_failed", "Camera chưa sẵn sàng lúc " + getRtcTimeString() + ". Hệ thống vẫn giữ còi, LED và cảnh báo chữ.");
   }
 
   initProperties();
@@ -1615,6 +1835,7 @@ void loop() {
   ArduinoCloud.update();
   handleSerialInput();
   applyDemoScenario();
+  processGoogleAppsScriptHeartbeat();
 
   static unsigned long lastSensorUpdate = 0;
   if (millis() - lastSensorUpdate >= SENSOR_UPDATE_INTERVAL_MS) {
@@ -1639,7 +1860,12 @@ void loop() {
 // ==================================================
 
 void onAlarmEnabledChange() {
-  setLastEvent("cloud_alarm_enabled", String("Cloud alarm_enabled = ") + (alarm_enabled ? "true" : "false"));
+  setLastEvent(
+    "cloud_alarm_enabled",
+    alarm_enabled
+      ? "Phụ huynh/Admin đã bật chức năng phát hiện đột nhập."
+      : "Phụ huynh/Admin đã tắt chức năng phát hiện đột nhập. SOS và chống phá hoại vẫn hoạt động."
+  );
 }
 
 void onResetAlarmChange() {
@@ -1665,11 +1891,11 @@ void onSosAdultChange() {
 
 void onSensitivityLevelChange() {
   clampCloudConfigValues();
-  setLastEvent("cloud_sensitivity", "sensitivity_level = " + String(sensitivity_level));
+  setLastEvent("cloud_sensitivity", "Đã cập nhật mức nhạy phát hiện đột nhập: " + String(sensitivity_level) + ".");
 }
 
 void onDemoModeChange() {
-  setLastEvent("cloud_demo_mode", String("demo_mode = ") + (demo_mode ? "true" : "false"));
+  setLastEvent("cloud_demo_mode", demo_mode ? "Đã bật chế độ demo có kiểm soát." : "Đã tắt chế độ demo.");
 }
 
 void onDemoScenarioChange() {
@@ -1678,8 +1904,8 @@ void onDemoScenarioChange() {
 
 void onManualCapturePhotoChange() {
   if (manual_capture_photo) {
-    photo_status = "MANUAL_CAPTURE_REQUESTED";
-    setLastEvent("manual_capture_requested", "Manual capture requested at " + getRtcTimeString());
+    photo_status = "Đã nhận yêu cầu chụp ảnh thủ công";
+    setLastEvent("manual_capture_requested", "Phụ huynh/Admin yêu cầu chụp ảnh thủ công lúc " + getRtcTimeString() + ".");
   }
 }
 
@@ -1688,7 +1914,7 @@ void onRearmDelaySecondsChange() {
 }
 
 void onScheduleEnabledChange() {
-  setLastEvent("cloud_schedule", String("schedule_enabled = ") + (schedule_enabled ? "true" : "false"));
+  setLastEvent("cloud_schedule", schedule_enabled ? "Đã bật lịch tự động chống trộm." : "Đã tắt lịch tự động chống trộm.");
 }
 
 void onAutoArmHourChange() {
@@ -1713,13 +1939,12 @@ void onUnknownWifiDetectionEnabledChange() {
     unknown_wifi_count = 0;
     last_unknown_mac = "NONE";
   }
-  setLastEvent("cloud_unknown_wifi", String("unknown_wifi_detection_enabled = ") + (unknown_wifi_detection_enabled ? "true" : "false"));
+  setLastEvent("cloud_unknown_wifi", "Biến WiFi/MAC lạ là legacy trong phạm vi demo mới và không dùng cho cảnh báo chính.");
 }
 
 void onKnownDevicePresentChange() {
   updateTrustedDeviceStatusPlaceholders();
-  setLastEvent("cloud_known_device", String("known_device_present = ") + (known_device_present ? "true" : "false") +
-               ", source=" + trusted_device_source);
+  setLastEvent("cloud_known_device", "Biến thiết bị đáng tin là legacy trong phạm vi demo mới và không dùng để tự tắt bảo vệ.");
 }
 
 void onTrustedBleDetectionEnabledChange() {
@@ -1734,9 +1959,7 @@ void onTrustedBleDetectionEnabledChange() {
 
   setLastEvent(
     "cloud_ble_detection",
-    String("trusted_ble_detection_enabled = ") +
-    (trusted_ble_detection_enabled ? "true" : "false") +
-    ", source=" + trusted_device_source
+    "BLE trusted phone là legacy trong phạm vi demo mới và không dùng cho kịch bản chính."
   );
 }
 
