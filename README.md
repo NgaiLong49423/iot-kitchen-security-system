@@ -1,5 +1,7 @@
 # IoT-Based Multi-Sensor Anti-Theft System
 
+> **Lưu ý bản hiện hành (2026-07-11):** Nội dung chi tiết bên dưới là kế hoạch/bản mô tả lịch sử. Bản triển khai đã test dùng `Freenove ESP32-S3 WROOM + Camera OV3660`, PIR, siêu âm, LDR, DS1307, buzzer, LED, Arduino Cloud, Telegram và Google Apps Script. RFID, Flame Sensor, quét WiFi/MAC và ESP32-CAM AI Thinker không thuộc phạm vi firmware demo hiện tại. Xem [SRS](Docs/SRS.md) và [kịch bản demo](Docs/DEMO_SCENARIOS_PROPOSAL_v0.1.0.md) để biết cấu hình chính xác.
+
 <div align="center">
 
 **Hệ thống chống trộm IoT đa cảm biến cho khu vực phòng bếp**
