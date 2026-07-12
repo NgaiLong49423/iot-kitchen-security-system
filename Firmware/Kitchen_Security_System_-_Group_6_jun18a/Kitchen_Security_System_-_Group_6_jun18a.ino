@@ -116,6 +116,7 @@ RTC_DS1307 rtc;
 bool rtcOk = false;
 bool cameraReady = false;
 unsigned long lastCameraCaptureMs = 0;
+bool manualCapturePending = false;
 
 int lastLdrValue = -1;
 unsigned long sabotageConditionStartedAt = 0;
@@ -134,6 +135,7 @@ String lastScheduleTriggerKey = "";
 
 unsigned long lastGoogleScriptCallMs = 0;
 String lastGoogleScriptEventKey = "";
+String activeGoogleEventId = "";
 unsigned long bootCompletedAtMs = 0;
 
 struct HardwareSnapshot {
@@ -163,6 +165,7 @@ String getRtcTimeString();
 void setLastEvent(const String &type, const String &message);
 void incrementEventCounter();
 String urlEncode(const String &value);
+String responseValue(const String &response, const String &key);
 bool hasTelegramConfig();
 bool hasGoogleScriptConfig();
 String buildCommonCaption(const String &eventType, const String &reason);
@@ -357,13 +360,14 @@ bool captureSecurityPhoto(const String &reason) {
 void processCameraRequests() {
   bool demoLockActive = demo_mode && activeDemoScenario != 0;
 
-  if (manual_capture_photo) {
+  if (manualCapturePending) {
+    manualCapturePending = false;
+
     if (!demoLockActive || activeDemoScenario == 5) {
       captureSecurityPhoto("MANUAL_DASHBOARD");
     } else {
       photo_status = "Yêu cầu chụp ảnh bị chặn bởi chế độ demo";
     }
-    manual_capture_photo = false;
   }
 
   if (auto_capture_photo_request) {
@@ -509,6 +513,20 @@ String urlEncode(const String &value) {
   }
 
   return encoded;
+}
+
+String responseValue(const String &response, const String &key) {
+  String marker = key + "=";
+  int start = response.indexOf(marker);
+  if (start < 0) {
+    return "";
+  }
+
+  start += marker.length();
+  int end = response.indexOf(';', start);
+  String value = end < 0 ? response.substring(start) : response.substring(start, end);
+  value.trim();
+  return value;
 }
 
 bool hasTelegramConfig() {
@@ -796,6 +814,11 @@ void updateGoogleScriptStatusFromResponse(const String &response, bool ok, bool 
     return;
   }
 
+  String returnedEventId = responseValue(response, "eventId");
+  if (returnedEventId.length() > 0 && returnedEventId != "NONE") {
+    activeGoogleEventId = returnedEventId;
+  }
+
   if (response.indexOf("OK:SABOTAGE_MONITORING") >= 0 ||
       response.indexOf("OK:MONITORING") >= 0) {
     setEscalationStatus("MONITORING");
@@ -957,6 +980,9 @@ void resolveGoogleAppsScriptCurrentEvent() {
   url += "&location=" + urlEncode(String(SECRET_DEVICE_LOCATION));
   url += "&time=" + urlEncode(getRtcTimeString());
   url += "&message=" + urlEncode("Device reset_alarm resolved local alerts.");
+  if (activeGoogleEventId.length() > 0) {
+    url += "&eventId=" + urlEncode(activeGoogleEventId);
+  }
 
   String response = "";
   int code = 0;
@@ -970,6 +996,8 @@ void resolveGoogleAppsScriptCurrentEvent() {
   }
   if (!ok) {
     Serial.println("[GAS] resolve failed, local reset still completed.");
+  } else if (response.indexOf("OK:RESOLVED") >= 0) {
+    activeGoogleEventId = "";
   }
 }
 
@@ -1416,6 +1444,7 @@ void resetAllAlerts() {
   setAuthorityStatus("IDLE");
 
   auto_capture_photo_request = false;
+  manualCapturePending = false;
 
   send_notification_request = false;
   notification_event_type = "NONE";
@@ -2026,9 +2055,14 @@ void onDemoScenarioChange() {
 void onManualCapturePhotoChange() {
   if (manual_capture_photo) {
     if (!demo_mode || activeDemoScenario == 0 || activeDemoScenario == 5) {
+      // Dashboard buttons can return to false before the next camera-processing
+      // cycle, so retain the command independently of the Cloud property.
+      manualCapturePending = true;
+      manual_capture_photo = false;
       photo_status = "Đã nhận yêu cầu chụp ảnh thủ công";
       setLastEvent("manual_capture_requested", "Phụ huynh/Admin yêu cầu chụp ảnh thủ công lúc " + getRtcTimeString() + ".");
     } else {
+      manualCapturePending = false;
       manual_capture_photo = false;
       photo_status = "Yêu cầu chụp ảnh bị chặn bởi chế độ demo";
       setLastEvent("demo_blocked_manual_photo", "Yêu cầu chụp ảnh bị chặn vì chế độ demo đang chọn kịch bản khác.");

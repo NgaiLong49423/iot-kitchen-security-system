@@ -200,7 +200,7 @@ Khu vực này dùng để phụ huynh yêu cầu chụp ảnh thủ công và x
 
 | Tên hiển thị trên dashboard | Biến gắn vào | Loại widget nên dùng | Quyền | Ghi chú |
 |---|---|---|---|---|
-| Chụp ảnh thủ công | `manual_capture_photo` | Push Button | Read & Write | Yêu cầu ESP32-CAM chụp ảnh |
+| Chụp ảnh thủ công | `manual_capture_photo` | Push Button | Read & Write | Firmware chốt một lệnh chụp nội bộ khi button chuyển sang `true` |
 | Trạng thái chụp ảnh | `photo_status` | Text | Read Only | Hiển thị trạng thái chụp ảnh |
 
 ## 8.1 Tên button nên đặt
@@ -211,24 +211,24 @@ Chụp ảnh thủ công
 
 ## 8.2 Giá trị trạng thái ảnh dự kiến
 
-`photo_status` có thể hiển thị:
+`photo_status` hiển thị câu tiếng Việt theo tiến trình thực tế, ví dụ:
 
 ```text
-IDLE
-CAPTURING
-CAPTURED
-FAILED
+Đã nhận yêu cầu chụp ảnh thủ công
+Đang chụp ảnh
+Đã chụp và gửi ảnh
+Chụp ảnh thất bại
 ```
 
 | Giá trị | Ý nghĩa |
 |---|---|
-| `IDLE` | Đang rảnh, chưa chụp |
-| `CAPTURING` | Đang chụp |
-| `CAPTURED` | Đã chụp thành công |
-| `FAILED` | Chụp thất bại |
+| `Đã nhận yêu cầu chụp ảnh thủ công` | Firmware đã chốt lệnh button và đang chờ vòng camera xử lý |
+| `Đang chụp ảnh` | Camera đang lấy khung hình |
+| `Đã chụp và gửi ảnh` | Ảnh đã gửi Telegram thành công |
+| `Chụp ảnh thất bại` | Camera không tạo được ảnh; kiểm tra camera hoặc kết nối |
 
 Nếu Arduino Cloud không có Push Button, có thể dùng Switch cho `manual_capture_photo`.  
-Trong code sau này cần tự đặt lại:
+Firmware tự đặt lại biến Cloud ngay sau khi chốt lệnh để button sẵn sàng cho lần tiếp theo; yêu cầu thật được giữ bằng cờ nội bộ:
 
 ```cpp
 manual_capture_photo = false;

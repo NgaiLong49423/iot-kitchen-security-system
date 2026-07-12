@@ -1,5 +1,7 @@
 # KẾ HOẠCH DỰ ÁN NHÓM 6 - LỚP SE2034
 
+> **Tài liệu lịch sử:** File này giữ kế hoạch phần cứng/chức năng ban đầu, có nhắc ESP32-CAM AI Thinker, RFID, Flame Sensor và quét WiFi. Các mục đó không phản ánh phạm vi firmware đã test ngày 2026-07-11. Nguồn yêu cầu hiện hành là [SRS.md](SRS.md); trình tự demo hiện hành là [DEMO_SCENARIOS_PROPOSAL_v0.1.0.md](DEMO_SCENARIOS_PROPOSAL_v0.1.0.md).
+
 
 
 | Item         | Context                     |

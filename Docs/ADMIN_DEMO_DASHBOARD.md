@@ -218,7 +218,7 @@ Khu vực này dùng để xem cảnh báo phá hoại hoặc can thiệp thiế
 | Cảnh báo phá hoại | `sabotage_alert` | Status / LED | Read Only | Cảnh báo chính về phá hoại |
 | Thiết bị bị can thiệp | `device_tampered` | Status / LED | Read Only | Trạng thái thiết bị bị can thiệp |
 | LDR bị che | `ldr_covered` | Status / LED | Read Only | Có thể dùng lại từ Sensor Monitor |
-| Có vật quá gần cảm biến | `object_near` | Status / LED | Read Only | Có thể dùng lại từ Sensor Monitor |
+| Có vật trong vùng gần | `object_near` | Status / LED | Read Only | `true` khi khoảng cách <= 50 cm; DS-04 dùng thêm ngưỡng nội bộ <= 15 cm |
 
 ## 8.1 Tên widget nên đặt
 
@@ -226,10 +226,10 @@ Khu vực này dùng để xem cảnh báo phá hoại hoặc can thiệp thiế
 Cảnh báo phá hoại
 Thiết bị bị can thiệp
 LDR bị che
-Có vật quá gần cảm biến
+Có vật trong vùng gần
 ```
 
-Nếu dashboard bị chật, có thể bỏ `LDR bị che` và `Có vật quá gần cảm biến` ở khu vực này vì đã có trong Sensor Monitor.
+Nếu dashboard bị chật, có thể bỏ `LDR bị che` và `Có vật trong vùng gần` ở khu vực này vì đã có trong Sensor Monitor.
 
 ---
 
@@ -259,9 +259,9 @@ Khu vực này dùng để test chụp ảnh thủ công và xem trạng thái c
 
 | Tên hiển thị trên dashboard | Biến gắn vào | Loại widget nên dùng | Quyền | Ghi chú |
 |---|---|---|---|---|
-| Chụp ảnh thủ công | `manual_capture_photo` | Push Button | Read & Write | Admin bấm để yêu cầu chụp ảnh |
-| Yêu cầu chụp ảnh tự động | `auto_capture_photo_request` | Status / LED | Read Only | Hệ thống bật khi có cảnh báo đột nhập |
-| Trạng thái chụp ảnh | `photo_status` | Text | Read Only | Hiển thị `IDLE`, `CAPTURING`, `CAPTURED`, `FAILED` |
+| Chụp ảnh thủ công | `manual_capture_photo` | Push Button | Read & Write | Firmware chốt một lệnh nội bộ khi Admin bấm button |
+| Yêu cầu chụp ảnh tự động | `auto_capture_photo_request` | Status / LED | Read Only | Hệ thống bật khi có cảnh báo đột nhập hoặc phá hoại |
+| Trạng thái chụp ảnh | `photo_status` | Text | Read Only | Hiển thị câu tiếng Việt như `Đang chụp ảnh`, `Đã chụp và gửi ảnh`, hoặc lỗi cụ thể |
 
 ## 10.1 Tên button nên đặt
 
@@ -269,8 +269,7 @@ Khu vực này dùng để test chụp ảnh thủ công và xem trạng thái c
 Chụp ảnh thủ công
 ```
 
-Nếu Arduino Cloud không có Push Button, dùng Switch.  
-Trong code sau này cần tự đặt `manual_capture_photo = false` sau khi xử lý xong.
+Nếu Arduino Cloud không có Push Button, dùng Switch. Firmware tự đưa `manual_capture_photo` về `false` ngay sau khi chốt lệnh và vẫn xử lý đúng một lần chụp.
 
 ---
 
@@ -402,12 +401,12 @@ Step: 1
 | Giá trị | Kịch bản |
 |---:|---|
 | 0 | Không chọn |
-| 1 | Demo đột nhập |
-| 2 | Demo SOS trẻ em |
-| 3 | Demo SOS người lớn |
-| 4 | Demo phá hoại thiết bị |
-| 5 | Demo WiFi/MAC lạ |
-| 6 | Demo reset toàn hệ thống |
+| 1 | DS-01: lịch tự bật/tắt bảo vệ |
+| 2 | DS-02: đột nhập thật bằng PIR + siêu âm |
+| 3 | DS-04: phá hoại thật bằng LDR + vật áp sát |
+| 4 | DS-03: sau phá hoại, kiểm tra mất heartbeat bằng rút nguồn |
+| 5 | DS-05: chụp ảnh thủ công từ Dashboard |
+| 6 | DS-06: SOS trẻ em hoặc Parent/Admin |
 
 ## 15.3 Nguyên tắc demo mode
 
@@ -461,7 +460,7 @@ Dùng checklist này khi tạo dashboard trên Arduino Cloud.
     [ ] Cảnh báo phá hoại -> sabotage_alert -> Status/LED
     [ ] Thiết bị bị can thiệp -> device_tampered -> Status/LED
     [ ] LDR bị che -> ldr_covered -> Status/LED
-    [ ] Có vật quá gần cảm biến -> object_near -> Status/LED
+    [ ] Có vật trong vùng gần -> object_near -> Status/LED
 
 [ ] Output Devices
     [ ] Còi đang bật -> buzzer_on -> Status/LED

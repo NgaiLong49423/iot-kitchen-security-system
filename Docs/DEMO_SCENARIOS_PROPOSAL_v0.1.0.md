@@ -254,7 +254,7 @@ Ngay cả khi chống trộm đang tắt, thiết bị vẫn phải phát hiện
 ## 4. Luồng demo
 
 1. Có thể đặt `alarm_enabled = false` để chứng minh anti-sabotage hoạt động độc lập.
-2. Người demo che LDR hoặc đặt vật quá gần cảm biến trong thời gian đủ dài.
+2. Người demo che LDR và đặt vật trong phạm vi <= 15 cm trước cảm biến siêu âm liên tục ít nhất 3 giây.
 3. Hệ thống xác nhận hành vi bất thường:
    - `device_tampered = true`;
    - `sabotage_alert = true`;
@@ -263,7 +263,7 @@ Ngay cả khi chống trộm đang tắt, thiết bị vẫn phải phát hiện
 4. Hệ thống:
    - bật còi;
    - bật hoặc nháy LED đỏ;
-   - gửi Telegram cảnh báo cho gia đình;
+   - gửi Telegram cảnh báo và một ảnh camera cho gia đình;
    - ghi nhận thời điểm và loại sự kiện;
    - bắt đầu theo dõi tình trạng hoạt động của thiết bị.
 5. Không reset ngay vì DS-03 sẽ tiếp tục từ trạng thái này.
@@ -330,7 +330,7 @@ Heartbeat là tín hiệu định kỳ cho biết board vẫn đang hoạt độ
 Ví dụ:
 
 ```text
-Mỗi 10 giây:
+Mỗi 30 giây:
 ESP32-S3 gửi DEVICE_ALIVE đến Google Apps Script.
 ```
 
@@ -361,7 +361,7 @@ Ví dụ:
 ```text
 Đã phát hiện phá hoại
 +
-không nhận heartbeat trong 30–60 giây
+heartbeat cuối quá 60 giây; do trigger Apps Script chạy mỗi phút, email thường đến sau 60–120 giây
 =
 thiết bị có thể đã mất nguồn, mất mạng hoặc bị vô hiệu hóa
 ```

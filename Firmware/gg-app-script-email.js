@@ -330,6 +330,7 @@ function buildBaseSecurityRecord(params, eventId, eventType, sourceFallback) {
         confirmationSentAt: '',
         confirmedAt: '',
         escalationSentAt: '',
+        monitoring_status: STATUS.MONITORING,
         lastError: ''
     };
 }
@@ -380,6 +381,7 @@ function handleSosRequest(params, eventType) {
         confirmationSentAt: now,
         confirmedAt: '',
         escalationSentAt: '',
+        monitoring_status: STATUS.MONITORING,
         lastError: ''
     };
 
@@ -475,7 +477,7 @@ function installHeartbeatMonitorTrigger() {
 }
 
 function handleStatus(params) {
-    const eventId = params.eventId || getActiveSabotageEventId_() || '';
+    const eventId = params.eventId || getActiveSosEventId_() || getActiveSabotageEventId_() || '';
 
     if (!eventId) {
         return textResponse(
@@ -521,28 +523,33 @@ function formatStatusResponse(record) {
 }
 
 function handleResolve(params) {
-    const eventId = params.eventId || getActiveSabotageEventId_() || '';
+    const requestedEventId = params.eventId || '';
+    const eventIds = requestedEventId
+        ? [requestedEventId]
+        : uniqueEventIds_([getActiveSosEventId_(), getActiveSabotageEventId_()]);
 
-    if (!eventId) {
+    if (eventIds.length === 0) {
         return textResponse('OK:RESOLVED;eventId=NONE');
     }
 
-    const record = loadEventRecord(eventId);
+    eventIds.forEach(function (eventId) {
+        const record = loadEventRecord(eventId);
 
-    if (record) {
-        record.monitoring_status = STATUS.RESOLVED;
-        record.resolvedAt = nowText();
-        saveEventRecord(record);
-    }
+        if (record) {
+            record.monitoring_status = STATUS.RESOLVED;
+            record.resolvedAt = nowText();
+            saveEventRecord(record);
+        }
 
-    if (getActiveSabotageEventId_() === eventId) {
-        clearActiveSabotageEventId_();
-    }
-    if (getActiveSosEventId_() === eventId) {
-        clearActiveSosEventId_();
-    }
+        if (getActiveSabotageEventId_() === eventId) {
+            clearActiveSabotageEventId_();
+        }
+        if (getActiveSosEventId_() === eventId) {
+            clearActiveSosEventId_();
+        }
+    });
 
-    return textResponse('OK:RESOLVED;eventId=' + eventId);
+    return textResponse('OK:RESOLVED;eventId=' + eventIds.join(','));
 }
 
 // ==================================================
@@ -842,6 +849,8 @@ function cleanupOldEvents_() {
             props.deleteProperty(key);
         }
     });
+
+    clearStaleActiveEventPointers_();
 }
 
 function getLastHeartbeat_() {
@@ -885,6 +894,28 @@ function clearActiveSosEventId_() {
 
 function clearActiveSabotageEventId_() {
     PropertiesService.getScriptProperties().deleteProperty(CONFIG.ACTIVE_SABOTAGE_EVENT_KEY);
+}
+
+function uniqueEventIds_(eventIds) {
+    const unique = [];
+    eventIds.forEach(function (eventId) {
+        if (eventId && unique.indexOf(eventId) < 0) {
+            unique.push(eventId);
+        }
+    });
+    return unique;
+}
+
+function clearStaleActiveEventPointers_() {
+    const activeSosEventId = getActiveSosEventId_();
+    if (activeSosEventId && !loadEventRecord(activeSosEventId)) {
+        clearActiveSosEventId_();
+    }
+
+    const activeSabotageEventId = getActiveSabotageEventId_();
+    if (activeSabotageEventId && !loadEventRecord(activeSabotageEventId)) {
+        clearActiveSabotageEventId_();
+    }
 }
 
 // ==================================================
