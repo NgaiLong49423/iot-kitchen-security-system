@@ -180,6 +180,17 @@ bool buzzer_on = false;
 bool led_red_on = false;
 bool led_green_on = false;
 bool cooldown_active = false;
+// One AI-person email is allowed for each newly triggered intrusion/sabotage
+// alert. This prevents the evidence follow-up photos from spamming Gmail.
+bool aiPersonEmailSentForCurrentAlert = false;
+
+// Dashboard heartbeat-monitor changes are delivery-critical. The request stays
+// queued until Google Apps Script acknowledges it, and normal heartbeats are
+// paused while this acknowledgement is pending.
+bool heartbeatMonitorControlPending = false;
+bool desiredHeartbeatMonitorEnabled = true;
+unsigned long heartbeatMonitorControlNextRetryAtMs = 0;
+uint8_t heartbeatMonitorControlRetryIndex = 0;
 
   struct HardwareSnapshot {
     int ldrValue;
@@ -219,6 +230,9 @@ bool cooldown_active = false;
   void writeBase64ToClient(WiFiClientSecure &client, const uint8_t *data, size_t length);
   bool performGetRequest(String url, String &outResponse, int &outCode, int redirectDepth = 0);
   bool callGoogleAppsScript(const String &eventType, const String &source, const String &message);
+  void requestGoogleScriptHeartbeatMonitorState(bool enabled);
+  bool notifyGoogleScriptHeartbeatMonitorState(bool enabled);
+  void processGoogleScriptHeartbeatMonitorControl();
   void processGoogleAppsScriptHeartbeat();
   void resolveGoogleAppsScriptCurrentEvent();
   bool isTelegramAllowed(const String &eventType);
@@ -526,6 +540,23 @@ bool hasGeminiConfig() {
           "AI phát hiện có người. Hệ thống sẽ chụp thêm " + String(AI_PERSON_FOLLOW_UP_PHOTO_COUNT) +
           " ảnh trong vài giây tới."
         );
+
+        // Only automatic security captures create this email. A manual photo
+        // must not be treated as an intrusion, and evidence follow-up photos
+        // must not generate duplicate messages.
+        bool isAutomaticSecurityCapture =
+          reason == "AUTO_INTRUSION_ALERT" || reason == "AUTO_SABOTAGE_ALERT";
+        if (isAutomaticSecurityCapture && !aiPersonEmailSentForCurrentAlert) {
+          aiPersonEmailSentForCurrentAlert = true;
+          String emailMessage =
+            "Hệ thống đã phát hiện có người trong nhà. "
+            "Vui lòng nhanh chóng kiểm tra ảnh trong Telegram để xác minh danh tính. "
+            "Thời điểm phát hiện: " + getRtcTimeString() + ".";
+          bool emailQueued = callGoogleAppsScript("ai_person_detected", "GEMINI", emailMessage);
+          notification_sent_status = emailQueued
+            ? "AI phát hiện người: đã gửi email, kiểm tra Telegram"
+            : "AI phát hiện người nhưng gửi email thất bại";
+        }
       }
     } else {
       lastAiPersonResult = "AI_SKIPPED";
@@ -1107,11 +1138,12 @@ bool hasGoogleScriptConfig() {
 
   bool callGoogleAppsScript(const String &eventType, const String &source, const String &message) {
     bool isHeartbeatEvent = eventType == "heartbeat";
+    bool isAiPersonEvent = eventType == "ai_person_detected";
 
     if (!hasGoogleScriptConfig()) {
       if (isHeartbeatEvent) {
         heartbeat_status = "Chưa cấu hình Apps Script";
-      } else {
+      } else if (!isAiPersonEvent) {
         setEscalationStatus("NOT_CONFIGURED");
         setAuthorityStatus("NOT_CONFIGURED");
       }
@@ -1122,7 +1154,7 @@ bool hasGoogleScriptConfig() {
     if (WiFi.status() != WL_CONNECTED) {
       if (isHeartbeatEvent) {
         heartbeat_status = "Không có WiFi để gửi heartbeat";
-      } else {
+      } else if (!isAiPersonEvent) {
         setEscalationStatus("WIFI_NOT_CONNECTED");
         setAuthorityStatus("FAILED");
       }
@@ -1155,7 +1187,7 @@ bool hasGoogleScriptConfig() {
 
     if (isHeartbeatEvent) {
       heartbeat_status = "Đang gửi heartbeat";
-    } else {
+    } else if (!isAiPersonEvent) {
       setEscalationStatus("SENDING");
       setAuthorityStatus("IDLE");
     }
@@ -1171,15 +1203,82 @@ bool hasGoogleScriptConfig() {
       Serial.println(response.substring(0, 200));
     }
 
-    updateGoogleScriptStatusFromResponse(response, ok, isHeartbeatEvent);
+    if (!isAiPersonEvent) {
+      updateGoogleScriptStatusFromResponse(response, ok, isHeartbeatEvent);
+    }
     if (isHeartbeatEvent && !ok) {
       heartbeat_status = "Gửi heartbeat thất bại";
     }
     return ok;
   }
 
+  void requestGoogleScriptHeartbeatMonitorState(bool enabled) {
+    desiredHeartbeatMonitorEnabled = enabled;
+    heartbeatMonitorControlPending = true;
+    heartbeatMonitorControlRetryIndex = 0;
+    heartbeatMonitorControlNextRetryAtMs = millis();
+  }
+
+  // This control message intentionally bypasses google_script_enabled so that
+  // turning the dashboard switch OFF can pause the Apps Script timeout before
+  // the board stops sending normal heartbeat requests.
+  bool notifyGoogleScriptHeartbeatMonitorState(bool enabled) {
+    if (!String(SECRET_GOOGLE_SCRIPT_URL).startsWith("https://") || WiFi.status() != WL_CONNECTED) {
+      return false;
+    }
+
+    String url = String(SECRET_GOOGLE_SCRIPT_URL);
+    url += "?event=heartbeat_monitor_control";
+    url += "&enabled=" + String(enabled ? "true" : "false");
+    url += "&device=" + urlEncode(String(SECRET_DEVICE_NAME));
+    url += "&location=" + urlEncode(String(SECRET_DEVICE_LOCATION));
+    url += "&time=" + urlEncode(getRtcTimeString());
+
+    String response = "";
+    int code = 0;
+    bool ok = performGetRequest(url, response, code);
+    String expectedAck = enabled
+      ? "OK:HEARTBEAT_MONITOR_ENABLED"
+      : "OK:HEARTBEAT_MONITOR_PAUSED";
+    bool acknowledged = ok && response.indexOf(expectedAck) >= 0;
+    Serial.print("[GAS] Heartbeat monitor control: ");
+    Serial.println(acknowledged ? "ACK" : "FAILED");
+    return acknowledged;
+  }
+
+  void processGoogleScriptHeartbeatMonitorControl() {
+    if (!heartbeatMonitorControlPending || millis() < heartbeatMonitorControlNextRetryAtMs) {
+      return;
+    }
+
+    if (notifyGoogleScriptHeartbeatMonitorState(desiredHeartbeatMonitorEnabled)) {
+      heartbeatMonitorControlPending = false;
+      heartbeatMonitorControlRetryIndex = 0;
+      heartbeat_status = desiredHeartbeatMonitorEnabled
+        ? "Đã xác nhận bật theo dõi heartbeat"
+        : "Đã xác nhận tạm dừng theo dõi heartbeat";
+      return;
+    }
+
+    uint8_t delayIndex = min(
+      heartbeatMonitorControlRetryIndex,
+      (uint8_t)(sizeof(WIFI_RETRY_DELAYS_MS) / sizeof(WIFI_RETRY_DELAYS_MS[0]) - 1)
+    );
+    heartbeatMonitorControlNextRetryAtMs = millis() + WIFI_RETRY_DELAYS_MS[delayIndex];
+    if (heartbeatMonitorControlRetryIndex < 255) {
+      heartbeatMonitorControlRetryIndex++;
+    }
+    heartbeat_status = "Đang gửi lại lệnh theo dõi heartbeat";
+  }
+
   void processGoogleAppsScriptHeartbeat() {
     static unsigned long lastHeartbeatMs = 0;
+
+    // A dashboard change must reach Apps Script before an ordinary heartbeat
+    // can be sent. This prevents another request from masking a pending PAUSE.
+    if (heartbeatMonitorControlPending) {
+      return;
+    }
 
     if (!google_script_enabled || !heartbeat_enabled) {
       heartbeat_status = "Theo dõi heartbeat đang tạm dừng";
@@ -1592,6 +1691,7 @@ bool hasGoogleScriptConfig() {
       Serial.println(lastIntrusionReason);
 
       auto_capture_photo_request = true;
+      aiPersonEmailSentForCurrentAlert = false;
       photo_status = "Đang chuẩn bị chụp ảnh tự động";
       send_notification_request = true;
       notification_event_type = "intrusion_alert";
@@ -1621,6 +1721,7 @@ bool hasGoogleScriptConfig() {
       // A sabotage event has the same immediate local response as an intrusion:
       // alarm outputs are applied on this loop and a security photo is sent once.
       auto_capture_photo_request = true;
+      aiPersonEmailSentForCurrentAlert = false;
       photo_status = "Đang chuẩn bị chụp ảnh phá hoại";
       send_notification_request = true;
       notification_event_type = "sabotage_alert";
@@ -1669,6 +1770,7 @@ bool hasGoogleScriptConfig() {
     setAuthorityStatus("IDLE");
 
     auto_capture_photo_request = false;
+    aiPersonEmailSentForCurrentAlert = false;
     manualCapturePending = false;
 
     send_notification_request = false;
@@ -2104,6 +2206,7 @@ bool hasGoogleScriptConfig() {
     ArduinoCloud.update();
     handleSerialInput();
     maintainWiFiConnection();
+    processGoogleScriptHeartbeatMonitorControl();
     processGoogleAppsScriptHeartbeat();
 
     static unsigned long lastSensorUpdate = 0;
@@ -2173,7 +2276,21 @@ void onManualCapturePhotoChange() {
 }
 
   void onScheduleEnabledChange() {
-    setLastEvent("cloud_schedule", schedule_enabled ? "Đã bật lịch tự động chống trộm." : "Đã tắt lịch tự động chống trộm.");
+    clampCloudConfigValues();
+    if (schedule_enabled) {
+      setLastEvent(
+        "cloud_schedule_enabled",
+        "Đã bật chế độ lịch tự động thành công. Hệ thống sẽ tự bật bảo vệ lúc " +
+        twoDigits(auto_arm_hour) + ":" + twoDigits(auto_arm_minute) +
+        " và tự tắt bảo vệ lúc " + twoDigits(auto_disarm_hour) + ":" +
+        twoDigits(auto_disarm_minute) + "."
+      );
+    } else {
+      setLastEvent(
+        "cloud_schedule_disabled",
+        "Đã tắt chế độ lịch tự động. Hệ thống sẽ không tự bật/tắt bảo vệ theo lịch."
+      );
+    }
   }
 
   void onAutoArmHourChange() {
@@ -2192,12 +2309,43 @@ void onManualCapturePhotoChange() {
     clampCloudConfigValues();
   }
 
-void onAutoPhotoOnAlertChange() { setLastEvent("cloud_auto_photo", auto_photo_on_alert ? "Đã bật tự chụp ảnh khi có cảnh báo." : "Đã tắt tự chụp ảnh khi có cảnh báo."); }
-void onCameraEnabledChange() { setLastEvent("cloud_camera", camera_enabled ? "Đã bật camera." : "Đã tắt camera."); }
-void onGeminiEnabledChange() { setLastEvent("cloud_gemini", gemini_enabled ? "Đã bật phân tích Gemini." : "Đã tắt phân tích Gemini."); }
-void onGoogleScriptEnabledChange() { setLastEvent("cloud_apps_script", google_script_enabled ? "Đã bật Google Apps Script." : "Đã tắt Google Apps Script."); }
-void onHeartbeatEnabledChange() { setLastEvent("cloud_heartbeat", heartbeat_enabled ? "Đã bật heartbeat liên tục." : "Đã tạm dừng heartbeat."); }
-void onTelegramEnabledChange() { setLastEvent("cloud_telegram", telegram_enabled ? "Đã bật Telegram." : "Đã tắt Telegram."); }
+void onAutoPhotoOnAlertChange() {
+  setLastEvent("cloud_auto_photo", auto_photo_on_alert
+    ? "Đã bật tự chụp ảnh khi có sự kiện cảnh báo."
+    : "Đã tắt tự chụp ảnh khi có sự kiện cảnh báo.");
+}
+
+void onCameraEnabledChange() {
+  setLastEvent("cloud_camera", camera_enabled
+    ? "Đã bật camera thành công. Hệ thống có thể chụp ảnh theo yêu cầu hoặc khi xảy ra cảnh báo."
+    : "Đã tắt camera. Hệ thống sẽ không chụp hoặc gửi ảnh mới.");
+}
+
+void onGeminiEnabledChange() {
+  setLastEvent("cloud_gemini", gemini_enabled
+    ? "Đã bật nhận diện người qua ảnh bằng AI. AI chỉ phân tích khi camera đang bật."
+    : "Đã tắt nhận diện người qua ảnh bằng AI.");
+}
+
+void onGoogleScriptEnabledChange() {
+  requestGoogleScriptHeartbeatMonitorState(google_script_enabled && heartbeat_enabled);
+  setLastEvent("cloud_apps_script", google_script_enabled
+    ? "Đã bật gửi Gmail qua Google Apps Script."
+    : "Đã tắt gửi Gmail qua Google Apps Script.");
+}
+
+void onHeartbeatEnabledChange() {
+  requestGoogleScriptHeartbeatMonitorState(google_script_enabled && heartbeat_enabled);
+  setLastEvent("cloud_heartbeat", heartbeat_enabled
+    ? "Đã bật tín hiệu theo dõi thiết bị (heartbeat) liên tục."
+    : "Đã tắt tín hiệu theo dõi thiết bị (heartbeat).");
+}
+
+void onTelegramEnabledChange() {
+  setLastEvent("cloud_telegram", telegram_enabled
+    ? "Đã bật gửi thông báo Telegram."
+    : "Đã tắt gửi thông báo Telegram.");
+}
 
   void onSosAuthorityNoteChange() {
     // Do not print the full note to Serial/log because it may contain sensitive emergency context.

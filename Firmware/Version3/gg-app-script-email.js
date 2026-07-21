@@ -10,7 +10,7 @@
  * 4. Send authority escalation email to demo authority contact only after confirmation.
  * 5. Expose a polling endpoint so ESP32-S3 can check confirmation/escalation status.
  * 6. Receive heartbeat and sabotage_alert for DS-03/DS-04.
- * 7. Monitor heartbeat only after sabotage has happened.
+ * 7. Monitor heartbeat continuously and send one offline/recovery email.
  * 8. Escalate to critical_security_compromise when heartbeat is lost after sabotage.
  *
  * Important SRS rules implemented here:
@@ -75,9 +75,11 @@ const CONFIG = {
     EVENT_TTL_HOURS: 24,
 
     HEARTBEAT_PROPERTY_KEY: 'KSS_LAST_HEARTBEAT',
+    HEARTBEAT_CONNECTION_STATE_KEY: 'KSS_HEARTBEAT_CONNECTION_STATE',
+    HEARTBEAT_MONITOR_ENABLED_KEY: 'KSS_HEARTBEAT_MONITOR_ENABLED',
     ACTIVE_SABOTAGE_EVENT_KEY: 'KSS_ACTIVE_SABOTAGE_EVENT_ID',
     ACTIVE_SOS_EVENT_KEY: 'KSS_ACTIVE_SOS_EVENT_ID',
-    HEARTBEAT_TIMEOUT_SECONDS: 60
+    HEARTBEAT_TIMEOUT_SECONDS: 40
 };
 
 const STATUS = {
@@ -179,6 +181,10 @@ function handleIncomingEvent(params) {
         return handleHeartbeat(params);
     }
 
+    if (eventType === 'heartbeat_monitor_control') {
+        return handleHeartbeatMonitorControl_(params);
+    }
+
     if (eventType === 'sabotage_alert' || eventType === 'tamper' || eventType === 'device_tampered') {
         return handleSabotageRequest(params);
     }
@@ -191,10 +197,45 @@ function handleIncomingEvent(params) {
         return handleSosRequest(params, eventType);
     }
 
+    if (eventType === 'ai_person_detected' || eventType === 'person_detected') {
+        return handleAiPersonDetected(params);
+    }
+
     return textResponse(
         'IGNORED: Unsupported Google Apps Script event. ' +
         'event=' + (eventType || 'NONE')
     );
+}
+
+// This is an informational family alert, not an SOS or authority-escalation
+// event. The ESP32 sends it only once for each automatic security alert after
+// Gemini has classified the captured image as containing a person.
+function handleAiPersonDetected(params) {
+    const device = firstNonEmpty(params.device, params.deviceName, CONFIG.DEFAULT_DEVICE_NAME);
+    const location = firstNonEmpty(params.location, params.zone, CONFIG.DEFAULT_DEVICE_LOCATION);
+    const detectedAt = firstNonEmpty(params.time, params.current_time, nowText());
+    const message = firstNonEmpty(
+        params.message,
+        'Hệ thống đã phát hiện có người trong nhà. Vui lòng kiểm tra ảnh trong Telegram để xác minh danh tính.'
+    );
+
+    const subject = '[Cảnh báo AI] Phát hiện có người trong nhà';
+    const plainBody =
+        'Thiết bị: ' + device + '\n' +
+        'Khu vực: ' + location + '\n' +
+        'Thời điểm: ' + detectedAt + '\n\n' +
+        message + '\n\n' +
+        'Vui lòng nhanh chóng kiểm tra ảnh trong Telegram để xác minh danh tính.';
+    const htmlBody =
+        '<h2>Cảnh báo AI: phát hiện có người</h2>' +
+        '<p><b>Thiết bị:</b> ' + escapeHtml(device) + '</p>' +
+        '<p><b>Khu vực:</b> ' + escapeHtml(location) + '</p>' +
+        '<p><b>Thời điểm:</b> ' + escapeHtml(detectedAt) + '</p>' +
+        '<p>' + escapeHtml(message) + '</p>' +
+        '<p><b>Vui lòng nhanh chóng kiểm tra ảnh trong Telegram để xác minh danh tính.</b></p>';
+
+    sendEmail(CONFIG.FAMILY_RECIPIENTS, subject, plainBody, htmlBody);
+    return textResponse('OK:AI_PERSON_EMAIL_SENT');
 }
 
 function handleHeartbeat(params) {
@@ -214,11 +255,41 @@ function handleHeartbeat(params) {
 
     PropertiesService.getScriptProperties().setProperty(CONFIG.HEARTBEAT_PROPERTY_KEY, JSON.stringify(record));
 
+    // A normal heartbeat after an offline notification is the only condition
+    // that sends the recovery email. Initial startup does not send one.
+    const connectionState = getHeartbeatConnectionState_();
+    if (isHeartbeatMonitorEnabled_() && connectionState.state === 'OFFLINE') {
+        sendHeartbeatRecoveryEmail_(record);
+    }
+    if (isHeartbeatMonitorEnabled_()) {
+        saveHeartbeatConnectionState_('ONLINE', now);
+    }
+
     return textResponse(
         'OK:HEARTBEAT' +
         ';serverTime=' + safeValue(now) +
         ';active_sabotage=' + String(Boolean(record.activeSabotageEventId)) +
         ';active_sabotage_eventId=' + safeValue(record.activeSabotageEventId || '')
+    );
+}
+
+function handleHeartbeatMonitorControl_(params) {
+    const enabled = String(params.enabled || '').toLowerCase() === 'true';
+    const changedAt = firstNonEmpty(params.time, nowText());
+    PropertiesService.getScriptProperties().setProperty(
+        CONFIG.HEARTBEAT_MONITOR_ENABLED_KEY,
+        enabled ? 'true' : 'false'
+    );
+
+    // A user-initiated pause is never an offline incident and must not later
+    // create a false recovery email when monitoring is turned back on.
+    if (!enabled) {
+        saveHeartbeatConnectionState_('PAUSED', changedAt);
+    }
+
+    return textResponse(
+        'OK:HEARTBEAT_MONITOR_' + (enabled ? 'ENABLED' : 'PAUSED') +
+        ';changed_at=' + safeValue(changedAt)
     );
 }
 
@@ -405,10 +476,14 @@ function handleSosRequest(params, eventType) {
 // ==================================================
 
 function monitorHeartbeatAfterSabotage() {
+    const connectionResult = monitorHeartbeatConnection_();
     const eventId = getActiveSabotageEventId_();
 
     if (!eventId) {
-        return textResponse('OK:NO_ACTIVE_SABOTAGE');
+        return textResponse(
+            'OK:' + connectionResult.state +
+            ';heartbeat_age_seconds=' + String(connectionResult.ageSeconds)
+        );
     }
 
     const record = loadEventRecord(eventId);
@@ -460,6 +535,106 @@ function monitorHeartbeatAfterSabotage() {
         ';heartbeat_age_seconds=' + String(ageSeconds) +
         ';heartbeat_timeout_seconds=' + String(CONFIG.HEARTBEAT_TIMEOUT_SECONDS)
     );
+}
+
+// Monitored every minute by installHeartbeatMonitorTrigger(). A missing normal
+// heartbeat creates one family email, then stays quiet until the board returns.
+// A sabotage-active device uses the dedicated critical-escalation flow below
+// instead, avoiding a duplicate ordinary offline email.
+function monitorHeartbeatConnection_() {
+    if (!isHeartbeatMonitorEnabled_()) {
+        return { state: 'HEARTBEAT_MONITOR_PAUSED', ageSeconds: -1 };
+    }
+
+    const lastHeartbeat = getLastHeartbeat_();
+    if (!lastHeartbeat || !lastHeartbeat.serverTime) {
+        return { state: 'WAITING_FIRST_HEARTBEAT', ageSeconds: -1 };
+    }
+
+    const ageSeconds = Math.floor(
+        (new Date().getTime() - new Date(lastHeartbeat.serverTime).getTime()) / 1000
+    );
+    const isOffline = ageSeconds > CONFIG.HEARTBEAT_TIMEOUT_SECONDS;
+    const activeSabotage = getActiveSabotageEventId_();
+    const connectionState = getHeartbeatConnectionState_();
+
+    if (!isOffline) {
+        return { state: 'ONLINE', ageSeconds: ageSeconds };
+    }
+
+    // The critical path sends its own confirmation email after sabotage.
+    if (activeSabotage) {
+        return { state: 'SABOTAGE_TIMEOUT', ageSeconds: ageSeconds };
+    }
+
+    if (connectionState.state !== 'OFFLINE') {
+        sendHeartbeatOfflineEmail_(lastHeartbeat, ageSeconds);
+        saveHeartbeatConnectionState_('OFFLINE', nowText());
+    }
+
+    return { state: 'OFFLINE', ageSeconds: ageSeconds };
+}
+
+function isHeartbeatMonitorEnabled_() {
+    const configured = PropertiesService.getScriptProperties().getProperty(
+        CONFIG.HEARTBEAT_MONITOR_ENABLED_KEY
+    );
+    // Existing deployments begin monitoring normally until the firmware sends
+    // an explicit dashboard control message.
+    return configured !== 'false';
+}
+
+function getHeartbeatConnectionState_() {
+    const raw = PropertiesService.getScriptProperties().getProperty(CONFIG.HEARTBEAT_CONNECTION_STATE_KEY);
+    if (!raw) {
+        return { state: 'UNKNOWN', changedAt: '' };
+    }
+    try {
+        return JSON.parse(raw);
+    } catch (err) {
+        return { state: 'UNKNOWN', changedAt: '' };
+    }
+}
+
+function saveHeartbeatConnectionState_(state, changedAt) {
+    PropertiesService.getScriptProperties().setProperty(
+        CONFIG.HEARTBEAT_CONNECTION_STATE_KEY,
+        JSON.stringify({ state: state, changedAt: changedAt })
+    );
+}
+
+function sendHeartbeatOfflineEmail_(lastHeartbeat, ageSeconds) {
+    const subject = '[Cảnh báo kết nối] Thiết bị mất tín hiệu';
+    const plainBody =
+        'Thiết bị mất tín hiệu heartbeat trong ' + ageSeconds + ' giây.\n\n' +
+        'Thiết bị: ' + safeValue(lastHeartbeat.device) + '\n' +
+        'Khu vực: ' + safeValue(lastHeartbeat.location) + '\n' +
+        'Heartbeat cuối: ' + safeValue(lastHeartbeat.serverTime) + '\n\n' +
+        'Vui lòng kiểm tra nguồn điện, Wi-Fi và thiết bị.';
+    const htmlBody =
+        htmlTitle('Cảnh báo: thiết bị mất tín hiệu') +
+        htmlParagraph('Cloud không nhận heartbeat trong ' + ageSeconds + ' giây.') +
+        htmlRow('Thiết bị', safeValue(lastHeartbeat.device)) +
+        htmlRow('Khu vực', safeValue(lastHeartbeat.location)) +
+        htmlRow('Heartbeat cuối', safeValue(lastHeartbeat.serverTime)) +
+        htmlWarning('Vui lòng kiểm tra nguồn điện, Wi-Fi và thiết bị.');
+    sendEmail(CONFIG.FAMILY_RECIPIENTS, subject, plainBody, htmlBody);
+}
+
+function sendHeartbeatRecoveryEmail_(heartbeat) {
+    const subject = '[Khôi phục kết nối] Thiết bị đã gửi tín hiệu trở lại';
+    const plainBody =
+        'Thiết bị đã kết nối lại và đang gửi heartbeat bình thường.\n\n' +
+        'Thiết bị: ' + safeValue(heartbeat.device) + '\n' +
+        'Khu vực: ' + safeValue(heartbeat.location) + '\n' +
+        'Thời điểm khôi phục: ' + safeValue(heartbeat.serverTime);
+    const htmlBody =
+        htmlTitle('Thiết bị đã kết nối lại') +
+        htmlParagraph('Thiết bị đã gửi heartbeat trở lại và đang hoạt động bình thường.') +
+        htmlRow('Thiết bị', safeValue(heartbeat.device)) +
+        htmlRow('Khu vực', safeValue(heartbeat.location)) +
+        htmlRow('Thời điểm khôi phục', safeValue(heartbeat.serverTime));
+    sendEmail(CONFIG.FAMILY_RECIPIENTS, subject, plainBody, htmlBody);
 }
 
 function installHeartbeatMonitorTrigger() {
