@@ -39,6 +39,10 @@
 #define SECRET_DEVICE_LOCATION "Kitchen"
 #endif
 
+#ifndef SECRET_GEMINI_API_KEY
+#define SECRET_GEMINI_API_KEY ""
+#endif
+
 // =======================
 // CAMERA-COMPATIBLE PIN MAP
 // =======================
@@ -111,12 +115,17 @@ const unsigned long RED_BLINK_INTERVAL_MS = 250;
 const unsigned long GOOGLE_HEARTBEAT_INTERVAL_MS = 30000;
 const unsigned long GOOGLE_HTTP_TIMEOUT_MS = 5000;
 const unsigned long SENSOR_BOOT_GRACE_MS = 3000;
+const unsigned long GEMINI_HTTP_TIMEOUT_MS = 12000;
+
+const char *GEMINI_API_HOST = "generativelanguage.googleapis.com";
+const char *GEMINI_PERSON_MODEL = "gemini-3.5-flash";
 
 RTC_DS1307 rtc;
 bool rtcOk = false;
 bool cameraReady = false;
 unsigned long lastCameraCaptureMs = 0;
 bool manualCapturePending = false;
+String lastAiPersonResult = "AI chưa chạy";
 
 int lastLdrValue = -1;
 unsigned long sabotageConditionStartedAt = 0;
@@ -168,9 +177,12 @@ String urlEncode(const String &value);
 String responseValue(const String &response, const String &key);
 bool hasTelegramConfig();
 bool hasGoogleScriptConfig();
+bool hasGeminiConfig();
 String buildCommonCaption(const String &eventType, const String &reason);
 bool sendTelegramMessage(const String &message);
 bool sendTelegramPhoto(camera_fb_t *fb, const String &caption);
+String analyzePersonWithGemini(camera_fb_t *fb, uint8_t attempt = 0);
+void writeBase64ToClient(WiFiClientSecure &client, const uint8_t *data, size_t length);
 bool performGetRequest(String url, String &outResponse, int &outCode, int redirectDepth = 0);
 bool callGoogleAppsScript(const String &eventType, const String &source, const String &message);
 void processGoogleAppsScriptHeartbeat();
@@ -216,14 +228,19 @@ bool initCamera() {
 
   if (psramFound()) {
     Serial.println("[CAM] PSRAM found.");
-    config.frame_size = FRAMESIZE_QVGA;      // 320x240
+    config.frame_size = FRAMESIZE_VGA;       // 640x480, clearer for AI person detection
     config.jpeg_quality = 10;
-    config.fb_count = 2;
+    // This project takes still photos, then holds the frame while Telegram/AI
+    // upload it. One buffer and WHEN_EMPTY prevent camera queue overflow
+    // (cam_hal: FB-OVF) during those slower network requests.
+    config.fb_count = 1;
     config.fb_location = CAMERA_FB_IN_PSRAM;
-    config.grab_mode = CAMERA_GRAB_LATEST;
+    config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
   } else {
-    Serial.println("[CAM] PSRAM NOT found. Using QQVGA.");
-    config.frame_size = FRAMESIZE_QQVGA;     // 160x120
+    // One framebuffer lets the ESP32-S3 use QVGA even without detected PSRAM.
+    // This is materially clearer than the old 160x120 fallback for AI checks.
+    Serial.println("[CAM] PSRAM NOT found. Using QVGA with one DRAM framebuffer.");
+    config.frame_size = FRAMESIZE_QVGA;      // 320x240
     config.jpeg_quality = 12;
     config.fb_count = 1;
     config.fb_location = CAMERA_FB_IN_DRAM;
@@ -266,17 +283,154 @@ bool initCamera() {
 }
 
 camera_fb_t *captureFreshCameraFrame() {
-  // Release the currently queued frame, then allow the sensor to produce a new one.
-  camera_fb_t *queuedFrame = esp_camera_fb_get();
-  if (queuedFrame != NULL) {
-    esp_camera_fb_return(queuedFrame);
-    Serial.println("[CAM] Queued frame discarded.");
-  } else {
-    Serial.println("[CAM] No queued frame available to discard.");
+  // WHEN_EMPTY keeps the last completed frame in the only framebuffer. Drop it
+  // first, then wait for the sensor to expose a new frame so a manual capture
+  // cannot resend the previous photo.
+  camera_fb_t *staleFrame = esp_camera_fb_get();
+  if (staleFrame != NULL) {
+    esp_camera_fb_return(staleFrame);
+    Serial.println("[CAM] Previous frame discarded; waiting for a fresh frame.");
+    delay(250);
   }
 
-  delay(120);
   return esp_camera_fb_get();
+}
+
+bool hasGeminiConfig() {
+  String apiKey = String(SECRET_GEMINI_API_KEY);
+  return apiKey.length() > 0 && apiKey != "PASTE_YOUR_GEMINI_API_KEY_HERE";
+}
+
+// Streams a JPEG as Base64 directly to the TLS client. This avoids allocating a
+// second, much larger image string in ESP32 memory.
+void writeBase64ToClient(WiFiClientSecure &client, const uint8_t *data, size_t length) {
+  static const char BASE64_TABLE[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  char encoded[1024];
+  size_t encodedLength = 0;
+
+  for (size_t i = 0; i < length; i += 3) {
+    uint32_t triple = ((uint32_t)data[i]) << 16;
+    bool hasSecondByte = i + 1 < length;
+    bool hasThirdByte = i + 2 < length;
+    if (hasSecondByte) triple |= ((uint32_t)data[i + 1]) << 8;
+    if (hasThirdByte) triple |= data[i + 2];
+
+    encoded[encodedLength++] = BASE64_TABLE[(triple >> 18) & 0x3F];
+    encoded[encodedLength++] = BASE64_TABLE[(triple >> 12) & 0x3F];
+    encoded[encodedLength++] = hasSecondByte ? BASE64_TABLE[(triple >> 6) & 0x3F] : '=';
+    encoded[encodedLength++] = hasThirdByte ? BASE64_TABLE[triple & 0x3F] : '=';
+
+    if (encodedLength == sizeof(encoded)) {
+      client.write((const uint8_t *)encoded, encodedLength);
+      encodedLength = 0;
+    }
+  }
+
+  if (encodedLength > 0) {
+    client.write((const uint8_t *)encoded, encodedLength);
+  }
+}
+
+String analyzePersonWithGemini(camera_fb_t *fb, uint8_t attempt) {
+  if (!hasGeminiConfig()) {
+    Serial.println("[AI] Gemini API key is not configured.");
+    return "AI_NOT_CONFIGURED";
+  }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[AI] WiFi is not connected.");
+    return "AI_NO_WIFI";
+  }
+
+  if (fb == NULL || fb->buf == NULL || fb->len == 0) {
+    Serial.println("[AI] Camera buffer is empty.");
+    return "AI_NO_IMAGE";
+  }
+
+  // Gemini accepts an image as Base64 inline_data. The model is deliberately
+  // constrained to one of two tokens so no free-form description is required.
+  const String jsonPrefix =
+    "{\"contents\":[{\"parts\":[{\"text\":\"Inspect this low-resolution kitchen camera image. "
+    "Answer PERSON if any part of a real human is visible, including a small, distant, "
+    "partly occluded head, face, torso, arm, leg, or body at an image edge. "
+    "Answer NONE only when there is no human at all. Reply with exactly one uppercase token: PERSON or NONE.\"},{\"inline_data\":{\"mime_type\":\"image/jpeg\",\"data\":\"";
+  const String jsonSuffix =
+    "\"}}]}],\"generationConfig\":{\"temperature\":0,\"maxOutputTokens\":64}}";
+  const size_t base64Length = 4 * ((fb->len + 2) / 3);
+  const size_t contentLength = jsonPrefix.length() + base64Length + jsonSuffix.length();
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  client.setTimeout(GEMINI_HTTP_TIMEOUT_MS);
+
+  if (!client.connect(GEMINI_API_HOST, 443)) {
+    Serial.println("[AI] Gemini connection failed.");
+    return "AI_CONNECT_FAILED";
+  }
+
+  String path = "/v1/models/" + String(GEMINI_PERSON_MODEL) + ":generateContent";
+  client.print(String("POST ") + path + " HTTP/1.1\r\n");
+  client.print(String("Host: ") + GEMINI_API_HOST + "\r\n");
+  client.print("User-Agent: ESP32-S3-Kitchen-Security\r\n");
+  client.print("Connection: close\r\n");
+  client.print("Content-Type: application/json\r\n");
+  client.print("x-goog-api-key: ");
+  client.print(SECRET_GEMINI_API_KEY);
+  client.print("\r\nContent-Length: ");
+  client.print(contentLength);
+  client.print("\r\n\r\n");
+  client.print(jsonPrefix);
+  writeBase64ToClient(client, fb->buf, fb->len);
+  client.print(jsonSuffix);
+
+  unsigned long startedAt = millis();
+  while (client.connected() && !client.available() && millis() - startedAt < GEMINI_HTTP_TIMEOUT_MS) {
+    delay(10);
+  }
+
+  String statusLine = client.readStringUntil('\n');
+  String response = client.readString();
+  bool requestOk = statusLine.indexOf("200") >= 0;
+
+  Serial.print("[AI] Gemini status: ");
+  Serial.println(statusLine);
+
+  if (!requestOk) {
+    Serial.println("[AI] Gemini did not return HTTP 200.");
+    Serial.print("[AI] Gemini error body: ");
+    Serial.println(response);
+
+    // A short retry handles Gemini's temporary high-demand (503) responses
+    // without retrying invalid keys, bad requests, or normal alert traffic.
+    if (statusLine.indexOf("503") >= 0 && attempt == 0) {
+      Serial.println("[AI] Gemini busy; retrying once in 1500 ms.");
+      client.stop();
+      delay(1500);
+      return analyzePersonWithGemini(fb, 1);
+    }
+    return "AI_HTTP_ERROR";
+  }
+
+  Serial.print("[AI] Gemini response body: ");
+  Serial.println(response);
+
+  // Only examine Gemini's generated text field. The response string also
+  // contains HTTP headers, whose words must never be interpreted as a result.
+  String responseUpper = response;
+  responseUpper.toUpperCase();
+  int textFieldAt = responseUpper.indexOf("\"TEXT\"");
+  if (textFieldAt >= 0 && responseUpper.indexOf("PERSON", textFieldAt) >= 0) {
+    Serial.println("[AI] PERSON_DETECTED");
+    return "PERSON_DETECTED";
+  }
+  if (textFieldAt >= 0 && responseUpper.indexOf("NONE", textFieldAt) >= 0) {
+    Serial.println("[AI] NO_PERSON");
+    return "NO_PERSON";
+  }
+
+  Serial.println("[AI] Gemini response could not be classified.");
+  return "AI_UNCLEAR";
 }
 
 bool captureSecurityPhoto(const String &reason) {
@@ -323,6 +477,10 @@ bool captureSecurityPhoto(const String &reason) {
   Serial.print("[CAM] Image bytes: ");
   Serial.println(fb->len);
 
+  // AI is supplementary only: a failed request never stops the existing
+  // camera, Telegram, sensor, buzzer, or alert flow.
+  lastAiPersonResult = analyzePersonWithGemini(fb);
+
   bool shouldSendToTelegram =
     reason == "MANUAL_DASHBOARD" ||
     reason == "AUTO_INTRUSION_ALERT" ||
@@ -344,6 +502,13 @@ bool captureSecurityPhoto(const String &reason) {
     notification_sent_status = "Đang gửi ảnh qua Telegram";
 
     String caption = buildCommonCaption("photo_capture", reason);
+    if (lastAiPersonResult == "PERSON_DETECTED") {
+      caption += "\nAI: Phát hiện có người trong khung hình.";
+    } else if (lastAiPersonResult == "NO_PERSON") {
+      caption += "\nAI: Không phát hiện người trong khung hình.";
+    } else {
+      caption += "\nAI: Không thể xác nhận người (" + lastAiPersonResult + ").";
+    }
     telegramPhotoSent = sendTelegramPhoto(fb, caption);
   }
 
