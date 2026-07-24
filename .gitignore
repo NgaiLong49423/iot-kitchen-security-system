@@ -19,7 +19,26 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+tmp/
+output/
+.tmp-audit-preview/
+*.aux
+*.out
+*.toc
+*.lof
+*.lot
+*.inspect.ndjson
 
 secrets.h
 arduino_secrets.h
 gg-app.js
+
+# Local Codex/agent working directories
+.agents/
+
+# Private Gmail evidence screenshots; use the redacted README asset instead.
+docs/images/Screenshot 2026-07-24 192254.png
+docs/images/Screenshot 2026-07-24 192752.png
+docs/images/Screenshot 2026-07-24 192811.png
+docs/images/Screenshot 2026-07-24 192835.png
+docs/images/Screenshot 2026-07-24 192920.png

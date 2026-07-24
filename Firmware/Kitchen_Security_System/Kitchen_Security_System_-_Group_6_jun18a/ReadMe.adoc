@@ -1,0 +1,22 @@
+= Kitchen Security System Firmware
+
+This Arduino sketch targets a Freenove ESP32-S3 WROOM with an OV3660 camera.
+
+== Installation
+
+. Install the ESP32 board package in Arduino IDE and select `esp32:esp32:esp32s3`.
+. Copy `arduino_secrets.example.h` to `arduino_secrets.h` and add private credentials.
+. Configure an Arduino IoT Cloud Thing whose properties match `thingProperties.h`.
+. Connect the hardware described in `../../../docs/requirements/HARDWARE_WIRING.md`.
+. Open `Kitchen_Security_System_-_Group_6_jun18a.ino`, verify compilation, and upload it.
+
+== Capabilities
+
+* PIR and ultrasonic intrusion confirmation.
+* LDR and distance-based anti-sabotage detection.
+* RTC scheduling, local buzzer and LED alerts, and OV3660 photo capture.
+* Arduino IoT Cloud status/control, Telegram photos, optional Gemini analysis, and Apps Script heartbeat reporting.
+
+== Security
+
+Never commit WiFi passwords, device keys, bot tokens, chat IDs, API keys, or Apps Script URLs. `arduino_secrets.h` is intentionally ignored by Git.

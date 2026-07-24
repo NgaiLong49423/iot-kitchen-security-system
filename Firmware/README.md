@@ -1,25 +1,22 @@
-# Firmware Source Code
+# Firmware
 
-Thư mục này chứa mã nguồn chạy trên vi điều khiển chính: **Freenove ESP32-S3 WROOM + Camera OV3660**.
+This directory contains the current firmware for the Freenove ESP32-S3 WROOM with an OV3660 camera.
 
-Firmware hiện hành nằm tại `Kitchen_Security_System_-_Group_6_jun18a/` và đã được test với Arduino Cloud, Telegram, Google Apps Script heartbeat/critical escalation, anti-sabotage và chụp ảnh thủ công. Các mô tả cũ về ESP32-CAM AI Thinker, ESP8266, RFID, Flame Sensor hoặc quét WiFi/MAC không thuộc phạm vi bản demo hiện tại.
+## Current Firmware
 
-## Cấu trúc thư mục
+[`Kitchen_Security_System/Kitchen_Security_System_-_Group_6_jun18a/`](Kitchen_Security_System/Kitchen_Security_System_-_Group_6_jun18a/) is the maintained Arduino sketch. It implements sensor monitoring, local alarm outputs, OV3660 camera capture, Arduino IoT Cloud properties, Telegram delivery, optional Gemini classification, heartbeat reporting, and the Google Apps Script escalation workflow.
 
-*   **[`Kitchen_Security_System_-_Group_6_jun18a/`](./Kitchen_Security_System_-_Group_6_jun18a/)**:
-    *   Chứa firmware chính, `thingProperties.h` và `arduino_secrets.h` cho ESP32-S3.
-    *   Điều khiển camera OV3660, PIR, cảm biến siêu âm, LDR, DS1307, LED và buzzer.
-    *   Thực hiện intrusion, anti-sabotage, SOS, chụp ảnh tự động/thủ công, Telegram, heartbeat và Google Apps Script escalation.
-    *   Kết nối Arduino IoT Cloud để nhận lệnh Dashboard và xuất trạng thái đã chuẩn hóa cho demo.
+## Prerequisites
 
----
+- Arduino IDE with the ESP32 board package.
+- Board target: `esp32:esp32:esp32s3`.
+- The libraries referenced by the sketch, including Arduino IoT Cloud, camera, RTC, and WiFi dependencies.
+- An Arduino IoT Cloud Thing with property names matching `thingProperties.h`.
 
-## Hướng dẫn cho Thành viên Phát triển (Võ Trần Công Danh & Ngô Gia Long)
+## Secrets
 
-1.  **Đặt code vào đúng thư mục**:
-    *   Dùng sketch [Kitchen_Security_System_-_Group_6_jun18a.ino](./Kitchen_Security_System_-_Group_6_jun18a/Kitchen_Security_System_-_Group_6_jun18a.ino) trong thư mục cùng tên.
-2.  **Quản lý Thư viện (Libraries)**:
-    *   Biên dịch với FQBN `esp32:esp32:esp32s3`; các thư viện được dùng được liệt kê trong log compile hoặc Arduino IDE của máy phát triển.
-3.  **Thông tin Bảo mật (Secrets)**:
-    *   Không commit mật khẩu WiFi hay khóa API của Cloud trực tiếp lên Git.
-    *   Sử dụng file cấu hình riêng (như `arduino_secrets.h` hoặc `secrets.h`) và đảm bảo các file này đã được khai báo trong [.gitignore](../../.gitignore) của dự án.
+Create `arduino_secrets.h` locally from `arduino_secrets.example.h`. Supply your own WiFi, Arduino Cloud, Telegram, Gemini, and Apps Script values. The real secrets file is ignored by Git and must never be committed.
+
+## Google Apps Script
+
+[`Kitchen_Security_System/gg-app-script-email.js`](Kitchen_Security_System/gg-app-script-email.js) contains the companion Apps Script source for heartbeat monitoring and simulated escalation emails. Configure a private deployment URL in your local secrets file.

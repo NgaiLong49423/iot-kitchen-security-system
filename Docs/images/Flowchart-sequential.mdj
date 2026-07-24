@@ -1,0 +1,4142 @@
+{
+  "_type": "Project",
+  "_id": "project-sequential-v2",
+  "name": "Kitchen Security System – Sequential Flowchart",
+  "ownedElements": [
+    {
+      "_type": "FCFlowchart",
+      "_id": "chart-sequential-v2",
+      "_parent": {
+        "$ref": "project-sequential-v2"
+      },
+      "name": "Kitchen Security System",
+      "ownedElements": [
+        {
+          "_type": "FCFlowchartDiagram",
+          "_id": "diagram-sequential-v2",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Sequential Main Loop",
+          "ownedViews": [
+            {
+              "_type": "FCTerminatorView",
+              "_id": "view-node-1",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-1"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-1",
+                  "_parent": {
+                    "$ref": "view-node-1"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 582,
+                  "top": 70,
+                  "width": 136,
+                  "height": 44,
+                  "text": "Start",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 570,
+              "top": 60,
+              "width": 160,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-1"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-2",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-2"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-2",
+                  "_parent": {
+                    "$ref": "view-node-2"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 190,
+                  "width": 196,
+                  "height": 44,
+                  "text": "Initialize hardware, camera and Cloud",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 180,
+              "width": 220,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-2"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-3",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-3"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-3",
+                  "_parent": {
+                    "$ref": "view-node-3"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 310,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is there a critical system failure?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 300,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-3"
+              }
+            },
+            {
+              "_type": "FCTerminatorView",
+              "_id": "view-node-4",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-4"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-4",
+                  "_parent": {
+                    "$ref": "view-node-4"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 942,
+                  "top": 330,
+                  "width": 136,
+                  "height": 44,
+                  "text": "End",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 930,
+              "top": 320,
+              "width": 160,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-4"
+              }
+            },
+            {
+              "_type": "FCDataView",
+              "_id": "view-node-5",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-5"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-5",
+                  "_parent": {
+                    "$ref": "view-node-5"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 480,
+                  "width": 196,
+                  "height": 48,
+                  "text": "Receive Cloud dashboard data",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 470,
+              "width": 220,
+              "height": 68,
+              "nameLabel": {
+                "$ref": "label-node-5"
+              }
+            },
+            {
+              "_type": "FCDataView",
+              "_id": "view-node-6",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-6"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-6",
+                  "_parent": {
+                    "$ref": "view-node-6"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 600,
+                  "width": 196,
+                  "height": 48,
+                  "text": "Receive Serial commands",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 590,
+              "width": 220,
+              "height": 68,
+              "nameLabel": {
+                "$ref": "label-node-6"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-7",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-7"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-7",
+                  "_parent": {
+                    "$ref": "view-node-7"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 730,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is an SOS request received?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 720,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-7"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-8",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-8"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-8",
+                  "_parent": {
+                    "$ref": "view-node-8"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 730,
+                  "width": 226,
+                  "height": 44,
+                  "text": "Trigger SOS alarm",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 720,
+              "width": 250,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-8"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-9",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-9"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-9",
+                  "_parent": {
+                    "$ref": "view-node-9"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 850,
+                  "width": 226,
+                  "height": 58,
+                  "text": "Send Telegram alert and SOS event to Apps Script",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 840,
+              "width": 250,
+              "height": 78,
+              "nameLabel": {
+                "$ref": "label-node-9"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-10",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-10"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-10",
+                  "_parent": {
+                    "$ref": "view-node-10"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 980,
+                  "width": 196,
+                  "height": 44,
+                  "text": "Maintain Wi-Fi connection",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 970,
+              "width": 220,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-10"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-11",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-11"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-11",
+                  "_parent": {
+                    "$ref": "view-node-11"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 1100,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is heartbeat monitor control pending?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 1090,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-11"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-12",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-12"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-12",
+                  "_parent": {
+                    "$ref": "view-node-12"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 1120,
+                  "width": 226,
+                  "height": 44,
+                  "text": "Send or retry monitor control command",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 1110,
+              "width": 250,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-12"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-13",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-13"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-13",
+                  "_parent": {
+                    "$ref": "view-node-13"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 1290,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Are Apps Script and heartbeat enabled?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 1280,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-13"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-14",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-14"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-14",
+                  "_parent": {
+                    "$ref": "view-node-14"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 1440,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Has 10 seconds elapsed?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 1430,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-14"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-15",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-15"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-15",
+                  "_parent": {
+                    "$ref": "view-node-15"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 1590,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is Wi-Fi connected?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 1580,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-15"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-16",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-16"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-16",
+                  "_parent": {
+                    "$ref": "view-node-16"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 1610,
+                  "width": 226,
+                  "height": 44,
+                  "text": "Set status: no Wi-Fi for heartbeat",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 1600,
+              "width": 250,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-16"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-17",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-17"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-17",
+                  "_parent": {
+                    "$ref": "view-node-17"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 1770,
+                  "width": 196,
+                  "height": 44,
+                  "text": "Send heartbeat to Google Apps Script",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 1760,
+              "width": 220,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-17"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-18",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-18"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-18",
+                  "_parent": {
+                    "$ref": "view-node-18"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 1910,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Has 500 ms elapsed?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 1900,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-18"
+              }
+            },
+            {
+              "_type": "FCDataView",
+              "_id": "view-node-19",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-19"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-19",
+                  "_parent": {
+                    "$ref": "view-node-19"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 2070,
+                  "width": 196,
+                  "height": 56,
+                  "text": "Read PIR, LDR, ultrasonic and RTC data",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 2060,
+              "width": 220,
+              "height": 76,
+              "nameLabel": {
+                "$ref": "label-node-19"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-20",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-20"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-20",
+                  "_parent": {
+                    "$ref": "view-node-20"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 2200,
+                  "width": 196,
+                  "height": 44,
+                  "text": "Publish sensor data to Cloud",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 2190,
+              "width": 220,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-20"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-21",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-21"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-21",
+                  "_parent": {
+                    "$ref": "view-node-21"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 2330,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is schedule enabled and time matched?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 2320,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-21"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-22",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-22"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-22",
+                  "_parent": {
+                    "$ref": "view-node-22"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 2350,
+                  "width": 226,
+                  "height": 44,
+                  "text": "Update alarm-enabled state",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 2340,
+              "width": 250,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-22"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-23",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-23"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-23",
+                  "_parent": {
+                    "$ref": "view-node-23"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 2510,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is sabotage detected?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 2500,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-23"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-24",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-24"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-24",
+                  "_parent": {
+                    "$ref": "view-node-24"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 2520,
+                  "width": 226,
+                  "height": 62,
+                  "text": "Set sabotage alarm, request photo and send Apps Script event",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 2510,
+              "width": 250,
+              "height": 82,
+              "nameLabel": {
+                "$ref": "label-node-24"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-25",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-25"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-25",
+                  "_parent": {
+                    "$ref": "view-node-25"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 2700,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is intrusion detected?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 2690,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-25"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-26",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-26"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-26",
+                  "_parent": {
+                    "$ref": "view-node-26"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 2720,
+                  "width": 226,
+                  "height": 50,
+                  "text": "Set intrusion alarm and request photo",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 2710,
+              "width": 250,
+              "height": 70,
+              "nameLabel": {
+                "$ref": "label-node-26"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-27",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-27"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-27",
+                  "_parent": {
+                    "$ref": "view-node-27"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 2890,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is a photo request pending?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 2880,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-27"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-28",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-28"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-28",
+                  "_parent": {
+                    "$ref": "view-node-28"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 3040,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is camera enabled?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 3030,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-28"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-29",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-29"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-29",
+                  "_parent": {
+                    "$ref": "view-node-29"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 3190,
+                  "width": 196,
+                  "height": 44,
+                  "text": "Capture security photo",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 3180,
+              "width": 220,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-29"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-30",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-30"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-30",
+                  "_parent": {
+                    "$ref": "view-node-30"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 3330,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is Telegram enabled?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 3320,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-30"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-31",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-31"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-31",
+                  "_parent": {
+                    "$ref": "view-node-31"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 3350,
+                  "width": 226,
+                  "height": 44,
+                  "text": "Send photo to Telegram",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 3340,
+              "width": 250,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-31"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-32",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-32"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-32",
+                  "_parent": {
+                    "$ref": "view-node-32"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 3520,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is Gemini enabled?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 3510,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-32"
+              }
+            },
+            {
+              "_type": "FCDecisionView",
+              "_id": "view-node-33",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-33"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-33",
+                  "_parent": {
+                    "$ref": "view-node-33"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 3670,
+                  "width": 196,
+                  "height": 90,
+                  "text": "Is a person detected?",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 3660,
+              "width": 220,
+              "height": 110,
+              "nameLabel": {
+                "$ref": "label-node-33"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-34",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-34"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-34",
+                  "_parent": {
+                    "$ref": "view-node-34"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 922,
+                  "top": 3690,
+                  "width": 226,
+                  "height": 44,
+                  "text": "Send AI person event to Apps Script",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 910,
+              "top": 3680,
+              "width": 250,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-34"
+              }
+            },
+            {
+              "_type": "FCProcessView",
+              "_id": "view-node-35",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "node-35"
+              },
+              "subViews": [
+                {
+                  "_type": "LabelView",
+                  "_id": "label-node-35",
+                  "_parent": {
+                    "$ref": "view-node-35"
+                  },
+                  "font": "Arial;13;0",
+                  "parentStyle": true,
+                  "left": 552,
+                  "top": 3880,
+                  "width": 196,
+                  "height": 44,
+                  "text": "Continue monitoring",
+                  "wordWrap": true
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "left": 540,
+              "top": 3870,
+              "width": 220,
+              "height": 64,
+              "nameLabel": {
+                "$ref": "label-node-35"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-1",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-1"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-2"
+              },
+              "tail": {
+                "$ref": "view-node-1"
+              },
+              "lineStyle": 2,
+              "points": "650:124;650:180"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-2",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-2"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-3"
+              },
+              "tail": {
+                "$ref": "view-node-2"
+              },
+              "lineStyle": 2,
+              "points": "650:244;650:300"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-3",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-3"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-3",
+                  "_parent": {
+                    "$ref": "view-flow-3"
+                  },
+                  "model": {
+                    "$ref": "flow-3"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 335,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-3"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-4"
+              },
+              "tail": {
+                "$ref": "view-node-3"
+              },
+              "lineStyle": 2,
+              "points": "760:355;930:355;930:352",
+              "nameLabel": {
+                "$ref": "label-flow-3"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-4",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-4"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-4",
+                  "_parent": {
+                    "$ref": "view-flow-4"
+                  },
+                  "model": {
+                    "$ref": "flow-4"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 416,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-4"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-5"
+              },
+              "tail": {
+                "$ref": "view-node-3"
+              },
+              "lineStyle": 2,
+              "points": "650:410;650:470",
+              "nameLabel": {
+                "$ref": "label-flow-4"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-5",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-5"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-6"
+              },
+              "tail": {
+                "$ref": "view-node-5"
+              },
+              "lineStyle": 2,
+              "points": "650:538;650:590"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-6",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-6"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-7"
+              },
+              "tail": {
+                "$ref": "view-node-6"
+              },
+              "lineStyle": 2,
+              "points": "650:658;650:720"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-7",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-7"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-7",
+                  "_parent": {
+                    "$ref": "view-flow-7"
+                  },
+                  "model": {
+                    "$ref": "flow-7"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 755,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-7"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-8"
+              },
+              "tail": {
+                "$ref": "view-node-7"
+              },
+              "lineStyle": 2,
+              "points": "760:775;910:775;910:752",
+              "nameLabel": {
+                "$ref": "label-flow-7"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-8",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-8"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-8",
+                  "_parent": {
+                    "$ref": "view-flow-8"
+                  },
+                  "model": {
+                    "$ref": "flow-8"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 836,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-8"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-10"
+              },
+              "tail": {
+                "$ref": "view-node-7"
+              },
+              "lineStyle": 2,
+              "points": "650:830;650:970",
+              "nameLabel": {
+                "$ref": "label-flow-8"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-9",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-9"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-9"
+              },
+              "tail": {
+                "$ref": "view-node-8"
+              },
+              "lineStyle": 2,
+              "points": "1035:784;1035:840"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-10",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-10"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-10"
+              },
+              "tail": {
+                "$ref": "view-node-9"
+              },
+              "lineStyle": 2,
+              "points": "1035:918;1035:1002;760:1002"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-11",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-11"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-11"
+              },
+              "tail": {
+                "$ref": "view-node-10"
+              },
+              "lineStyle": 2,
+              "points": "650:1034;650:1090"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-12",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-12"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-12",
+                  "_parent": {
+                    "$ref": "view-flow-12"
+                  },
+                  "model": {
+                    "$ref": "flow-12"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 1125,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-12"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-12"
+              },
+              "tail": {
+                "$ref": "view-node-11"
+              },
+              "lineStyle": 2,
+              "points": "760:1145;910:1145;910:1142",
+              "nameLabel": {
+                "$ref": "label-flow-12"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-13",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-13"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-13",
+                  "_parent": {
+                    "$ref": "view-flow-13"
+                  },
+                  "model": {
+                    "$ref": "flow-13"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 1206,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-13"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-13"
+              },
+              "tail": {
+                "$ref": "view-node-11"
+              },
+              "lineStyle": 2,
+              "points": "650:1200;650:1280",
+              "nameLabel": {
+                "$ref": "label-flow-13"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-14",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-14"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-13"
+              },
+              "tail": {
+                "$ref": "view-node-12"
+              },
+              "lineStyle": 2,
+              "points": "1035:1174;1035:1335;760:1335"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-15",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-15"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-15",
+                  "_parent": {
+                    "$ref": "view-flow-15"
+                  },
+                  "model": {
+                    "$ref": "flow-15"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 1396,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-15"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-14"
+              },
+              "tail": {
+                "$ref": "view-node-13"
+              },
+              "lineStyle": 2,
+              "points": "650:1390;650:1430",
+              "nameLabel": {
+                "$ref": "label-flow-15"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-16",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-16"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-16",
+                  "_parent": {
+                    "$ref": "view-flow-16"
+                  },
+                  "model": {
+                    "$ref": "flow-16"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 1396,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-16"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-18"
+              },
+              "tail": {
+                "$ref": "view-node-13"
+              },
+              "lineStyle": 2,
+              "points": "540:1335;490:1335;490:1955;540:1955",
+              "nameLabel": {
+                "$ref": "label-flow-16"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-17",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-17"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-17",
+                  "_parent": {
+                    "$ref": "view-flow-17"
+                  },
+                  "model": {
+                    "$ref": "flow-17"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 1546,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-17"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-15"
+              },
+              "tail": {
+                "$ref": "view-node-14"
+              },
+              "lineStyle": 2,
+              "points": "650:1540;650:1580",
+              "nameLabel": {
+                "$ref": "label-flow-17"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-18",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-18"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-18",
+                  "_parent": {
+                    "$ref": "view-flow-18"
+                  },
+                  "model": {
+                    "$ref": "flow-18"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 1546,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-18"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-18"
+              },
+              "tail": {
+                "$ref": "view-node-14"
+              },
+              "lineStyle": 2,
+              "points": "540:1485;460:1485;460:1955;540:1955",
+              "nameLabel": {
+                "$ref": "label-flow-18"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-19",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-19"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-19",
+                  "_parent": {
+                    "$ref": "view-flow-19"
+                  },
+                  "model": {
+                    "$ref": "flow-19"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 1696,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-19"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-17"
+              },
+              "tail": {
+                "$ref": "view-node-15"
+              },
+              "lineStyle": 2,
+              "points": "650:1690;650:1760",
+              "nameLabel": {
+                "$ref": "label-flow-19"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-20",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-20"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-20",
+                  "_parent": {
+                    "$ref": "view-flow-20"
+                  },
+                  "model": {
+                    "$ref": "flow-20"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 1615,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-20"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-16"
+              },
+              "tail": {
+                "$ref": "view-node-15"
+              },
+              "lineStyle": 2,
+              "points": "760:1635;910:1635;910:1632",
+              "nameLabel": {
+                "$ref": "label-flow-20"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-21",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-21"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-18"
+              },
+              "tail": {
+                "$ref": "view-node-16"
+              },
+              "lineStyle": 2,
+              "points": "1035:1664;1035:1955;760:1955"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-22",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-22"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-18"
+              },
+              "tail": {
+                "$ref": "view-node-17"
+              },
+              "lineStyle": 2,
+              "points": "650:1824;650:1900"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-23",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-23"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-23",
+                  "_parent": {
+                    "$ref": "view-flow-23"
+                  },
+                  "model": {
+                    "$ref": "flow-23"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 2016,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-23"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-19"
+              },
+              "tail": {
+                "$ref": "view-node-18"
+              },
+              "lineStyle": 2,
+              "points": "650:2010;650:2060",
+              "nameLabel": {
+                "$ref": "label-flow-23"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-24",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-24"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-24",
+                  "_parent": {
+                    "$ref": "view-flow-24"
+                  },
+                  "model": {
+                    "$ref": "flow-24"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 2016,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-24"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-35"
+              },
+              "tail": {
+                "$ref": "view-node-18"
+              },
+              "lineStyle": 2,
+              "points": "540:1955;420:1955;420:3902;540:3902",
+              "nameLabel": {
+                "$ref": "label-flow-24"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-25",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-25"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-20"
+              },
+              "tail": {
+                "$ref": "view-node-19"
+              },
+              "lineStyle": 2,
+              "points": "650:2136;650:2190"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-26",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-26"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-21"
+              },
+              "tail": {
+                "$ref": "view-node-20"
+              },
+              "lineStyle": 2,
+              "points": "650:2254;650:2320"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-27",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-27"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-27",
+                  "_parent": {
+                    "$ref": "view-flow-27"
+                  },
+                  "model": {
+                    "$ref": "flow-27"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 2355,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-27"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-22"
+              },
+              "tail": {
+                "$ref": "view-node-21"
+              },
+              "lineStyle": 2,
+              "points": "760:2375;910:2375;910:2372",
+              "nameLabel": {
+                "$ref": "label-flow-27"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-28",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-28"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-28",
+                  "_parent": {
+                    "$ref": "view-flow-28"
+                  },
+                  "model": {
+                    "$ref": "flow-28"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 2436,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-28"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-23"
+              },
+              "tail": {
+                "$ref": "view-node-21"
+              },
+              "lineStyle": 2,
+              "points": "650:2430;650:2500",
+              "nameLabel": {
+                "$ref": "label-flow-28"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-29",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-29"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-23"
+              },
+              "tail": {
+                "$ref": "view-node-22"
+              },
+              "lineStyle": 2,
+              "points": "1035:2404;1035:2476;650:2476;650:2500"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-30",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-30"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-30",
+                  "_parent": {
+                    "$ref": "view-flow-30"
+                  },
+                  "model": {
+                    "$ref": "flow-30"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 2535,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-30"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-24"
+              },
+              "tail": {
+                "$ref": "view-node-23"
+              },
+              "lineStyle": 2,
+              "points": "760:2555;910:2555;910:2551",
+              "nameLabel": {
+                "$ref": "label-flow-30"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-31",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-31"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-31",
+                  "_parent": {
+                    "$ref": "view-flow-31"
+                  },
+                  "model": {
+                    "$ref": "flow-31"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 2616,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-31"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-25"
+              },
+              "tail": {
+                "$ref": "view-node-23"
+              },
+              "lineStyle": 2,
+              "points": "650:2610;650:2690",
+              "nameLabel": {
+                "$ref": "label-flow-31"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-32",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-32"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-25"
+              },
+              "tail": {
+                "$ref": "view-node-24"
+              },
+              "lineStyle": 2,
+              "points": "1035:2592;1035:2666;650:2666;650:2690"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-33",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-33"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-33",
+                  "_parent": {
+                    "$ref": "view-flow-33"
+                  },
+                  "model": {
+                    "$ref": "flow-33"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 2725,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-33"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-26"
+              },
+              "tail": {
+                "$ref": "view-node-25"
+              },
+              "lineStyle": 2,
+              "points": "760:2745;910:2745;910:2745",
+              "nameLabel": {
+                "$ref": "label-flow-33"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-34",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-34"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-34",
+                  "_parent": {
+                    "$ref": "view-flow-34"
+                  },
+                  "model": {
+                    "$ref": "flow-34"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 2806,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-34"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-27"
+              },
+              "tail": {
+                "$ref": "view-node-25"
+              },
+              "lineStyle": 2,
+              "points": "650:2800;650:2880",
+              "nameLabel": {
+                "$ref": "label-flow-34"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-35",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-35"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-27"
+              },
+              "tail": {
+                "$ref": "view-node-26"
+              },
+              "lineStyle": 2,
+              "points": "1035:2780;1035:2935;760:2935"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-36",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-36"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-36",
+                  "_parent": {
+                    "$ref": "view-flow-36"
+                  },
+                  "model": {
+                    "$ref": "flow-36"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 2996,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-36"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-28"
+              },
+              "tail": {
+                "$ref": "view-node-27"
+              },
+              "lineStyle": 2,
+              "points": "650:2990;650:3030",
+              "nameLabel": {
+                "$ref": "label-flow-36"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-37",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-37"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-37",
+                  "_parent": {
+                    "$ref": "view-flow-37"
+                  },
+                  "model": {
+                    "$ref": "flow-37"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 2996,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-37"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-35"
+              },
+              "tail": {
+                "$ref": "view-node-27"
+              },
+              "lineStyle": 2,
+              "points": "540:2935;390:2935;390:3902;540:3902",
+              "nameLabel": {
+                "$ref": "label-flow-37"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-38",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-38"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-38",
+                  "_parent": {
+                    "$ref": "view-flow-38"
+                  },
+                  "model": {
+                    "$ref": "flow-38"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 3146,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-38"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-29"
+              },
+              "tail": {
+                "$ref": "view-node-28"
+              },
+              "lineStyle": 2,
+              "points": "650:3140;650:3180",
+              "nameLabel": {
+                "$ref": "label-flow-38"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-39",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-39"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-39",
+                  "_parent": {
+                    "$ref": "view-flow-39"
+                  },
+                  "model": {
+                    "$ref": "flow-39"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 3146,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-39"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-35"
+              },
+              "tail": {
+                "$ref": "view-node-28"
+              },
+              "lineStyle": 2,
+              "points": "540:3085;360:3085;360:3902;540:3902",
+              "nameLabel": {
+                "$ref": "label-flow-39"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-40",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-40"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-30"
+              },
+              "tail": {
+                "$ref": "view-node-29"
+              },
+              "lineStyle": 2,
+              "points": "650:3244;650:3320"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-41",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-41"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-41",
+                  "_parent": {
+                    "$ref": "view-flow-41"
+                  },
+                  "model": {
+                    "$ref": "flow-41"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 3355,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-41"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-31"
+              },
+              "tail": {
+                "$ref": "view-node-30"
+              },
+              "lineStyle": 2,
+              "points": "760:3375;910:3375;910:3372",
+              "nameLabel": {
+                "$ref": "label-flow-41"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-42",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-42"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-42",
+                  "_parent": {
+                    "$ref": "view-flow-42"
+                  },
+                  "model": {
+                    "$ref": "flow-42"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 3436,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-42"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-32"
+              },
+              "tail": {
+                "$ref": "view-node-30"
+              },
+              "lineStyle": 2,
+              "points": "650:3430;650:3510",
+              "nameLabel": {
+                "$ref": "label-flow-42"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-43",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-43"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-32"
+              },
+              "tail": {
+                "$ref": "view-node-31"
+              },
+              "lineStyle": 2,
+              "points": "1035:3404;1035:3565;760:3565"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-44",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-44"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-44",
+                  "_parent": {
+                    "$ref": "view-flow-44"
+                  },
+                  "model": {
+                    "$ref": "flow-44"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 3626,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-44"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-33"
+              },
+              "tail": {
+                "$ref": "view-node-32"
+              },
+              "lineStyle": 2,
+              "points": "650:3620;650:3660",
+              "nameLabel": {
+                "$ref": "label-flow-44"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-45",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-45"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-45",
+                  "_parent": {
+                    "$ref": "view-flow-45"
+                  },
+                  "model": {
+                    "$ref": "flow-45"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 3626,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-45"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-35"
+              },
+              "tail": {
+                "$ref": "view-node-32"
+              },
+              "lineStyle": 2,
+              "points": "540:3565;330:3565;330:3902;540:3902",
+              "nameLabel": {
+                "$ref": "label-flow-45"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-46",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-46"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-46",
+                  "_parent": {
+                    "$ref": "view-flow-46"
+                  },
+                  "model": {
+                    "$ref": "flow-46"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 790,
+                  "top": 3695,
+                  "width": 30,
+                  "height": 16,
+                  "text": "Yes",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-46"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-34"
+              },
+              "tail": {
+                "$ref": "view-node-33"
+              },
+              "lineStyle": 2,
+              "points": "760:3715;910:3715;910:3712",
+              "nameLabel": {
+                "$ref": "label-flow-46"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-47",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-47"
+              },
+              "subViews": [
+                {
+                  "_type": "EdgeLabelView",
+                  "_id": "label-flow-47",
+                  "_parent": {
+                    "$ref": "view-flow-47"
+                  },
+                  "model": {
+                    "$ref": "flow-47"
+                  },
+                  "visible": true,
+                  "font": "Arial;13;0",
+                  "parentStyle": false,
+                  "left": 610,
+                  "top": 3776,
+                  "width": 30,
+                  "height": 16,
+                  "text": "No",
+                  "distance": 15,
+                  "hostEdge": {
+                    "$ref": "view-flow-47"
+                  },
+                  "edgePosition": 1
+                }
+              ],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-35"
+              },
+              "tail": {
+                "$ref": "view-node-33"
+              },
+              "lineStyle": 2,
+              "points": "650:3770;650:3870",
+              "nameLabel": {
+                "$ref": "label-flow-47"
+              }
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-48",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-48"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-35"
+              },
+              "tail": {
+                "$ref": "view-node-34"
+              },
+              "lineStyle": 2,
+              "points": "1035:3744;1035:3902;760:3902"
+            },
+            {
+              "_type": "FCFlowView",
+              "_id": "view-flow-49",
+              "_parent": {
+                "$ref": "diagram-sequential-v2"
+              },
+              "model": {
+                "$ref": "flow-49"
+              },
+              "subViews": [],
+              "font": "Arial;13;0",
+              "parentStyle": false,
+              "head": {
+                "$ref": "view-node-5"
+              },
+              "tail": {
+                "$ref": "view-node-35"
+              },
+              "lineStyle": 2,
+              "points": "540:3902;270:3902;270:504;540:504"
+            }
+          ]
+        },
+        {
+          "_type": "FCTerminator",
+          "_id": "node-1",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Start",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-1",
+              "_parent": {
+                "$ref": "node-1"
+              },
+              "source": {
+                "$ref": "node-1"
+              },
+              "target": {
+                "$ref": "node-2"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-2",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Initialize hardware, camera and Cloud",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-2",
+              "_parent": {
+                "$ref": "node-2"
+              },
+              "source": {
+                "$ref": "node-2"
+              },
+              "target": {
+                "$ref": "node-3"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-3",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is there a critical system failure?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-3",
+              "_parent": {
+                "$ref": "node-3"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-3"
+              },
+              "target": {
+                "$ref": "node-4"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-4",
+              "_parent": {
+                "$ref": "node-3"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-3"
+              },
+              "target": {
+                "$ref": "node-5"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCTerminator",
+          "_id": "node-4",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "End",
+          "ownedElements": []
+        },
+        {
+          "_type": "FCData",
+          "_id": "node-5",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Receive Cloud dashboard data",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-5",
+              "_parent": {
+                "$ref": "node-5"
+              },
+              "source": {
+                "$ref": "node-5"
+              },
+              "target": {
+                "$ref": "node-6"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCData",
+          "_id": "node-6",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Receive Serial commands",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-6",
+              "_parent": {
+                "$ref": "node-6"
+              },
+              "source": {
+                "$ref": "node-6"
+              },
+              "target": {
+                "$ref": "node-7"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-7",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is an SOS request received?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-7",
+              "_parent": {
+                "$ref": "node-7"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-7"
+              },
+              "target": {
+                "$ref": "node-8"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-8",
+              "_parent": {
+                "$ref": "node-7"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-7"
+              },
+              "target": {
+                "$ref": "node-10"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-8",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Trigger SOS alarm",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-9",
+              "_parent": {
+                "$ref": "node-8"
+              },
+              "source": {
+                "$ref": "node-8"
+              },
+              "target": {
+                "$ref": "node-9"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-9",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Send Telegram alert and SOS event to Apps Script",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-10",
+              "_parent": {
+                "$ref": "node-9"
+              },
+              "source": {
+                "$ref": "node-9"
+              },
+              "target": {
+                "$ref": "node-10"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-10",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Maintain Wi-Fi connection",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-11",
+              "_parent": {
+                "$ref": "node-10"
+              },
+              "source": {
+                "$ref": "node-10"
+              },
+              "target": {
+                "$ref": "node-11"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-11",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is heartbeat monitor control pending?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-12",
+              "_parent": {
+                "$ref": "node-11"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-11"
+              },
+              "target": {
+                "$ref": "node-12"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-13",
+              "_parent": {
+                "$ref": "node-11"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-11"
+              },
+              "target": {
+                "$ref": "node-13"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-12",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Send or retry monitor control command",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-14",
+              "_parent": {
+                "$ref": "node-12"
+              },
+              "source": {
+                "$ref": "node-12"
+              },
+              "target": {
+                "$ref": "node-13"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-13",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Are Apps Script and heartbeat enabled?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-15",
+              "_parent": {
+                "$ref": "node-13"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-13"
+              },
+              "target": {
+                "$ref": "node-14"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-16",
+              "_parent": {
+                "$ref": "node-13"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-13"
+              },
+              "target": {
+                "$ref": "node-18"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-14",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Has 10 seconds elapsed?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-17",
+              "_parent": {
+                "$ref": "node-14"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-14"
+              },
+              "target": {
+                "$ref": "node-15"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-18",
+              "_parent": {
+                "$ref": "node-14"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-14"
+              },
+              "target": {
+                "$ref": "node-18"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-15",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is Wi-Fi connected?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-19",
+              "_parent": {
+                "$ref": "node-15"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-15"
+              },
+              "target": {
+                "$ref": "node-17"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-20",
+              "_parent": {
+                "$ref": "node-15"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-15"
+              },
+              "target": {
+                "$ref": "node-16"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-16",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Set status: no Wi-Fi for heartbeat",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-21",
+              "_parent": {
+                "$ref": "node-16"
+              },
+              "source": {
+                "$ref": "node-16"
+              },
+              "target": {
+                "$ref": "node-18"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-17",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Send heartbeat to Google Apps Script",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-22",
+              "_parent": {
+                "$ref": "node-17"
+              },
+              "source": {
+                "$ref": "node-17"
+              },
+              "target": {
+                "$ref": "node-18"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-18",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Has 500 ms elapsed?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-23",
+              "_parent": {
+                "$ref": "node-18"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-18"
+              },
+              "target": {
+                "$ref": "node-19"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-24",
+              "_parent": {
+                "$ref": "node-18"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-18"
+              },
+              "target": {
+                "$ref": "node-35"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCData",
+          "_id": "node-19",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Read PIR, LDR, ultrasonic and RTC data",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-25",
+              "_parent": {
+                "$ref": "node-19"
+              },
+              "source": {
+                "$ref": "node-19"
+              },
+              "target": {
+                "$ref": "node-20"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-20",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Publish sensor data to Cloud",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-26",
+              "_parent": {
+                "$ref": "node-20"
+              },
+              "source": {
+                "$ref": "node-20"
+              },
+              "target": {
+                "$ref": "node-21"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-21",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is schedule enabled and time matched?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-27",
+              "_parent": {
+                "$ref": "node-21"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-21"
+              },
+              "target": {
+                "$ref": "node-22"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-28",
+              "_parent": {
+                "$ref": "node-21"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-21"
+              },
+              "target": {
+                "$ref": "node-23"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-22",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Update alarm-enabled state",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-29",
+              "_parent": {
+                "$ref": "node-22"
+              },
+              "source": {
+                "$ref": "node-22"
+              },
+              "target": {
+                "$ref": "node-23"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-23",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is sabotage detected?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-30",
+              "_parent": {
+                "$ref": "node-23"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-23"
+              },
+              "target": {
+                "$ref": "node-24"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-31",
+              "_parent": {
+                "$ref": "node-23"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-23"
+              },
+              "target": {
+                "$ref": "node-25"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-24",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Set sabotage alarm, request photo and send Apps Script event",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-32",
+              "_parent": {
+                "$ref": "node-24"
+              },
+              "source": {
+                "$ref": "node-24"
+              },
+              "target": {
+                "$ref": "node-25"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-25",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is intrusion detected?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-33",
+              "_parent": {
+                "$ref": "node-25"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-25"
+              },
+              "target": {
+                "$ref": "node-26"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-34",
+              "_parent": {
+                "$ref": "node-25"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-25"
+              },
+              "target": {
+                "$ref": "node-27"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-26",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Set intrusion alarm and request photo",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-35",
+              "_parent": {
+                "$ref": "node-26"
+              },
+              "source": {
+                "$ref": "node-26"
+              },
+              "target": {
+                "$ref": "node-27"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-27",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is a photo request pending?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-36",
+              "_parent": {
+                "$ref": "node-27"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-27"
+              },
+              "target": {
+                "$ref": "node-28"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-37",
+              "_parent": {
+                "$ref": "node-27"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-27"
+              },
+              "target": {
+                "$ref": "node-35"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-28",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is camera enabled?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-38",
+              "_parent": {
+                "$ref": "node-28"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-28"
+              },
+              "target": {
+                "$ref": "node-29"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-39",
+              "_parent": {
+                "$ref": "node-28"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-28"
+              },
+              "target": {
+                "$ref": "node-35"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-29",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Capture security photo",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-40",
+              "_parent": {
+                "$ref": "node-29"
+              },
+              "source": {
+                "$ref": "node-29"
+              },
+              "target": {
+                "$ref": "node-30"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-30",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is Telegram enabled?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-41",
+              "_parent": {
+                "$ref": "node-30"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-30"
+              },
+              "target": {
+                "$ref": "node-31"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-42",
+              "_parent": {
+                "$ref": "node-30"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-30"
+              },
+              "target": {
+                "$ref": "node-32"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-31",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Send photo to Telegram",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-43",
+              "_parent": {
+                "$ref": "node-31"
+              },
+              "source": {
+                "$ref": "node-31"
+              },
+              "target": {
+                "$ref": "node-32"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-32",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is Gemini enabled?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-44",
+              "_parent": {
+                "$ref": "node-32"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-32"
+              },
+              "target": {
+                "$ref": "node-33"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-45",
+              "_parent": {
+                "$ref": "node-32"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-32"
+              },
+              "target": {
+                "$ref": "node-35"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCDecision",
+          "_id": "node-33",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Is a person detected?",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-46",
+              "_parent": {
+                "$ref": "node-33"
+              },
+              "name": "Yes",
+              "source": {
+                "$ref": "node-33"
+              },
+              "target": {
+                "$ref": "node-34"
+              }
+            },
+            {
+              "_type": "FCFlow",
+              "_id": "flow-47",
+              "_parent": {
+                "$ref": "node-33"
+              },
+              "name": "No",
+              "source": {
+                "$ref": "node-33"
+              },
+              "target": {
+                "$ref": "node-35"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-34",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Send AI person event to Apps Script",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-48",
+              "_parent": {
+                "$ref": "node-34"
+              },
+              "source": {
+                "$ref": "node-34"
+              },
+              "target": {
+                "$ref": "node-35"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "FCProcess",
+          "_id": "node-35",
+          "_parent": {
+            "$ref": "chart-sequential-v2"
+          },
+          "name": "Continue monitoring",
+          "ownedElements": [
+            {
+              "_type": "FCFlow",
+              "_id": "flow-49",
+              "_parent": {
+                "$ref": "node-35"
+              },
+              "source": {
+                "$ref": "node-35"
+              },
+              "target": {
+                "$ref": "node-5"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
