@@ -8,17 +8,17 @@
   #include <WiFiClientSecure.h>
 
   // ==================================================
-  // FINAL PHASE - CLOUD + CAMERA + TELEGRAM + GOOGLE SCRIPT
-  // Board: Freenove ESP32-S3 WROOM + Camera OV3660
-// Scope v3: two user dashboards, local security logic, camera, Telegram,
-// Google Apps Script and connection recovery. BLE, WiFi/MAC scanning and demo
-// scenarios are intentionally not part of this build.
+  // GIAI ĐOẠN HOÀN THIỆN - CLOUD + CAMERA + TELEGRAM + GOOGLE SCRIPT
+  // Bo mạch: Freenove ESP32-S3 WROOM + camera OV3660.
+  // Phạm vi v3: hai Dashboard người dùng, xử lý an ninh cục bộ, camera,
+  // Telegram, Google Apps Script và tự phục hồi kết nối. Bản dựng này chủ ý
+  // không chứa BLE, quét Wi-Fi/MAC hoặc các kịch bản giả lập.
   // ==================================================
 
 
   // =======================
-  // EXTERNAL API FALLBACKS
-  // Put real values in arduino_secrets.h. Do not hardcode secrets in this file.
+  // GIÁ TRỊ DỰ PHÒNG CHO API NGOÀI
+  // Giá trị thật phải đặt trong arduino_secrets.h, không ghi cứng bí mật tại đây.
   // =======================
   #ifndef SECRET_GOOGLE_SCRIPT_URL
   #define SECRET_GOOGLE_SCRIPT_URL ""
@@ -45,24 +45,24 @@
   #endif
 
   // =======================
-  // CAMERA-COMPATIBLE PIN MAP
+  // SƠ ĐỒ CHÂN NGOẠI VI TƯƠNG THÍCH VỚI CAMERA
   // =======================
-  #define PIN_LDR_AO       1
-  #define PIN_PIR_OUT      40
+  #define PIN_LDR_AO       1   // Chân ADC đọc điện áp từ cảm biến ánh sáng LDR.
+  #define PIN_PIR_OUT      40  // Chân số đọc tín hiệu phát hiện chuyển động từ PIR.
 
-  #define PIN_RTC_SDA      41
-  #define PIN_RTC_SCL      42
+  #define PIN_RTC_SDA      41  // Chân dữ liệu SDA của mô-đun thời gian thực DS1307.
+  #define PIN_RTC_SCL      42  // Chân xung nhịp SCL của mô-đun DS1307.
 
-  #define PIN_LED_RED      14
-  #define PIN_LED_GREEN    21
-  #define PIN_BUZZER       47
+  #define PIN_LED_RED      14  // Chân điều khiển LED đỏ báo nguy hiểm.
+  #define PIN_LED_GREEN    21  // Chân điều khiển LED xanh báo trạng thái bình thường.
+  #define PIN_BUZZER       47  // Chân điều khiển còi cảnh báo.
 
-  #define PIN_US_TRIG      38
-  #define PIN_US_ECHO      39
+  #define PIN_US_TRIG      38  // Chân phát xung đo khoảng cách của HY-SRF05.
+  #define PIN_US_ECHO      39  // Chân nhận độ rộng xung phản hồi của HY-SRF05.
 
   // =======================
-  // FRENNOVE ESP32-S3 WROOM + OV3660 CAMERA PIN MAP
-  // Do not use these GPIOs for external modules.
+  // SƠ ĐỒ CHÂN CAMERA FREENOVE ESP32-S3 WROOM + OV3660
+  // Các GPIO bên dưới dành riêng cho camera, không dùng cho mô-đun ngoài.
   // =======================
   #define CAM_PWDN_GPIO_NUM    -1
   #define CAM_RESET_GPIO_NUM   -1
@@ -84,135 +84,137 @@
   #define CAM_HREF_GPIO_NUM    7
   #define CAM_PCLK_GPIO_NUM    13
 
-  #define FORCE_SET_RTC_TIME_ONCE false
+  #define FORCE_SET_RTC_TIME_ONCE false // true: ghi thời gian biên dịch vào RTC một lần khi khởi động.
 
   // =======================
-  // BUZZER CONFIG
+  // CẤU HÌNH CÒI
   // =======================
-  // false = active buzzer, HIGH/LOW is enough.
-  // true  = passive buzzer, tone() is required.
-  const bool BUZZER_USE_TONE = false;
-  const int BUZZER_TONE_HZ = 2500;
+  // false: còi chủ động chỉ cần HIGH/LOW; true: còi thụ động cần phát tone().
+  const bool BUZZER_USE_TONE = false; // Lưu loại còi để chọn cách điều khiển phù hợp.
+  const int BUZZER_TONE_HZ = 2500;    // Lưu tần số âm thanh 2.500 Hz khi dùng còi thụ động.
 
   // =======================
-  // SECURITY CONFIG
+  // CẤU HÌNH AN NINH
   // =======================
-  const float OBJECT_NEAR_THRESHOLD_CM = 50.0;
-  const float OBJECT_TOO_CLOSE_THRESHOLD_CM = 15.0;
+  const float OBJECT_NEAR_THRESHOLD_CM = 50.0;      // Ngưỡng khoảng cách để coi có vật/người ở gần.
+  const float OBJECT_TOO_CLOSE_THRESHOLD_CM = 15.0; // Ngưỡng khoảng cách rất gần, làm tăng điểm xâm nhập.
 
-  // If covering the LDR makes the analog value go high, keep true.
-  // If covering the LDR makes the analog value go low, change this to false.
-  const bool LDR_COVER_WHEN_HIGH = true;
-  const int LDR_COVERED_THRESHOLD_HIGH = 2000;
-  const int LDR_COVERED_THRESHOLD_LOW = 500;
+  // Giữ true nếu che LDR làm giá trị analog tăng.
+  // Đổi thành false nếu che LDR làm giá trị analog giảm.
+  const bool LDR_COVER_WHEN_HIGH = true;          // Cho biết che LDR làm giá trị ADC tăng hay giảm.
+  const int LDR_COVERED_THRESHOLD_HIGH = 2000;    // Ngưỡng xác định LDR bị che khi tín hiệu tăng.
+  const int LDR_COVERED_THRESHOLD_LOW = 500;      // Ngưỡng xác định LDR bị che khi tín hiệu giảm.
 
-  const int LDR_DELTA_ABNORMAL_THRESHOLD = 500;
-  const unsigned long SABOTAGE_HOLD_MS = 3000;
-  const unsigned long INTRUSION_HOLD_MS = 2000;
+  const int LDR_DELTA_ABNORMAL_THRESHOLD = 500;    // Độ biến thiên ánh sáng tối thiểu bị coi là bất thường.
+  const unsigned long SABOTAGE_HOLD_MS = 3000;     // Thời gian điều kiện phá hoại phải kéo dài trước khi báo động.
+  const unsigned long INTRUSION_HOLD_MS = 2000;    // Thời gian điểm xâm nhập phải duy trì trước khi báo động.
 
-const unsigned long SENSOR_UPDATE_INTERVAL_MS = 500;
-const unsigned long SERIAL_REPORT_INTERVAL_MS = 2000;
-const unsigned long RED_BLINK_INTERVAL_MS = 250;
-const unsigned long GOOGLE_HEARTBEAT_INTERVAL_MS = 10000;
-const unsigned long GOOGLE_HTTP_TIMEOUT_MS = 5000;
-const unsigned long SENSOR_BOOT_GRACE_MS = 3000;
-const unsigned long GEMINI_HTTP_TIMEOUT_MS = 8000;
-const unsigned long TELEGRAM_TEXT_TIMEOUT_MS = 5000;
-const unsigned long TELEGRAM_PHOTO_TIMEOUT_MS = 10000;
-const unsigned long WIFI_RETRY_DELAYS_MS[] = {2000, 5000, 10000, 30000};
-const uint8_t AI_PERSON_FOLLOW_UP_PHOTO_COUNT = 3;
-const unsigned long AI_PERSON_FOLLOW_UP_INTERVAL_MS = 1000;
+const unsigned long SENSOR_UPDATE_INTERVAL_MS = 500;       // Chu kỳ đọc cảm biến và cập nhật logic.
+const unsigned long SERIAL_REPORT_INTERVAL_MS = 2000;      // Chu kỳ in báo cáo chẩn đoán ra Serial.
+const unsigned long RED_BLINK_INTERVAL_MS = 250;           // Chu kỳ đảo trạng thái LED đỏ khi có cảnh báo.
+const unsigned long GOOGLE_HEARTBEAT_INTERVAL_MS = 10000;  // Khoảng cách giữa hai heartbeat gửi Apps Script.
+const unsigned long GOOGLE_HTTP_TIMEOUT_MS = 5000;         // Thời gian tối đa chờ một yêu cầu HTTP đến Apps Script.
+const unsigned long SENSOR_BOOT_GRACE_MS = 3000;           // Khoảng bỏ qua cảm biến để phần cứng ổn định sau khởi động.
+const unsigned long GEMINI_HTTP_TIMEOUT_MS = 8000;         // Thời gian tối đa chờ phản hồi Gemini.
+const unsigned long TELEGRAM_TEXT_TIMEOUT_MS = 5000;       // Thời gian tối đa chờ gửi tin nhắn Telegram.
+const unsigned long TELEGRAM_PHOTO_TIMEOUT_MS = 10000;     // Thời gian tối đa chờ gửi ảnh Telegram.
+const unsigned long WIFI_RETRY_DELAYS_MS[] = {2000, 5000, 10000, 30000}; // Các mức chờ tăng dần giữa lần nối lại Wi-Fi.
+const uint8_t AI_PERSON_FOLLOW_UP_PHOTO_COUNT = 3;         // Số ảnh kiểm tra bổ sung sau khi AI thấy người.
+const unsigned long AI_PERSON_FOLLOW_UP_INTERVAL_MS = 1000; // Khoảng cách giữa các ảnh kiểm tra bổ sung.
 
-  const char *GEMINI_API_HOST = "generativelanguage.googleapis.com";
-  const char *GEMINI_PERSON_MODEL = "gemini-3.5-flash";
+  const char *GEMINI_API_HOST = "generativelanguage.googleapis.com"; // Tên máy chủ Gemini API.
+  const char *GEMINI_PERSON_MODEL = "gemini-3.5-flash";              // Tên mô hình dùng để phân loại có/người.
 
-  RTC_DS1307 rtc;
-  bool rtcOk = false;
-  bool cameraReady = false;
-  unsigned long lastCameraCaptureMs = 0;
-bool manualCapturePending = false;
-String lastAiPersonResult = "AI chưa chạy";
-uint8_t aiFollowUpPhotosRemaining = 0;
-unsigned long nextAiFollowUpPhotoAtMs = 0;
+  RTC_DS1307 rtc;                              // Đối tượng giao tiếp với đồng hồ thời gian thực DS1307.
+  bool rtcOk = false;                          // Lưu kết quả khởi tạo RTC.
+  bool cameraReady = false;                    // Cho biết driver và cảm biến camera đã sẵn sàng.
+  unsigned long lastCameraCaptureMs = 0;       // Lưu mốc millis() của lần chụp gần nhất để chống chụp quá dày.
+bool manualCapturePending = false;             // Chốt yêu cầu chụp thủ công đang chờ xử lý trong vòng lặp.
+String lastAiPersonResult = "AI chưa chạy";    // Lưu kết quả phân loại người gần nhất từ Gemini.
+uint8_t aiFollowUpPhotosRemaining = 0;         // Lưu số ảnh kiểm tra AI bổ sung còn phải chụp.
+unsigned long nextAiFollowUpPhotoAtMs = 0;     // Lưu mốc millis() sớm nhất được chụp ảnh AI bổ sung tiếp theo.
 
-  int lastLdrValue = -1;
-  unsigned long sabotageConditionStartedAt = 0;
+  int lastLdrValue = -1;                       // Lưu mẫu LDR trước để tính mức thay đổi giữa hai lần đọc.
+  unsigned long sabotageConditionStartedAt = 0; // Lưu lúc điều kiện phá hoại bắt đầu duy trì.
 
-bool sosActive = false;
-String sosSource = "NONE";
+bool sosActive = false;                        // Chốt cho biết một cảnh báo SOS đang hoạt động.
+String sosSource = "NONE";                     // Lưu nguồn kích hoạt SOS: trẻ em, người lớn hoặc lệnh Serial.
 
-  int rawIntrusionScore = 0;
-  int lastIntrusionScoreAtTrigger = 0;
-  int lastRawIntrusionScoreAtTrigger = 0;
-  String lastIntrusionReason = "NONE";
-  unsigned long intrusionConditionStartedAt = 0;
+  int rawIntrusionScore = 0;                   // Lưu điểm xâm nhập thô trước khi áp dụng các điều kiện hệ thống.
+  int lastIntrusionScoreAtTrigger = 0;         // Lưu điểm công bố tại thời điểm cảnh báo gần nhất kích hoạt.
+  int lastRawIntrusionScoreAtTrigger = 0;      // Lưu điểm thô tại thời điểm cảnh báo gần nhất kích hoạt.
+  String lastIntrusionReason = "NONE";         // Lưu mô tả các tín hiệu đã góp phần tạo cảnh báo.
+  unsigned long intrusionConditionStartedAt = 0; // Lưu lúc điểm xâm nhập bắt đầu vượt ngưỡng.
 
-  String lastScheduleTriggerKey = "";
+  String lastScheduleTriggerKey = "";          // Lưu khóa ngày-phút đã chạy để lịch không kích hoạt lặp trong cùng phút.
 
-  unsigned long lastGoogleScriptCallMs = 0;
-  String lastGoogleScriptEventKey = "";
-  String activeGoogleEventId = "";
-unsigned long bootCompletedAtMs = 0;
+  unsigned long lastGoogleScriptCallMs = 0;    // Lưu mốc lần gọi Apps Script gần nhất để giới hạn tần suất.
+  String lastGoogleScriptEventKey = "";        // Lưu khóa sự kiện gần nhất nhằm tránh gửi trùng.
+  String activeGoogleEventId = "";             // Lưu ID sự kiện SOS/phá hoại đang được Apps Script theo dõi.
+unsigned long bootCompletedAtMs = 0;           // Lưu mốc khởi động để tính thời gian chờ ổn định cảm biến.
 
-// Runtime-only values. These remain local so raw sensor/debug telemetry is no
-// longer synchronized to Arduino Cloud.
-String last_event_type = "";
-String notification_channel = "";
-String notification_event_type = "NONE";
-String sos_message = "";
-int event_counter = 0;
-int ldr_value = 0;
-int ldr_delta = 0;
-float ultrasonic_distance = -1.0f;
-int current_hour = -1;
-int intrusion_score = 0;
-int threat_level = 0;
-bool pir_detected = false;
-bool object_near = false;
-bool pet_detected = false;
-bool light_abnormal = false;
-bool ldr_covered = false;
-bool night_mode = false;
-bool device_tampered = false;
-bool auto_capture_photo_request = false;
-bool send_notification_request = false;
-bool buzzer_on = false;
-bool led_red_on = false;
-bool led_green_on = false;
-bool cooldown_active = false;
-// One AI-person email is allowed for each newly triggered intrusion/sabotage
-// alert. This prevents the evidence follow-up photos from spamming Gmail.
-bool aiPersonEmailSentForCurrentAlert = false;
+// Các giá trị chỉ dùng lúc chạy. Chúng được giữ cục bộ để dữ liệu cảm biến thô
+// và dữ liệu debug không còn đồng bộ lên Arduino Cloud.
+String last_event_type = "";                   // Mã máy đọc được của sự kiện cục bộ mới nhất.
+String notification_channel = "";             // Kênh thông báo đang được chọn, ví dụ Telegram.
+String notification_event_type = "NONE";      // Loại sự kiện mà yêu cầu thông báo hiện tại đại diện.
+String sos_message = "";                       // Nội dung SOS gần nhất được hiển thị/gửi đi.
+int event_counter = 0;                         // Tổng số sự kiện quan trọng đã ghi nhận từ lúc khởi động.
+int ldr_value = 0;                             // Mẫu ADC hiện tại của cảm biến ánh sáng.
+int ldr_delta = 0;                             // Độ chênh tuyệt đối giữa mẫu LDR hiện tại và mẫu trước.
+float ultrasonic_distance = -1.0f;             // Khoảng cách siêu âm hiện tại; số âm nghĩa là đọc lỗi.
+int current_hour = -1;                         // Giờ hiện tại từ RTC; -1 nghĩa là chưa có giờ hợp lệ.
+int intrusion_score = 0;                       // Điểm xâm nhập đã xử lý để công bố và so ngưỡng.
+int threat_level = 0;                          // Mức đe dọa tổng hợp từ 0 đến 4.
+bool pir_detected = false;                     // Kết quả phát hiện chuyển động PIR gần nhất.
+bool object_near = false;                      // Cho biết cảm biến siêu âm đang thấy vật ở gần.
+bool pet_detected = false;                     // Cờ suy luận chuyển động có thể do vật nuôi.
+bool light_abnormal = false;                   // Cho biết ánh sáng thay đổi đột ngột vượt ngưỡng.
+bool ldr_covered = false;                      // Cho biết LDR có dấu hiệu bị che.
+bool night_mode = false;                       // Cho biết thời gian RTC hiện thuộc khung giờ ban đêm.
+bool device_tampered = false;                  // Cho biết thiết bị/cảm biến có dấu hiệu bị can thiệp.
+bool auto_capture_photo_request = false;       // Yêu cầu nội bộ chụp ảnh tự động cho cảnh báo mới.
+bool send_notification_request = false;        // Cờ tương thích biểu diễn có yêu cầu gửi thông báo.
+bool buzzer_on = false;                        // Lưu trạng thái logic hiện tại của còi.
+bool led_red_on = false;                       // Lưu trạng thái logic hiện tại của LED đỏ.
+bool led_green_on = false;                     // Lưu trạng thái logic hiện tại của LED xanh.
+bool cooldown_active = false;                  // Cho biết hệ thống đang ở giai đoạn hạn chế thao tác lặp.
+// Mỗi cảnh báo đột nhập/phá hoại mới chỉ được gửi một email AI phát hiện người.
+// Quy tắc này ngăn chuỗi ảnh bằng chứng bổ sung gây spam Gmail.
+bool aiPersonEmailSentForCurrentAlert = false; // Chốt đã gửi email AI cho cảnh báo hiện tại để chống spam.
 
-// Dashboard heartbeat-monitor changes are delivery-critical. The request stays
-// queued until Google Apps Script acknowledges it, and normal heartbeats are
-// paused while this acknowledgement is pending.
-bool heartbeatMonitorControlPending = false;
-bool desiredHeartbeatMonitorEnabled = true;
-unsigned long heartbeatMonitorControlNextRetryAtMs = 0;
-uint8_t heartbeatMonitorControlRetryIndex = 0;
+// Thay đổi giám sát heartbeat từ Dashboard bắt buộc phải được chuyển đến nơi.
+// Request được giữ trong hàng đợi đến khi Apps Script xác nhận; heartbeat thường
+// sẽ tạm dừng trong thời gian chờ xác nhận này.
+bool heartbeatMonitorControlPending = false;           // Cho biết lệnh bật/tắt giám sát heartbeat còn chờ xác nhận.
+bool desiredHeartbeatMonitorEnabled = true;            // Trạng thái giám sát heartbeat mà Dashboard mong muốn.
+unsigned long heartbeatMonitorControlNextRetryAtMs = 0; // Mốc sớm nhất được thử gửi lại lệnh điều khiển.
+uint8_t heartbeatMonitorControlRetryIndex = 0;          // Chỉ số mức trì hoãn Wi-Fi dùng cho lần thử lại hiện tại.
 
+  // Gói ảnh chụp đồng nhất của tất cả cảm biến trong một chu kỳ xử lý.
+  // Việc truyền cùng một snapshot giúp tính điểm và cập nhật Cloud không đọc
+  // các cảm biến ở những thời điểm khác nhau.
   struct HardwareSnapshot {
-    int ldrValue;
-    int ldrDelta;
-    bool pirDetected;
-    float distanceCm;
-    bool ultrasonicOk;
-    bool objectNear;
-    bool objectTooClose;
-    bool lightAbnormal;
-    bool ldrCovered;
-    bool rtcOk;
-    int hour;
-    int minute;
-    bool nightMode;
-    String timeText;
+    int ldrValue;          // Giá trị ADC của LDR trong chu kỳ hiện tại.
+    int ldrDelta;          // Độ thay đổi LDR so với chu kỳ trước.
+    bool pirDetected;      // Kết quả chuyển động PIR trong chu kỳ hiện tại.
+    float distanceCm;      // Khoảng cách đo được, đơn vị centimet.
+    bool ultrasonicOk;     // Cho biết phép đo siêu âm có hợp lệ.
+    bool objectNear;       // Cho biết có vật nằm trong ngưỡng gần.
+    bool objectTooClose;   // Cho biết có vật nằm trong ngưỡng rất gần.
+    bool lightAbnormal;    // Cho biết thay đổi ánh sáng vượt ngưỡng bất thường.
+    bool ldrCovered;       // Cho biết giá trị LDR phù hợp dấu hiệu bị che.
+    bool rtcOk;            // Cho biết thời gian RTC trong snapshot hợp lệ.
+    int hour;              // Giờ RTC tại thời điểm chụp snapshot.
+    int minute;            // Phút RTC tại thời điểm chụp snapshot.
+    bool nightMode;        // Cho biết snapshot được ghi trong khung giờ ban đêm.
+    String timeText;       // Chuỗi ngày giờ hoàn chỉnh dùng cho log và thông báo.
   };
 
 
   // ==================================================
-  // FORWARD DECLARATIONS
-  // These make the sketch safe even if Arduino preprocessing changes.
+  // KHAI BÁO TRƯỚC CÁC HÀM
+  // Giúp sketch biên dịch ổn định ngay cả khi bước tiền xử lý Arduino thay đổi.
   // ==================================================
   String twoDigits(int value);
   String getRtcTimeString();
@@ -241,11 +243,15 @@ void updateGoogleScriptStatusFromResponse(const String &response, bool ok, bool 
 void maintainWiFiConnection();
 
   // ==================================================
-  // CAMERA FUNCTIONS
+  // CÁC HÀM CAMERA
   // ==================================================
 
+  /**
+   * Khởi tạo driver OV3660, ánh xạ chân, bộ đệm ảnh và các thông số cảm biến.
+   * Trả về true khi camera dùng được; đồng thời cập nhật photo_status và Serial.
+   */
   bool initCamera() {
-    camera_config_t config;
+    camera_config_t config; // Giữ ánh xạ chân và toàn bộ thông số khởi tạo camera.
 
     config.ledc_channel = LEDC_CHANNEL_0;
     config.ledc_timer = LEDC_TIMER_0;
@@ -277,15 +283,15 @@ void maintainWiFiConnection();
       Serial.println("[CAM] PSRAM found.");
       config.frame_size = FRAMESIZE_VGA;       // 640x480, clearer for AI person detection
       config.jpeg_quality = 10;
-      // This project takes still photos, then holds the frame while Telegram/AI
-      // upload it. One buffer and WHEN_EMPTY prevent camera queue overflow
-      // (cam_hal: FB-OVF) during those slower network requests.
+      // Đồ án chụp ảnh tĩnh rồi giữ frame trong lúc Telegram/AI tải ảnh lên.
+      // Một bộ đệm cùng WHEN_EMPTY ngăn tràn hàng đợi camera (cam_hal: FB-OVF)
+      // trong các request mạng chậm hơn này.
       config.fb_count = 1;
       config.fb_location = CAMERA_FB_IN_PSRAM;
       config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
     } else {
-      // One framebuffer lets the ESP32-S3 use QVGA even without detected PSRAM.
-      // This is materially clearer than the old 160x120 fallback for AI checks.
+      // Một framebuffer cho phép ESP32-S3 dùng QVGA ngay cả khi không thấy PSRAM.
+      // Chất lượng này rõ hơn đáng kể so với dự phòng 160x120 cũ khi AI kiểm tra.
       Serial.println("[CAM] PSRAM NOT found. Using QVGA with one DRAM framebuffer.");
       config.frame_size = FRAMESIZE_QVGA;      // 320x240
       config.jpeg_quality = 12;
@@ -294,7 +300,7 @@ void maintainWiFiConnection();
       config.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
     }
 
-    esp_err_t err = esp_camera_init(&config);
+    esp_err_t err = esp_camera_init(&config); // Mã lỗi ESP-IDF trả về khi khởi tạo camera.
 
     if (err != ESP_OK) {
       Serial.print("[CAM] Camera init failed. Error code: 0x");
@@ -303,7 +309,7 @@ void maintainWiFiConnection();
       return false;
     }
 
-    sensor_t *sensor = esp_camera_sensor_get();
+    sensor_t *sensor = esp_camera_sensor_get(); // Con trỏ điều khiển cảm biến ảnh OV3660.
 
     if (sensor == NULL) {
       Serial.println("[CAM] Sensor pointer is NULL.");
@@ -329,10 +335,14 @@ void maintainWiFiConnection();
     return true;
   }
 
+  /**
+   * Loại bỏ frame cũ đang giữ trong bộ đệm rồi lấy một frame JPEG mới.
+   * Trả về con trỏ framebuffer; bên gọi phải hoàn trả bằng esp_camera_fb_return().
+   */
   camera_fb_t *captureFreshCameraFrame() {
-    // WHEN_EMPTY keeps the last completed frame in the only framebuffer. Drop it
-    // first, then wait for the sensor to expose a new frame so a manual capture
-    // cannot resend the previous photo.
+    // WHEN_EMPTY giữ frame hoàn tất cuối trong framebuffer duy nhất. Cần bỏ frame
+    // đó trước rồi chờ cảm biến cung cấp frame mới, để chụp thủ công không gửi
+    // lại ảnh trước.
     camera_fb_t *staleFrame = esp_camera_fb_get();
     if (staleFrame != NULL) {
       esp_camera_fb_return(staleFrame);
@@ -343,23 +353,30 @@ void maintainWiFiConnection();
     return esp_camera_fb_get();
   }
 
+/**
+ * Kiểm tra đủ ba điều kiện dùng AI: Gemini và camera được bật, API key hợp lệ.
+ * Trả về true khi có thể gửi ảnh sang Gemini.
+ */
 bool hasGeminiConfig() {
-  String apiKey = String(SECRET_GEMINI_API_KEY);
+  String apiKey = String(SECRET_GEMINI_API_KEY); // Bản String của khóa API để kiểm tra cấu hình.
   return gemini_enabled && camera_enabled && apiKey.length() > 0 && apiKey != "PASTE_YOUR_GEMINI_API_KEY_HERE";
   }
 
-  // Streams a JPEG as Base64 directly to the TLS client. This avoids allocating a
-  // second, much larger image string in ESP32 memory.
+  /**
+   * Mã hóa dữ liệu ảnh theo Base64 và ghi trực tiếp từng khối vào kết nối TLS.
+   * @param client Kết nối đích đang mở; @param data vùng byte ảnh; @param length số byte.
+   * Không trả về dữ liệu; cách ghi luồng giúp tránh tạo thêm chuỗi ảnh lớn trong RAM.
+   */
   void writeBase64ToClient(WiFiClientSecure &client, const uint8_t *data, size_t length) {
     static const char BASE64_TABLE[] =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    char encoded[1024];
-    size_t encodedLength = 0;
+    char encoded[1024];       // Bộ đệm tạm chứa một khối ký tự Base64 trước khi gửi.
+    size_t encodedLength = 0; // Số ký tự hợp lệ đang có trong encoded.
 
     for (size_t i = 0; i < length; i += 3) {
-      uint32_t triple = ((uint32_t)data[i]) << 16;
-      bool hasSecondByte = i + 1 < length;
-      bool hasThirdByte = i + 2 < length;
+      uint32_t triple = ((uint32_t)data[i]) << 16; // Nhóm tối đa ba byte nguồn dưới dạng 24 bit.
+      bool hasSecondByte = i + 1 < length;          // Nhóm hiện tại có byte thứ hai hay không.
+      bool hasThirdByte = i + 2 < length;           // Nhóm hiện tại có byte thứ ba hay không.
       if (hasSecondByte) triple |= ((uint32_t)data[i + 1]) << 8;
       if (hasThirdByte) triple |= data[i + 2];
 
@@ -379,6 +396,11 @@ bool hasGeminiConfig() {
     }
   }
 
+  /**
+   * Gửi một framebuffer JPEG đến Gemini và ép mô hình phân loại PERSON hoặc NONE.
+   * @param fb Ảnh cần phân tích; @param attempt số lần thử, dùng để chỉ retry lỗi 503 một lần.
+   * Trả về mã kết quả AI_* / PERSON_DETECTED / NO_PERSON để logic camera xử lý tiếp.
+   */
   String analyzePersonWithGemini(camera_fb_t *fb, uint8_t attempt) {
     if (!hasGeminiConfig()) {
       Serial.println("[AI] Gemini API key is not configured.");
@@ -395,19 +417,19 @@ bool hasGeminiConfig() {
       return "AI_NO_IMAGE";
     }
 
-    // Gemini accepts an image as Base64 inline_data. The model is deliberately
-    // constrained to one of two tokens so no free-form description is required.
-    const String jsonPrefix =
+    // Gemini nhận ảnh Base64 trong inline_data. Prompt cố ý giới hạn kết quả vào
+    // một trong hai token để không cần xử lý mô tả tự do.
+    const String jsonPrefix = // Phần JSON đứng trước dữ liệu ảnh Base64.
       "{\"contents\":[{\"parts\":[{\"text\":\"Inspect this low-resolution kitchen camera image. "
       "Answer PERSON if any part of a real human is visible, including a small, distant, "
       "partly occluded head, face, torso, arm, leg, or body at an image edge. "
       "Answer NONE only when there is no human at all. Reply with exactly one uppercase token: PERSON or NONE.\"},{\"inline_data\":{\"mime_type\":\"image/jpeg\",\"data\":\"";
-    const String jsonSuffix =
+    const String jsonSuffix = // Phần JSON đóng request và cấu hình cách Gemini trả lời.
       "\"}}]}],\"generationConfig\":{\"temperature\":0,\"maxOutputTokens\":64}}";
-    const size_t base64Length = 4 * ((fb->len + 2) / 3);
-    const size_t contentLength = jsonPrefix.length() + base64Length + jsonSuffix.length();
+    const size_t base64Length = 4 * ((fb->len + 2) / 3); // Độ dài ảnh sau khi mã hóa Base64.
+    const size_t contentLength = jsonPrefix.length() + base64Length + jsonSuffix.length(); // Tổng Content-Length.
 
-    WiFiClientSecure client;
+    WiFiClientSecure client; // Kết nối TLS trực tiếp đến Gemini API.
     client.setInsecure();
     client.setTimeout(GEMINI_HTTP_TIMEOUT_MS);
 
@@ -416,7 +438,7 @@ bool hasGeminiConfig() {
       return "AI_CONNECT_FAILED";
     }
 
-    String path = "/v1/models/" + String(GEMINI_PERSON_MODEL) + ":generateContent";
+    String path = "/v1/models/" + String(GEMINI_PERSON_MODEL) + ":generateContent"; // Đường dẫn REST của mô hình.
     client.print(String("POST ") + path + " HTTP/1.1\r\n");
     client.print(String("Host: ") + GEMINI_API_HOST + "\r\n");
     client.print("User-Agent: ESP32-S3-Kitchen-Security\r\n");
@@ -431,14 +453,14 @@ bool hasGeminiConfig() {
     writeBase64ToClient(client, fb->buf, fb->len);
     client.print(jsonSuffix);
 
-    unsigned long startedAt = millis();
+    unsigned long startedAt = millis(); // Mốc bắt đầu chờ phản hồi để kiểm soát timeout.
     while (client.connected() && !client.available() && millis() - startedAt < GEMINI_HTTP_TIMEOUT_MS) {
       delay(10);
     }
 
-    String statusLine = client.readStringUntil('\n');
-    String response = client.readString();
-    bool requestOk = statusLine.indexOf("200") >= 0;
+    String statusLine = client.readStringUntil('\n'); // Dòng trạng thái HTTP đầu tiên.
+    String response = client.readString();            // Phần phản hồi còn lại từ Gemini.
+    bool requestOk = statusLine.indexOf("200") >= 0;  // true khi server trả HTTP 200.
 
     Serial.print("[AI] Gemini status: ");
     Serial.println(statusLine);
@@ -448,8 +470,8 @@ bool hasGeminiConfig() {
       Serial.print("[AI] Gemini error body: ");
       Serial.println(response);
 
-      // A short retry handles Gemini's temporary high-demand (503) responses
-      // without retrying invalid keys, bad requests, or normal alert traffic.
+      // Một lần thử lại ngắn xử lý lỗi quá tải tạm thời 503 của Gemini mà không
+      // retry khóa sai, request sai hoặc lưu lượng cảnh báo bình thường.
       if (statusLine.indexOf("503") >= 0 && attempt == 0) {
         Serial.println("[AI] Gemini busy; retrying once in 1500 ms.");
         client.stop();
@@ -462,11 +484,11 @@ bool hasGeminiConfig() {
     Serial.print("[AI] Gemini response body: ");
     Serial.println(response);
 
-    // Only examine Gemini's generated text field. The response string also
-    // contains HTTP headers, whose words must never be interpreted as a result.
-    String responseUpper = response;
+    // Chỉ xét trường text do Gemini sinh. Response còn chứa HTTP header; từ ngữ
+    // trong header tuyệt đối không được hiểu nhầm thành kết quả AI.
+    String responseUpper = response; // Bản viết hoa để tìm token không phụ thuộc hoa/thường.
     responseUpper.toUpperCase();
-    int textFieldAt = responseUpper.indexOf("\"TEXT\"");
+    int textFieldAt = responseUpper.indexOf("\"TEXT\""); // Vị trí trường text do mô hình sinh.
     if (textFieldAt >= 0 && responseUpper.indexOf("PERSON", textFieldAt) >= 0) {
       Serial.println("[AI] PERSON_DETECTED");
       return "PERSON_DETECTED";
@@ -480,6 +502,11 @@ bool hasGeminiConfig() {
     return "AI_UNCLEAR";
   }
 
+  /**
+   * Chụp ảnh an ninh, gửi Telegram và tùy chọn phân tích ảnh bằng Gemini.
+   * @param reason Lý do chụp dùng trong caption/log; @param analyzeWithGemini có chạy AI hay không.
+   * Trả về true khi quy trình chụp/gửi chính thành công và cập nhật các trạng thái ảnh liên quan.
+   */
   bool captureSecurityPhoto(const String &reason, bool analyzeWithGemini = true) {
   if (!camera_enabled) {
     photo_status = "Camera đang tắt từ Dashboard";
@@ -492,7 +519,7 @@ bool hasGeminiConfig() {
       return false;
     }
 
-    // Avoid accidental repeated captures too fast (hardware cooldown)
+    // Tránh vô tình chụp lặp quá nhanh trong thời gian nghỉ của phần cứng.
     if (millis() - lastCameraCaptureMs < 1500) {
       photo_status = "Camera đang chờ ổn định";
       Serial.println("[CAM] Capture skipped: short camera cooldown.");
@@ -507,7 +534,7 @@ bool hasGeminiConfig() {
     Serial.print("[CAM] Reason: ");
     Serial.println(reason);
 
-    camera_fb_t *fb = captureFreshCameraFrame();
+    camera_fb_t *fb = captureFreshCameraFrame(); // Frame JPEG mới; phải trả lại driver sau khi dùng.
 
     if (fb == NULL) {
       photo_status = "Chụp ảnh thất bại";
@@ -528,8 +555,8 @@ bool hasGeminiConfig() {
     Serial.print("[CAM] Image bytes: ");
     Serial.println(fb->len);
 
-    // AI is supplementary only: a failed request never stops the existing
-    // camera, Telegram, sensor, buzzer, or alert flow.
+    // AI chỉ là chức năng bổ sung: request thất bại không được dừng camera,
+    // Telegram, cảm biến, còi hoặc luồng cảnh báo hiện có.
     if (analyzeWithGemini && gemini_enabled) {
       lastAiPersonResult = analyzePersonWithGemini(fb);
       if (lastAiPersonResult == "PERSON_DETECTED") {
@@ -541,18 +568,17 @@ bool hasGeminiConfig() {
           " ảnh trong vài giây tới."
         );
 
-        // Only automatic security captures create this email. A manual photo
-        // must not be treated as an intrusion, and evidence follow-up photos
-        // must not generate duplicate messages.
-        bool isAutomaticSecurityCapture =
+        // Chỉ ảnh an ninh tự động mới tạo email này. Ảnh thủ công không được coi
+        // là đột nhập, và ảnh bằng chứng bổ sung không được tạo thông báo trùng.
+        bool isAutomaticSecurityCapture = // Phân biệt ảnh cảnh báo tự động với ảnh chụp thủ công/bổ sung.
           reason == "AUTO_INTRUSION_ALERT" || reason == "AUTO_SABOTAGE_ALERT";
         if (isAutomaticSecurityCapture && !aiPersonEmailSentForCurrentAlert) {
           aiPersonEmailSentForCurrentAlert = true;
-          String emailMessage =
+          String emailMessage = // Nội dung yêu cầu Apps Script gửi email khi AI thấy người.
             "Hệ thống đã phát hiện có người trong nhà. "
             "Vui lòng nhanh chóng kiểm tra ảnh trong Telegram để xác minh danh tính. "
             "Thời điểm phát hiện: " + getRtcTimeString() + ".";
-          bool emailQueued = callGoogleAppsScript("ai_person_detected", "GEMINI", emailMessage);
+          bool emailQueued = callGoogleAppsScript("ai_person_detected", "GEMINI", emailMessage); // Kết quả gửi yêu cầu email.
           notification_sent_status = emailQueued
             ? "AI phát hiện người: đã gửi email, kiểm tra Telegram"
             : "AI phát hiện người nhưng gửi email thất bại";
@@ -562,13 +588,13 @@ bool hasGeminiConfig() {
       lastAiPersonResult = "AI_SKIPPED";
     }
 
-  bool shouldSendToTelegram = telegram_enabled && camera_enabled &&
+  bool shouldSendToTelegram = telegram_enabled && camera_enabled && // Quyết định ảnh hiện tại có thuộc luồng Telegram.
       (reason == "MANUAL_DASHBOARD" ||
        reason == "AUTO_INTRUSION_ALERT" ||
        reason == "AUTO_SABOTAGE_ALERT" ||
        reason == "AI_PERSON_FOLLOW_UP");
 
-    bool telegramPhotoSent = false;
+    bool telegramPhotoSent = false; // Lưu kết quả gửi ảnh để cập nhật trạng thái cuối hàm.
 
     if (shouldSendToTelegram) {
       if (!isTelegramAllowed(reason)) {
@@ -583,9 +609,9 @@ bool hasGeminiConfig() {
       notification_event_type = reason;
       notification_sent_status = "Đang gửi ảnh qua Telegram";
 
-      // Follow-up evidence must be photos only: no separate Telegram text or
-      // caption is generated after Gemini has detected a person.
-      String caption = reason == "AI_PERSON_FOLLOW_UP"
+      // Bằng chứng bổ sung chỉ gồm ảnh: không tạo tin nhắn Telegram riêng hay
+      // caption sau khi Gemini đã phát hiện người.
+      String caption = reason == "AI_PERSON_FOLLOW_UP" // Chú thích ảnh; ảnh bằng chứng bổ sung không có caption.
         ? ""
         : buildCommonCaption("photo_capture", reason);
       if (reason != "AI_PERSON_FOLLOW_UP") {
@@ -624,6 +650,10 @@ bool hasGeminiConfig() {
     return true;
   }
 
+/**
+ * Xử lý các yêu cầu chụp thủ công, chụp tự động và chuỗi ảnh AI bổ sung đang chờ.
+ * Hàm được gọi trong loop(), không trả về và tự xóa/chuyển các cờ yêu cầu sau khi xử lý.
+ */
 void processCameraRequests() {
   if (manualCapturePending) {
     manualCapturePending = false;
@@ -631,7 +661,7 @@ void processCameraRequests() {
   }
 
   if (auto_capture_photo_request && auto_photo_on_alert) {
-        String reason = notification_event_type == "sabotage_alert"
+        String reason = notification_event_type == "sabotage_alert" // Lý do chụp suy ra từ cảnh báo đang chờ.
           ? "AUTO_SABOTAGE_ALERT"
           : "AUTO_INTRUSION_ALERT";
         captureSecurityPhoto(reason);
@@ -641,16 +671,17 @@ void processCameraRequests() {
   if (aiFollowUpPhotosRemaining > 0 && millis() >= nextAiFollowUpPhotoAtMs) {
     aiFollowUpPhotosRemaining--;
     nextAiFollowUpPhotoAtMs = millis() + AI_PERSON_FOLLOW_UP_INTERVAL_MS;
-    // Follow-up frames are evidence captures. Do not recursively call Gemini
-    // again, otherwise one person could create a costly request loop.
+    // Frame bổ sung là ảnh bằng chứng. Không gọi Gemini đệ quy lần nữa, nếu không
+    // một người có thể tạo vòng lặp request tốn kém.
     captureSecurityPhoto("AI_PERSON_FOLLOW_UP", false);
   }
 }
 
   // ==================================================
-  // BASIC HELPERS
+  // CÁC HÀM HỖ TRỢ CƠ BẢN
   // ==================================================
 
+  /** Định dạng một số thành ít nhất hai chữ số; dùng cho giờ/phút/ngày trong chuỗi thời gian. */
   String twoDigits(int value) {
     if (value < 10) {
       return "0" + String(value);
@@ -658,13 +689,17 @@ void processCameraRequests() {
     return String(value);
   }
 
+  /**
+   * Đọc DS1307 và tạo chuỗi thời gian chuẩn dùng trong log/thông báo.
+   * Trả về RTC_NOT_AVAILABLE khi RTC chưa khởi tạo được.
+   */
   String getRtcTimeString() {
     if (!rtcOk) {
       return "RTC_NOT_FOUND";
     }
 
-    DateTime now = rtc.now();
-    String text = "";
+    DateTime now = rtc.now(); // Ảnh chụp ngày giờ hiện tại từ DS1307.
+    String text = "";         // Chuỗi thời gian được ghép dần theo định dạng chuẩn.
     text += String(now.year());
     text += "-";
     text += twoDigits(now.month());
@@ -679,6 +714,7 @@ void processCameraRequests() {
     return text;
   }
 
+  /** Chuyển mã loại sự kiện kỹ thuật thành tên tiếng Việt dễ đọc; giữ nguyên mã lạ. */
   String eventTitleVi(const String &type) {
     if (type == "intrusion_alert") return "Cảnh báo đột nhập";
     if (type == "sabotage_alert") return "Cảnh báo phá hoại thiết bị";
@@ -695,6 +731,7 @@ void processCameraRequests() {
     return type;
   }
 
+  /** Chuyển mã nguồn kích hoạt thành nhãn tiếng Việt để đưa vào thông báo. */
   String sourceTitleVi(const String &source) {
     if (source == "CHILD" || source == "CHILD_DEMO" || source == "CHILD_SERIAL") return "Trẻ em";
     if (source == "PARENT_ADMIN" || source == "PARENT_ADMIN_SERIAL") return "Phụ huynh/Admin";
@@ -702,6 +739,7 @@ void processCameraRequests() {
     return source;
   }
 
+  /** Chuyển mã trạng thái nâng cấp khẩn cấp thành mô tả tiếng Việt cho Dashboard. */
   String escalationStatusVi(const String &code) {
     if (code == "IDLE") return "Chưa có yêu cầu khẩn cấp";
     if (code == "SENDING") return "Đang gửi yêu cầu xác nhận";
@@ -715,6 +753,7 @@ void processCameraRequests() {
     return code;
   }
 
+  /** Chuyển mã trạng thái gửi cho liên hệ cơ quan demo thành mô tả tiếng Việt. */
   String authorityStatusVi(const String &code) {
     if (code == "IDLE") return "Chưa gửi contact mô phỏng";
     if (code == "READY") return "Sẵn sàng gửi sau xác nhận";
@@ -724,14 +763,17 @@ void processCameraRequests() {
     return code;
   }
 
+  /** Ghi trạng thái nâng cấp SOS đã dịch vào biến Cloud emergency_escalation_status. */
   void setEscalationStatus(const String &code) {
     emergency_escalation_status = escalationStatusVi(code);
   }
 
+  /** Ghi trạng thái gửi cơ quan demo đã dịch vào biến Cloud tương ứng. */
   void setAuthorityStatus(const String &code) {
     emergency_authority_message_status = authorityStatusVi(code);
   }
 
+  /** Trả về true nếu notification_sent_status hiện chứa một trạng thái lỗi gửi đã biết. */
   bool isKnownNotificationFailureStatus() {
     return notification_sent_status == "NOT_CONFIGURED" ||
           notification_sent_status == "WIFI_NOT_CONNECTED" ||
@@ -741,26 +783,29 @@ void processCameraRequests() {
           notification_sent_status == "Không kết nối được Telegram";
   }
 
+  /** Lưu đồng thời mã sự kiện vào last_event_type và nội dung dễ đọc vào last_event. */
   void setLastEvent(const String &type, const String &message) {
     last_event_type = type;
     last_event = message;
   }
 
+  /** Tăng bộ đếm sự kiện và đưa về 0 trước khi có nguy cơ vượt giới hạn số nguyên. */
   void incrementEventCounter() {
     event_counter++;
   }
 
 
   // ==================================================
-  // EXTERNAL API FUNCTIONS - TELEGRAM + GOOGLE APPS SCRIPT
+  // CÁC HÀM API NGOÀI - TELEGRAM + GOOGLE APPS SCRIPT
   // ==================================================
 
+  /** Mã hóa chuỗi thành dạng percent-encoding an toàn để ghép vào query URL. */
   String urlEncode(const String &value) {
-    String encoded = "";
-    const char *hex = "0123456789ABCDEF";
+    String encoded = "";                         // Kết quả URL-encoded được ghép dần.
+    const char *hex = "0123456789ABCDEF";         // Bảng ký tự dùng biểu diễn một nibble hệ 16.
 
     for (size_t i = 0; i < value.length(); i++) {
-      char c = value.charAt(i);
+      char c = value.charAt(i); // Ký tự nguồn tại vị trí đang mã hóa.
 
       if ((c >= 'a' && c <= 'z') ||
           (c >= 'A' && c <= 'Z') ||
@@ -779,31 +824,35 @@ void processCameraRequests() {
     return encoded;
   }
 
+  /** Tách giá trị của một khóa dạng key=value trong phản hồi phân tách bằng dấu chấm phẩy. */
   String responseValue(const String &response, const String &key) {
-    String marker = key + "=";
-    int start = response.indexOf(marker);
+    String marker = key + "=";           // Mẫu đánh dấu đầu trường cần tìm.
+    int start = response.indexOf(marker); // Vị trí mẫu trong response.
     if (start < 0) {
       return "";
     }
 
     start += marker.length();
-    int end = response.indexOf(';', start);
-    String value = end < 0 ? response.substring(start) : response.substring(start, end);
+    int end = response.indexOf(';', start); // Vị trí kết thúc trường hoặc -1 nếu ở cuối response.
+    String value = end < 0 ? response.substring(start) : response.substring(start, end); // Giá trị đã cắt.
     value.trim();
     return value;
   }
 
+/** Trả về true khi Telegram được bật và token/chat ID không rỗng, không còn là placeholder. */
 bool hasTelegramConfig() {
   return telegram_enabled && String(SECRET_TELEGRAM_BOT_TOKEN).length() > 10 &&
           String(SECRET_TELEGRAM_CHAT_ID).length() > 0;
   }
 
+/** Trả về true khi Apps Script được bật và URL Web App đã được cấu hình. */
 bool hasGoogleScriptConfig() {
   return google_script_enabled && String(SECRET_GOOGLE_SCRIPT_URL).startsWith("https://");
   }
 
+  /** Tạo caption chung chứa loại sự kiện, lý do, thiết bị, vị trí và thời gian. */
   String buildCommonCaption(const String &eventType, const String &reason) {
-    String text = "";
+    String text = ""; // Bộ tích lũy caption nhiều dòng.
     text += "Sự kiện: ";
     text += eventTitleVi(eventType);
     text += "\nThiết bị: ";
@@ -824,6 +873,10 @@ bool hasGoogleScriptConfig() {
     return text;
   }
 
+  /**
+   * Gửi tin nhắn văn bản đến chat Telegram đã cấu hình.
+   * Trả về true khi Telegram API phản hồi HTTP thành công; đồng thời cập nhật trạng thái gửi.
+   */
   bool sendTelegramMessage(const String &message) {
     notification_channel = "telegram";
 
@@ -839,7 +892,7 @@ bool hasGoogleScriptConfig() {
       return false;
     }
 
-    WiFiClientSecure client;
+    WiFiClientSecure client; // Kết nối TLS dùng cho request gửi tin nhắn Telegram.
     client.setInsecure();
   client.setTimeout(TELEGRAM_TEXT_TIMEOUT_MS);
 
@@ -849,10 +902,10 @@ bool hasGoogleScriptConfig() {
       return false;
     }
 
-    String body = "chat_id=" + urlEncode(String(SECRET_TELEGRAM_CHAT_ID)) +
+    String body = "chat_id=" + urlEncode(String(SECRET_TELEGRAM_CHAT_ID)) + // Nội dung form URL-encoded gửi Telegram.
                   "&text=" + urlEncode(message);
 
-    String path = "/bot" + String(SECRET_TELEGRAM_BOT_TOKEN) + "/sendMessage";
+    String path = "/bot" + String(SECRET_TELEGRAM_BOT_TOKEN) + "/sendMessage"; // Endpoint gửi tin nhắn của bot.
 
     client.print(String("POST ") + path + " HTTP/1.1\r\n");
     client.print("Host: api.telegram.org\r\n");
@@ -864,13 +917,13 @@ bool hasGoogleScriptConfig() {
     client.print("\r\n\r\n");
     client.print(body);
 
-    unsigned long start = millis();
+    unsigned long start = millis(); // Mốc bắt đầu chờ phản hồi Telegram.
   while (client.connected() && !client.available() && millis() - start < TELEGRAM_TEXT_TIMEOUT_MS) {
       delay(10);
     }
 
-    String statusLine = client.readStringUntil('\n');
-    bool ok = statusLine.indexOf("200") >= 0;
+    String statusLine = client.readStringUntil('\n'); // Dòng trạng thái HTTP Telegram.
+    bool ok = statusLine.indexOf("200") >= 0;         // Kết quả HTTP 200 của thao tác gửi.
 
     Serial.print("[TG] sendMessage status: ");
     Serial.println(statusLine);
@@ -880,6 +933,10 @@ bool hasGoogleScriptConfig() {
     return ok;
   }
 
+  /**
+   * Gửi framebuffer JPEG và caption bằng multipart/form-data đến Telegram.
+   * Trả về true khi API chấp nhận ảnh; không sở hữu và không giải phóng framebuffer.
+   */
   bool sendTelegramPhoto(camera_fb_t *fb, const String &caption) {
     notification_channel = "telegram";
 
@@ -901,7 +958,7 @@ bool hasGoogleScriptConfig() {
       return false;
     }
 
-    WiFiClientSecure client;
+    WiFiClientSecure client; // Kết nối TLS dùng cho request multipart gửi ảnh Telegram.
     client.setInsecure();
   client.setTimeout(TELEGRAM_PHOTO_TIMEOUT_MS);
 
@@ -911,9 +968,9 @@ bool hasGoogleScriptConfig() {
       return false;
     }
 
-    String boundary = "----ESP32S3KitchenSecurityBoundary";
+    String boundary = "----ESP32S3KitchenSecurityBoundary"; // Chuỗi phân cách các phần multipart.
 
-    String head = "";
+    String head = ""; // Phần header multipart đứng trước dữ liệu JPEG.
     head += "--" + boundary + "\r\n";
     head += "Content-Disposition: form-data; name=\"chat_id\"\r\n\r\n";
     head += String(SECRET_TELEGRAM_CHAT_ID) + "\r\n";
@@ -924,10 +981,10 @@ bool hasGoogleScriptConfig() {
     head += "Content-Disposition: form-data; name=\"photo\"; filename=\"security.jpg\"\r\n";
     head += "Content-Type: image/jpeg\r\n\r\n";
 
-    String tail = "\r\n--" + boundary + "--\r\n";
+    String tail = "\r\n--" + boundary + "--\r\n"; // Phần đóng gói multipart sau dữ liệu JPEG.
 
-    size_t contentLength = head.length() + fb->len + tail.length();
-    String path = "/bot" + String(SECRET_TELEGRAM_BOT_TOKEN) + "/sendPhoto";
+    size_t contentLength = head.length() + fb->len + tail.length(); // Tổng số byte body multipart.
+    String path = "/bot" + String(SECRET_TELEGRAM_BOT_TOKEN) + "/sendPhoto"; // Endpoint gửi ảnh của bot.
 
     client.print(String("POST ") + path + " HTTP/1.1\r\n");
     client.print("Host: api.telegram.org\r\n");
@@ -942,13 +999,13 @@ bool hasGoogleScriptConfig() {
     client.write(fb->buf, fb->len);
     client.print(tail);
 
-    unsigned long start = millis();
+    unsigned long start = millis(); // Mốc bắt đầu chờ phản hồi gửi ảnh.
   while (client.connected() && !client.available() && millis() - start < TELEGRAM_PHOTO_TIMEOUT_MS) {
       delay(10);
     }
 
-    String statusLine = client.readStringUntil('\n');
-    bool ok = statusLine.indexOf("200") >= 0;
+    String statusLine = client.readStringUntil('\n'); // Dòng trạng thái HTTP của sendPhoto.
+    bool ok = statusLine.indexOf("200") >= 0;         // true khi Telegram nhận ảnh thành công.
 
     Serial.print("[TG] sendPhoto status: ");
     Serial.println(statusLine);
@@ -958,6 +1015,10 @@ bool hasGoogleScriptConfig() {
     return ok;
   }
 
+  /**
+   * Thực hiện HTTP GET, theo dõi redirect có giới hạn và xuất nội dung/mã HTTP qua tham chiếu.
+   * Trả về true với phản hồi 2xx; url có thể được thay bằng URL redirect trong quá trình chạy.
+   */
   bool performGetRequest(String url, String &outResponse, int &outCode, int redirectDepth) {
     if (redirectDepth > 4) {
       Serial.println("[HTTP] Max redirects reached.");
@@ -971,9 +1032,9 @@ bool hasGoogleScriptConfig() {
       url = url.substring(7);
     }
 
-    int slashIndex = url.indexOf('/');
-    String host = "";
-    String path = "";
+    int slashIndex = url.indexOf('/'); // Vị trí phân tách host và path trong URL đã bỏ scheme.
+    String host = "";                  // Tên máy chủ (có thể kèm cổng) được tách từ URL.
+    String path = "";                  // Đường dẫn và query của request.
     if (slashIndex >= 0) {
       host = url.substring(0, slashIndex);
       path = url.substring(slashIndex);
@@ -982,8 +1043,8 @@ bool hasGoogleScriptConfig() {
       path = "/";
     }
 
-    int port = 443;
-    int colonIndex = host.indexOf(':');
+    int port = 443;                    // Cổng TLS mặc định, có thể bị URL ghi đè.
+    int colonIndex = host.indexOf(':'); // Vị trí dấu hai chấm phân tách host và cổng.
     if (colonIndex >= 0) {
       port = host.substring(colonIndex + 1).toInt();
       host = host.substring(0, colonIndex);
@@ -993,7 +1054,7 @@ bool hasGoogleScriptConfig() {
     Serial.print(host);
     Serial.println(path);
 
-    WiFiClientSecure client;
+    WiFiClientSecure client; // Kết nối TLS dùng chung cho Apps Script.
     client.setInsecure();
     client.setTimeout(GOOGLE_HTTP_TIMEOUT_MS);
 
@@ -1008,7 +1069,7 @@ bool hasGoogleScriptConfig() {
     client.print("User-Agent: ESP32-S3-Kitchen-Security\r\n");
     client.print("Connection: close\r\n\r\n");
 
-    unsigned long start = millis();
+    unsigned long start = millis(); // Mốc bắt đầu chờ phản hồi HTTP.
     while (client.connected() && !client.available() && millis() - start < GOOGLE_HTTP_TIMEOUT_MS) {
       delay(10);
     }
@@ -1020,12 +1081,12 @@ bool hasGoogleScriptConfig() {
       return false;
     }
 
-    String statusLine = client.readStringUntil('\n');
+    String statusLine = client.readStringUntil('\n'); // Dòng đầu chứa phiên bản HTTP và mã trạng thái.
     statusLine.trim();
 
-    int firstSpace = statusLine.indexOf(' ');
-    int secondSpace = statusLine.indexOf(' ', firstSpace + 1);
-    int httpCode = 0;
+    int firstSpace = statusLine.indexOf(' ');                  // Dấu cách trước mã HTTP.
+    int secondSpace = statusLine.indexOf(' ', firstSpace + 1); // Dấu cách sau mã HTTP.
+    int httpCode = 0;                                          // Mã HTTP đã parse; 0 nghĩa là chưa parse được.
     if (firstSpace >= 0 && secondSpace >= 0) {
       httpCode = statusLine.substring(firstSpace + 1, secondSpace).toInt();
     } else if (firstSpace >= 0) {
@@ -1033,9 +1094,9 @@ bool hasGoogleScriptConfig() {
     }
     outCode = httpCode;
 
-    String location = "";
+    String location = ""; // URL trong header Location khi server yêu cầu redirect.
     while (client.connected() || client.available()) {
-      String line = client.readStringUntil('\n');
+      String line = client.readStringUntil('\n'); // Một dòng header đang được duyệt.
       line.trim();
       if (line.length() == 0) {
         break;
@@ -1046,7 +1107,7 @@ bool hasGoogleScriptConfig() {
       }
     }
 
-    String body = "";
+    String body = ""; // Nội dung response sau phần header.
     while (client.available()) {
       body += client.readString();
     }
@@ -1063,6 +1124,10 @@ bool hasGoogleScriptConfig() {
     return (httpCode >= 200 && httpCode < 300);
   }
 
+  /**
+   * Phân tích phản hồi Apps Script và đồng bộ ID sự kiện, trạng thái xác nhận, địa chỉ và thông báo.
+   * @param ok cho biết lớp HTTP thành công; @param isHeartbeatEvent phân biệt phản hồi heartbeat.
+   */
   void updateGoogleScriptStatusFromResponse(const String &response, bool ok, bool isHeartbeatEvent) {
     if (!ok) {
       if (isHeartbeatEvent) {
@@ -1080,7 +1145,7 @@ bool hasGoogleScriptConfig() {
       return;
     }
 
-    String returnedEventId = responseValue(response, "eventId");
+    String returnedEventId = responseValue(response, "eventId"); // ID sự kiện máy chủ trả về cho lần polling sau.
     if (returnedEventId.length() > 0 && returnedEventId != "NONE") {
       activeGoogleEventId = returnedEventId;
     }
@@ -1093,7 +1158,7 @@ bool hasGoogleScriptConfig() {
 
     // Apps Script returns compact text such as:
     // OK:WAITING_CONFIRMATION;eventId=...;emergency_escalation_status=WAITING_CONFIRMATION;...
-    // This parser is defensive: it only updates values when the response contains them.
+    // Bộ phân tích có tính phòng vệ: chỉ cập nhật trường thật sự có trong response.
     if (response.indexOf("home_address_configured=true") >= 0) {
       home_address_configured = true;
     } else if (response.indexOf("home_address_configured=false") >= 0) {
@@ -1114,7 +1179,7 @@ bool hasGoogleScriptConfig() {
       setEscalationStatus("NOT_CONFIGURED");
     } else if (response.indexOf("OK:SABOTAGE_MONITORING") < 0 &&
               response.indexOf("OK:MONITORING") < 0) {
-      // Backward-compatible fallback for older Apps Script responses.
+      // Nhánh dự phòng tương thích ngược với response Apps Script phiên bản cũ.
       setEscalationStatus("SENT");
     }
 
@@ -1136,9 +1201,13 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /**
+   * Tạo query chứa snapshot trạng thái rồi gọi Web App cho một sự kiện an ninh.
+   * Trả về kết quả HTTP và cập nhật các biến trạng thái Apps Script trên Dashboard.
+   */
   bool callGoogleAppsScript(const String &eventType, const String &source, const String &message) {
-    bool isHeartbeatEvent = eventType == "heartbeat";
-    bool isAiPersonEvent = eventType == "ai_person_detected";
+    bool isHeartbeatEvent = eventType == "heartbeat";           // Phân biệt heartbeat để áp giới hạn tần suất riêng.
+    bool isAiPersonEvent = eventType == "ai_person_detected";    // Phân biệt email thông tin AI với luồng SOS.
 
     if (!hasGoogleScriptConfig()) {
       if (isHeartbeatEvent) {
@@ -1162,7 +1231,7 @@ bool hasGoogleScriptConfig() {
       return false;
     }
 
-    String eventKey = eventType + ":" + source;
+    String eventKey = eventType + ":" + source; // Khóa chống gửi lặp cùng loại sự kiện và nguồn.
     if (lastGoogleScriptEventKey == eventKey && millis() - lastGoogleScriptCallMs < 15000) {
       Serial.println("[GAS] Skipped by cooldown.");
       return false;
@@ -1171,7 +1240,7 @@ bool hasGoogleScriptConfig() {
     lastGoogleScriptEventKey = eventKey;
     lastGoogleScriptCallMs = millis();
 
-    String url = String(SECRET_GOOGLE_SCRIPT_URL);
+    String url = String(SECRET_GOOGLE_SCRIPT_URL); // URL request được ghép thêm toàn bộ query trạng thái.
     url += "?event=" + urlEncode(eventType);
     url += "&source=" + urlEncode(source);
     url += "&device=" + urlEncode(String(SECRET_DEVICE_NAME));
@@ -1192,9 +1261,9 @@ bool hasGoogleScriptConfig() {
       setAuthorityStatus("IDLE");
     }
 
-    String response = "";
-    int code = 0;
-    bool ok = performGetRequest(url, response, code);
+    String response = "";                              // Body do Apps Script trả về.
+    int code = 0;                                      // Mã trạng thái HTTP nhận được.
+    bool ok = performGetRequest(url, response, code);  // Kết quả request tổng hợp.
 
     Serial.print("[GAS] HTTP code: ");
     Serial.println(code);
@@ -1212,6 +1281,7 @@ bool hasGoogleScriptConfig() {
     return ok;
   }
 
+  /** Xếp hàng yêu cầu bật/tắt giám sát heartbeat để retry đến khi Apps Script xác nhận. */
   void requestGoogleScriptHeartbeatMonitorState(bool enabled) {
     desiredHeartbeatMonitorEnabled = enabled;
     heartbeatMonitorControlPending = true;
@@ -1219,33 +1289,35 @@ bool hasGoogleScriptConfig() {
     heartbeatMonitorControlNextRetryAtMs = millis();
   }
 
-  // This control message intentionally bypasses google_script_enabled so that
-  // turning the dashboard switch OFF can pause the Apps Script timeout before
-  // the board stops sending normal heartbeat requests.
+  // Tin điều khiển này chủ ý bỏ qua google_script_enabled để khi tắt công tắc
+  // Dashboard, Apps Script có thể tạm dừng timeout trước khi bo mạch ngừng gửi
+  // heartbeat bình thường.
+  /** Gửi trạng thái giám sát heartbeat mong muốn đến Apps Script và trả về kết quả xác nhận. */
   bool notifyGoogleScriptHeartbeatMonitorState(bool enabled) {
     if (!String(SECRET_GOOGLE_SCRIPT_URL).startsWith("https://") || WiFi.status() != WL_CONNECTED) {
       return false;
     }
 
-    String url = String(SECRET_GOOGLE_SCRIPT_URL);
+    String url = String(SECRET_GOOGLE_SCRIPT_URL); // URL lệnh bật/tắt heartbeat monitor.
     url += "?event=heartbeat_monitor_control";
     url += "&enabled=" + String(enabled ? "true" : "false");
     url += "&device=" + urlEncode(String(SECRET_DEVICE_NAME));
     url += "&location=" + urlEncode(String(SECRET_DEVICE_LOCATION));
     url += "&time=" + urlEncode(getRtcTimeString());
 
-    String response = "";
-    int code = 0;
-    bool ok = performGetRequest(url, response, code);
-    String expectedAck = enabled
+    String response = "";                             // Body xác nhận từ Apps Script.
+    int code = 0;                                     // Mã HTTP của lệnh điều khiển.
+    bool ok = performGetRequest(url, response, code); // Kết quả tầng HTTP.
+    String expectedAck = enabled                      // Chuỗi ACK chính xác mong đợi theo trạng thái yêu cầu.
       ? "OK:HEARTBEAT_MONITOR_ENABLED"
       : "OK:HEARTBEAT_MONITOR_PAUSED";
-    bool acknowledged = ok && response.indexOf(expectedAck) >= 0;
+    bool acknowledged = ok && response.indexOf(expectedAck) >= 0; // true khi cả HTTP và ACK đều hợp lệ.
     Serial.print("[GAS] Heartbeat monitor control: ");
     Serial.println(acknowledged ? "ACK" : "FAILED");
     return acknowledged;
   }
 
+  /** Xử lý hàng đợi lệnh heartbeat-monitor, áp dụng backoff và giữ lệnh nếu gửi thất bại. */
   void processGoogleScriptHeartbeatMonitorControl() {
     if (!heartbeatMonitorControlPending || millis() < heartbeatMonitorControlNextRetryAtMs) {
       return;
@@ -1260,7 +1332,7 @@ bool hasGoogleScriptConfig() {
       return;
     }
 
-    uint8_t delayIndex = min(
+    uint8_t delayIndex = min( // Chỉ số backoff được chặn ở phần tử cuối mảng.
       heartbeatMonitorControlRetryIndex,
       (uint8_t)(sizeof(WIFI_RETRY_DELAYS_MS) / sizeof(WIFI_RETRY_DELAYS_MS[0]) - 1)
     );
@@ -1271,11 +1343,12 @@ bool hasGoogleScriptConfig() {
     heartbeat_status = "Đang gửi lại lệnh theo dõi heartbeat";
   }
 
+  /** Gửi heartbeat định kỳ khi Wi-Fi/dịch vụ được bật và không có lệnh điều khiển đang chờ. */
   void processGoogleAppsScriptHeartbeat() {
-    static unsigned long lastHeartbeatMs = 0;
+    static unsigned long lastHeartbeatMs = 0; // Giữ mốc heartbeat trước giữa các lần gọi hàm.
 
-    // A dashboard change must reach Apps Script before an ordinary heartbeat
-    // can be sent. This prevents another request from masking a pending PAUSE.
+    // Thay đổi từ Dashboard phải đến Apps Script trước khi heartbeat thường
+    // được gửi; nhờ đó request khác không che mất lệnh PAUSE đang chờ.
     if (heartbeatMonitorControlPending) {
       return;
     }
@@ -1301,19 +1374,20 @@ bool hasGoogleScriptConfig() {
       return;
     }
 
-    bool ok = callGoogleAppsScript("heartbeat", "DEVICE", "Heartbeat từ thiết bị lúc " + getRtcTimeString());
+    bool ok = callGoogleAppsScript("heartbeat", "DEVICE", "Heartbeat từ thiết bị lúc " + getRtcTimeString()); // Kết quả heartbeat.
     if (ok) {
       heartbeat_status = "Đang liên lạc bình thường";
       last_heartbeat_time = getRtcTimeString();
     }
   }
 
+  /** Báo Apps Script đóng sự kiện đang hoạt động rồi xóa activeGoogleEventId cục bộ khi phù hợp. */
   void resolveGoogleAppsScriptCurrentEvent() {
     if (!hasGoogleScriptConfig() || WiFi.status() != WL_CONNECTED) {
       return;
     }
 
-    String url = String(SECRET_GOOGLE_SCRIPT_URL);
+    String url = String(SECRET_GOOGLE_SCRIPT_URL); // URL resolve cho sự kiện activeGoogleEventId.
     url += "?action=resolve";
     url += "&device=" + urlEncode(String(SECRET_DEVICE_NAME));
     url += "&location=" + urlEncode(String(SECRET_DEVICE_LOCATION));
@@ -1323,9 +1397,9 @@ bool hasGoogleScriptConfig() {
       url += "&eventId=" + urlEncode(activeGoogleEventId);
     }
 
-    String response = "";
-    int code = 0;
-    bool ok = performGetRequest(url, response, code);
+    String response = "";                             // Body phản hồi resolve.
+    int code = 0;                                     // Mã HTTP phản hồi resolve.
+    bool ok = performGetRequest(url, response, code); // Kết quả đóng sự kiện trên máy chủ.
 
     Serial.print("[GAS] resolve HTTP code: ");
     Serial.println(code);
@@ -1340,14 +1414,15 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /** Kiểm tra loại sự kiện có thuộc danh sách được phép gửi Telegram hay không. */
   bool isTelegramAllowed(const String &eventType) {
-    static unsigned long lastTelegramIntrusionAlertMs = 0;
-    static unsigned long lastTelegramSabotageAlertMs = 0;
-    static unsigned long lastTelegramSosAlertMs = 0;
-    static unsigned long lastTelegramManualCaptureMs = 0;
+    static unsigned long lastTelegramIntrusionAlertMs = 0; // Lần gửi đột nhập gần nhất để chống spam.
+    static unsigned long lastTelegramSabotageAlertMs = 0;  // Lần gửi phá hoại gần nhất để chống spam.
+    static unsigned long lastTelegramSosAlertMs = 0;       // Lần gửi SOS gần nhất để chống spam.
+    static unsigned long lastTelegramManualCaptureMs = 0;  // Lần gửi ảnh thủ công gần nhất để chống spam.
 
-    unsigned long nowMs = millis();
-    String eventLower = eventType;
+    unsigned long nowMs = millis(); // Mốc hiện tại dùng so cooldown thông báo.
+    String eventLower = eventType;  // Bản loại sự kiện sẽ được chuyển về chữ thường.
     eventLower.toLowerCase();
 
     if (eventLower.indexOf("intrusion") >= 0) {
@@ -1366,6 +1441,7 @@ bool hasGoogleScriptConfig() {
     return true;
   }
 
+  /** Tạo nội dung cảnh báo chữ, gửi Telegram/Apps Script đúng luồng và cập nhật trạng thái thông báo. */
   void notifySecurityTextEvent(const String &eventType, const String &source, const String &message) {
     if (!isTelegramAllowed(eventType)) {
       notification_sent_status = "Đang chặn gửi lặp để tránh spam";
@@ -1377,27 +1453,30 @@ bool hasGoogleScriptConfig() {
     notification_event_type = eventType;
     notification_channel = "telegram";
 
-    String text = buildCommonCaption(eventType, source);
+    String text = buildCommonCaption(eventType, source); // Nội dung Telegram hoàn chỉnh đang được xây dựng.
     text += "\nNội dung: ";
     text += message;
 
     notification_sent_status = "Đang gửi thông báo";
-    bool sent = sendTelegramMessage(text);
+    bool sent = sendTelegramMessage(text); // Kết quả gửi dùng cập nhật trạng thái Dashboard.
     notification_sent_status = sent ? "Đã gửi thông báo" : "Gửi thông báo thất bại";
   }
 
   // ==================================================
-  // OUTPUT CONTROL
+  // ĐIỀU KHIỂN ĐẦU RA
   // ==================================================
 
+  /** Bật/tắt LED đỏ vật lý và lưu trạng thái thực tế vào led_red_on. */
   void setRedLedPhysical(bool on) {
     digitalWrite(PIN_LED_RED, on ? HIGH : LOW);
   }
 
+  /** Bật/tắt LED xanh vật lý và lưu trạng thái thực tế vào led_green_on. */
   void setGreenLedPhysical(bool on) {
     digitalWrite(PIN_LED_GREEN, on ? HIGH : LOW);
   }
 
+  /** Điều khiển còi theo loại chủ động/thụ động và lưu trạng thái vào buzzer_on. */
   void setBuzzerPhysical(bool on) {
     if (BUZZER_USE_TONE) {
       if (on) {
@@ -1410,8 +1489,9 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /** Suy ra trạng thái còi và LED từ các chốt SOS, phá hoại, đột nhập và trạng thái canh gác. */
   void applyAlarmOutputs() {
-    bool anyAlarmActive = sosActive || sabotage_alert || intrusion_alert || critical_security_compromise;
+    bool anyAlarmActive = sosActive || sabotage_alert || intrusion_alert || critical_security_compromise; // Có cảnh báo ưu tiên hay không.
 
     buzzer_on = anyAlarmActive;
     led_red_on = anyAlarmActive;
@@ -1421,8 +1501,8 @@ bool hasGoogleScriptConfig() {
     setBuzzerPhysical(buzzer_on);
 
     if (led_red_on) {
-      static unsigned long lastBlink = 0;
-      static bool redState = false;
+      static unsigned long lastBlink = 0; // Mốc đảo LED đỏ trước đó, được giữ giữa các vòng lặp.
+      static bool redState = false;       // Pha sáng/tắt hiện tại của LED đỏ nhấp nháy.
 
       if (millis() - lastBlink >= RED_BLINK_INTERVAL_MS) {
         lastBlink = millis();
@@ -1435,28 +1515,32 @@ bool hasGoogleScriptConfig() {
   }
 
   // ==================================================
-  // SENSOR READERS
+  // ĐỌC CẢM BIẾN
   // ==================================================
 
+  /** Đọc nhiều mẫu ADC LDR, lấy trung bình để giảm nhiễu và trả về giá trị đã lọc. */
   int readLdrValue() {
     return analogRead(PIN_LDR_AO);
   }
 
+  /** Tính độ chênh tuyệt đối giữa giá trị LDR hiện tại và lần trước, đồng thời cập nhật mẫu trước. */
   int calculateLdrDelta(int currentValue) {
     if (lastLdrValue < 0) {
       lastLdrValue = currentValue;
       return 0;
     }
 
-    int delta = abs(currentValue - lastLdrValue);
+    int delta = abs(currentValue - lastLdrValue); // Độ chênh tuyệt đối so với mẫu LDR trước.
     lastLdrValue = currentValue;
     return delta;
   }
 
+  /** Đọc chân PIR và trả về true khi cảm biến đang báo có chuyển động. */
   bool readPirDetected() {
     return digitalRead(PIN_PIR_OUT) == HIGH;
   }
 
+  /** Phát một xung trigger, đo echo và trả về khoảng cách cm; trả số âm nếu timeout/không hợp lệ. */
   float readUltrasonicDistanceCmOnce() {
     digitalWrite(PIN_US_TRIG, LOW);
     delayMicroseconds(2);
@@ -1465,7 +1549,7 @@ bool hasGoogleScriptConfig() {
     delayMicroseconds(10);
     digitalWrite(PIN_US_TRIG, LOW);
 
-    unsigned long duration = pulseIn(PIN_US_ECHO, HIGH, 30000UL);
+    unsigned long duration = pulseIn(PIN_US_ECHO, HIGH, 30000UL); // Độ rộng xung echo tính bằng micro giây.
 
     if (duration == 0) {
       return -1.0;
@@ -1474,15 +1558,16 @@ bool hasGoogleScriptConfig() {
     return duration * 0.0343 / 2.0;
   }
 
+  /** Đọc siêu âm nhiều lần và tổng hợp các mẫu hợp lệ để giảm sai số tức thời. */
   float readUltrasonicDistanceCm() {
-    float a = readUltrasonicDistanceCmOnce();
+    float a = readUltrasonicDistanceCmOnce(); // Mẫu khoảng cách thứ nhất.
     delay(20);
-    float b = readUltrasonicDistanceCmOnce();
+    float b = readUltrasonicDistanceCmOnce(); // Mẫu khoảng cách thứ hai.
     delay(20);
-    float c = readUltrasonicDistanceCmOnce();
+    float c = readUltrasonicDistanceCmOnce(); // Mẫu khoảng cách thứ ba.
 
-    float sum = 0.0;
-    int count = 0;
+    float sum = 0.0; // Tổng các mẫu khoảng cách hợp lệ.
+    int count = 0;   // Số mẫu hợp lệ được đưa vào tổng.
 
     if (a > 0) {
       sum += a;
@@ -1504,6 +1589,7 @@ bool hasGoogleScriptConfig() {
     return sum / count;
   }
 
+  /** So sánh giá trị LDR với ngưỡng đúng chiều phần cứng để xác định cảm biến bị che. */
   bool calculateLdrCovered(int value) {
     if (LDR_COVER_WHEN_HIGH) {
       return value >= LDR_COVERED_THRESHOLD_HIGH;
@@ -1511,6 +1597,7 @@ bool hasGoogleScriptConfig() {
     return value <= LDR_COVERED_THRESHOLD_LOW;
   }
 
+  /** Trả về true nếu giờ hợp lệ nằm trong khung thời gian được quy ước là ban đêm. */
   bool calculateNightMode(int hour) {
     if (hour < 0) {
       return false;
@@ -1518,8 +1605,9 @@ bool hasGoogleScriptConfig() {
     return hour >= 22 || hour < 6;
   }
 
+  /** Đọc tất cả cảm biến và RTC trong cùng chu kỳ rồi trả về một HardwareSnapshot nhất quán. */
   HardwareSnapshot readHardwareSnapshot() {
-    HardwareSnapshot s;
+    HardwareSnapshot s; // Snapshot đang được điền trước khi trả về.
 
     s.ldrValue = readLdrValue();
     s.ldrDelta = calculateLdrDelta(s.ldrValue);
@@ -1540,7 +1628,7 @@ bool hasGoogleScriptConfig() {
     s.timeText = getRtcTimeString();
 
     if (rtcOk) {
-      DateTime now = rtc.now();
+      DateTime now = rtc.now(); // Thời gian RTC tương ứng với snapshot cảm biến này.
       s.hour = now.hour();
       s.minute = now.minute();
     }
@@ -1550,6 +1638,7 @@ bool hasGoogleScriptConfig() {
     return s;
   }
 
+  /** Sao chép các trường snapshot sang biến runtime/Cloud để Dashboard và logic sau dùng chung dữ liệu. */
   void publishHardwareSnapshotToCloud(const HardwareSnapshot &s) {
     ldr_value = s.ldrValue;
     ldr_delta = s.ldrDelta;
@@ -1558,9 +1647,9 @@ bool hasGoogleScriptConfig() {
     object_near = s.objectNear;
     light_abnormal = s.lightAbnormal;
     ldr_covered = s.ldrCovered;
-    // The dashboard needs an accurate RTC clock, but raw sensor values above
-    // are runtime-only and are not Cloud properties in Version3.
-    static String lastPublishedTime = "";
+    // Dashboard cần đồng hồ RTC chính xác, nhưng các giá trị cảm biến thô bên trên
+    // chỉ dùng lúc chạy và không phải thuộc tính Cloud trong Version3.
+    static String lastPublishedTime = ""; // Thời gian RTC gần nhất đã công bố, tránh gán chuỗi lặp.
     if (s.timeText != lastPublishedTime) {
       current_time = s.timeText;
       lastPublishedTime = s.timeText;
@@ -1570,9 +1659,10 @@ bool hasGoogleScriptConfig() {
     device_tampered = s.ldrCovered || s.objectTooClose;
   }
 
+  /** Theo dõi Wi-Fi và chủ động yêu cầu kết nối lại theo backoff khi đường truyền bị mất. */
   void maintainWiFiConnection() {
-    static unsigned long lastAttemptAt = 0;
-    static uint8_t retryIndex = 0;
+    static unsigned long lastAttemptAt = 0; // Mốc thử nối Wi-Fi gần nhất.
+    static uint8_t retryIndex = 0;           // Chỉ số mức backoff hiện tại trong WIFI_RETRY_DELAYS_MS.
 
     if (WiFi.status() == WL_CONNECTED) {
       if (device_health_status == "Đang khôi phục kết nối WiFi") {
@@ -1582,7 +1672,7 @@ bool hasGoogleScriptConfig() {
       return;
     }
 
-    unsigned long delayMs = WIFI_RETRY_DELAYS_MS[retryIndex];
+    unsigned long delayMs = WIFI_RETRY_DELAYS_MS[retryIndex]; // Thời gian chờ trước lần nối lại kế tiếp.
     if (millis() - lastAttemptAt < delayMs) {
       return;
     }
@@ -1594,9 +1684,10 @@ bool hasGoogleScriptConfig() {
   }
 
   // ==================================================
-  // SECURITY LOGIC
+  // LOGIC AN NINH
   // ==================================================
 
+  /** Chuyển sensitivity_level thành ngưỡng điểm: mức nhạy càng cao thì ngưỡng càng thấp. */
   int getIntrusionThreshold() {
     if (sensitivity_level == 1) return 5;
     if (sensitivity_level == 2) return 4;
@@ -1604,6 +1695,7 @@ bool hasGoogleScriptConfig() {
     return 3;
   }
 
+  /** Ép các cấu hình từ Cloud về miền hợp lệ để tránh giờ/phút hoặc mức nhạy sai. */
   void clampCloudConfigValues() {
     if (sensitivity_level < 1 || sensitivity_level > 3) {
       sensitivity_level = 3;
@@ -1624,13 +1716,15 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /** Suy luận chuyển động có thể do vật nuôi từ tổ hợp PIR và khoảng cách trong snapshot. */
   bool calculatePetDetected(const HardwareSnapshot &s) {
-    // Demo-level filter only. This is not a confirmed pet classification.
+    // Đây chỉ là bộ lọc mức demo, không phải kết quả phân loại vật nuôi đã xác nhận.
     return s.objectNear && !s.pirDetected && !s.lightAbnormal;
   }
 
+  /** Cộng điểm các dấu hiệu PIR, khoảng cách, ánh sáng và thời gian để tạo điểm xâm nhập thô. */
   int calculateRawIntrusionScore(const HardwareSnapshot &s) {
-    int score = 0;
+    int score = 0; // Điểm thô được cộng dần từ từng dấu hiệu cảm biến.
 
     if (s.pirDetected) {
       score += 2;
@@ -1648,8 +1742,9 @@ bool hasGoogleScriptConfig() {
     return score;
   }
 
+  /** Tạo chuỗi giải thích những tín hiệu cảm biến nào làm phát sinh điểm/cảnh báo xâm nhập. */
   String buildIntrusionReason(const HardwareSnapshot &s) {
-    String reason = "";
+    String reason = ""; // Chuỗi giải thích được nối dần từ các điều kiện đang đúng.
 
     if (s.pirDetected) reason += "chuyển động PIR (+2); ";
     if (s.objectNear) reason += "vật thể ở gần (+2); ";
@@ -1663,10 +1758,12 @@ bool hasGoogleScriptConfig() {
     return reason;
   }
 
+  /** Đồng bộ system_armed từ alarm_enabled sau khi xét các trạng thái vận hành liên quan. */
   void updateSystemArmed() {
     system_armed = alarm_enabled;
   }
 
+  /** Chốt cảnh báo đột nhập mới, ghi bằng chứng điểm/lý do, yêu cầu ảnh và gửi thông báo. */
   void triggerIntrusionAlert(const HardwareSnapshot &s) {
     if (!intrusion_alert) {
       intrusion_alert = true;
@@ -1697,14 +1794,15 @@ bool hasGoogleScriptConfig() {
       notification_event_type = "intrusion_alert";
       notification_sent_status = "Đang chụp ảnh để gửi cảnh báo";
 
-      // Text notification is the fallback when photo delivery is disabled.
-      // It is sent once because this function only runs for a new alert.
+      // Thông báo chữ là phương án dự phòng khi gửi ảnh bị tắt.
+      // Nó chỉ gửi một lần vì hàm này chỉ chạy khi có cảnh báo mới.
       if (!(gemini_enabled && camera_enabled)) {
         notifySecurityTextEvent("intrusion_alert", "SENSOR", last_event);
       }
     }
   }
 
+  /** Chốt cảnh báo phá hoại, yêu cầu ảnh, thông báo và mở quy trình theo dõi heartbeat. */
   void triggerSabotageAlert() {
     if (!sabotage_alert) {
       sabotage_alert = true;
@@ -1718,8 +1816,8 @@ bool hasGoogleScriptConfig() {
       );
       threat_level = 4;
 
-      // A sabotage event has the same immediate local response as an intrusion:
-      // alarm outputs are applied on this loop and a security photo is sent once.
+      // Sự kiện phá hoại có phản ứng cục bộ tức thời giống đột nhập: đầu ra báo
+      // động được áp dụng ngay vòng lặp này và ảnh an ninh được gửi một lần.
       auto_capture_photo_request = true;
       aiPersonEmailSentForCurrentAlert = false;
       photo_status = "Đang chuẩn bị chụp ảnh phá hoại";
@@ -1727,9 +1825,8 @@ bool hasGoogleScriptConfig() {
       notification_event_type = "sabotage_alert";
       notification_sent_status = "Đang chụp ảnh để gửi cảnh báo phá hoại";
 
-      // When Gemini + photo delivery are enabled, the camera flow is the alert
-      // channel. Do not add a separate Telegram text before AI has evaluated
-      // the frame.
+      // Khi Gemini và gửi ảnh được bật, luồng camera chính là kênh cảnh báo.
+      // Không thêm tin nhắn Telegram riêng trước khi AI đánh giá frame.
       if (!(gemini_enabled && camera_enabled)) {
         notifySecurityTextEvent("sabotage_alert", "DEVICE", last_event);
       }
@@ -1737,6 +1834,7 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /** Kích hoạt SOS từ nguồn chỉ định, ưu tiên đầu ra báo động và khởi tạo luồng xác nhận email. */
   void triggerSosAlert(const String &source) {
     if (!sosActive) {
       incrementEventCounter();
@@ -1755,6 +1853,7 @@ bool hasGoogleScriptConfig() {
     callGoogleAppsScript("sos_alert", source, sos_message);
   }
 
+  /** Xóa mọi chốt cảnh báo/yêu cầu phụ, tắt đầu ra và báo Apps Script giải quyết sự kiện hiện tại. */
   void resetAllAlerts() {
     intrusion_alert = false;
     sabotage_alert = false;
@@ -1789,10 +1888,11 @@ bool hasGoogleScriptConfig() {
     setGreenLedPhysical(true);
   }
 
+  /** Theo dõi điều kiện che/phá cảm biến theo thời gian giữ và kích hoạt cảnh báo khi đủ lâu. */
   void updateSabotageLogic(const HardwareSnapshot &s) {
-    // Demo anti-sabotage requires both physical signs at the same time:
-    // an object is very close and the light sensor is covered.
-    bool sabotageCondition = s.ldrCovered && s.objectTooClose;
+    // Chống phá hoại bản demo yêu cầu đồng thời cả hai dấu hiệu vật lý:
+    // có vật ở rất gần và cảm biến ánh sáng bị che.
+    bool sabotageCondition = s.ldrCovered && s.objectTooClose; // Tổ hợp dấu hiệu che LDR và áp sát thiết bị.
 
     if (sabotageCondition) {
       if (sabotageConditionStartedAt == 0) {
@@ -1809,6 +1909,7 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /** Tính điểm xâm nhập, áp dụng ngưỡng/độ trễ và kích hoạt cảnh báo khi điều kiện duy trì. */
   void updateIntrusionLogic(const HardwareSnapshot &s) {
     pet_detected = calculatePetDetected(s);
 
@@ -1817,14 +1918,14 @@ bool hasGoogleScriptConfig() {
     // Simplified intrusion logic based strictly on requirements
     intrusion_score = rawIntrusionScore;
 
-    // Ignore transient PIR/ultrasonic readings immediately after power-up.
+    // Bỏ qua giá trị PIR/siêu âm thoáng qua ngay sau khi cấp nguồn.
     if (bootCompletedAtMs != 0 && millis() - bootCompletedAtMs < SENSOR_BOOT_GRACE_MS) {
       return;
     }
 
-    // Intrusion requires two physical signals together. Very close objects
-    // are reserved for the anti-sabotage flow and do not create intrusion.
-    bool intrusionCondition = system_armed &&
+    // Đột nhập cần đồng thời hai tín hiệu vật lý. Vật ở rất gần được dành riêng
+    // cho luồng chống phá hoại và không tạo cảnh báo đột nhập.
+    bool intrusionCondition = system_armed && // Điều kiện tổng hợp phải duy trì trước khi chốt đột nhập.
                               s.pirDetected &&
                               s.objectNear &&
                               !s.objectTooClose;
@@ -1841,9 +1942,10 @@ bool hasGoogleScriptConfig() {
       intrusionConditionStartedAt = 0;
     }
 
-    // Important: intrusion_alert is latched. It does not auto-clear when score drops.
+    // Quan trọng: intrusion_alert là chốt; điểm giảm không tự xóa cảnh báo.
   }
 
+  /** Chọn câu trạng thái ưu tiên cao nhất (SOS, nghiêm trọng, phá hoại, đột nhập, canh gác). */
   void updateAlarmStatus() {
     if (sosActive) {
       alarm_status = "SOS khẩn cấp đang hoạt động";
@@ -1873,6 +1975,7 @@ bool hasGoogleScriptConfig() {
   alarm_status = "Đang tắt bảo vệ";
   }
 
+  /** Tổng hợp RTC, camera, Wi-Fi và phá hoại thành mô tả sức khỏe thiết bị. */
   void updateDeviceHealthStatus() {
     if (critical_security_compromise) {
       device_health_status = "Sự cố nghiêm trọng sau phá hoại";
@@ -1893,6 +1996,7 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /** Tính mức đe dọa 0-4 dựa trên các chốt cảnh báo và điểm xâm nhập hiện tại. */
   void updateThreatLevel() {
     if (sosActive) {
       threat_level = 4;
@@ -1922,6 +2026,7 @@ bool hasGoogleScriptConfig() {
     threat_level = 0;
   }
 
+  /** Đồng bộ các cờ/trường tương thích mô tả yêu cầu thông báo và chụp ảnh hiện tại. */
   void updateNotificationRequestPlaceholders() {
     notification_channel = "telegram";
 
@@ -1952,6 +2057,7 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /** Điều phối toàn bộ logic an ninh của một snapshot rồi cập nhật đầu ra và trạng thái Cloud. */
   void updateSecurityLogic(const HardwareSnapshot &s) {
     clampCloudConfigValues();
     updateSystemArmed();
@@ -1966,16 +2072,17 @@ bool hasGoogleScriptConfig() {
   }
 
   // ==================================================
-  // SCHEDULE LOGIC
+  // LOGIC LỊCH TỰ ĐỘNG
   // ==================================================
 
+  /** So khớp RTC với lịch tự bật/tắt, đảm bảo mỗi mốc chỉ chạy một lần trong cùng phút. */
   void updateScheduleLogic() {
     if (!schedule_enabled || !rtcOk) {
       return;
     }
 
-    DateTime now = rtc.now();
-    String key = String(now.year()) + "-" + String(now.month()) + "-" + String(now.day()) + " " + String(now.hour()) + ":" + String(now.minute());
+    DateTime now = rtc.now(); // Thời gian hiện tại dùng so với lịch.
+    String key = String(now.year()) + "-" + String(now.month()) + "-" + String(now.day()) + " " + String(now.hour()) + ":" + String(now.minute()); // Khóa duy nhất của phút hiện tại.
 
     if (key == lastScheduleTriggerKey) {
       return;
@@ -1999,9 +2106,10 @@ bool hasGoogleScriptConfig() {
   }
 
   // ==================================================
-  // SERIAL DEBUG COMMANDS
+  // LỆNH DEBUG QUA SERIAL
   // ==================================================
 
+  /** In danh sách lệnh thử nghiệm hỗ trợ qua Serial Monitor. */
   void printHelp() {
     Serial.println();
     Serial.println("========== FINAL SERIAL COMMANDS ==========");
@@ -2016,6 +2124,7 @@ bool hasGoogleScriptConfig() {
     Serial.println("==============================================");
   }
 
+  /** Thực thi một ký tự lệnh Serial để thử bật báo động, SOS, reset hoặc chỉnh độ nhạy. */
   void handleSerialCommand(char command) {
     if (command == '\n' || command == '\r' || command == ' ') {
       return;
@@ -2044,12 +2153,14 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+  /** Đọc hết dữ liệu đang chờ trong bộ đệm Serial và chuyển từng ký tự cho hàm xử lý lệnh. */
   void handleSerialInput() {
     while (Serial.available() > 0) {
       handleSerialCommand(Serial.read());
     }
   }
 
+  /** In báo cáo chẩn đoán định kỳ gồm kết nối, cảm biến, cảnh báo và trạng thái gửi. */
   void printSecurityReport() {
     Serial.println();
     Serial.println("========== SERIAL MONITOR REPORT ==========");
@@ -2075,9 +2186,13 @@ bool hasGoogleScriptConfig() {
   }
 
   // ==================================================
-  // SETUP / LOOP
+  // KHỞI TẠO / VÒNG LẶP
   // ==================================================
 
+  /**
+   * Khởi tạo Serial, GPIO, RTC, giá trị runtime, camera, thuộc tính Cloud và kết nối mạng.
+   * Arduino gọi đúng một lần sau khi bo mạch khởi động hoặc reset.
+   */
   void setup() {
     Serial.begin(115200);
     delay(1500);
@@ -2100,8 +2215,8 @@ bool hasGoogleScriptConfig() {
     setGreenLedPhysical(true);
     setBuzzerPhysical(false);
 
-    // These are runtime alarm latches. They must start clear after a reboot;
-    // the physical sensors are evaluated again after the boot grace period.
+    // Đây là các chốt cảnh báo runtime. Chúng phải bắt đầu ở trạng thái xóa sau
+    // reset; cảm biến vật lý sẽ được đánh giá lại sau thời gian ổn định khởi động.
     intrusion_alert = false;
     sabotage_alert = false;
     critical_security_compromise = false;
@@ -2129,8 +2244,8 @@ bool hasGoogleScriptConfig() {
     Serial.println("[RTC] DS1307 NOT FOUND.");
   }
 
-    // Cloud default values. The IoT Cloud may overwrite READWRITE values
-    // with the latest dashboard values after connection.
+    // Giá trị Cloud mặc định. Sau khi kết nối, IoT Cloud có thể ghi đè thuộc tính
+    // READWRITE bằng giá trị mới nhất trên Dashboard.
     alarm_enabled = true;
     system_armed = false;
     reset_alarm = false;
@@ -2168,8 +2283,8 @@ bool hasGoogleScriptConfig() {
     device_health_status = "Thiết bị hoạt động bình thường";
     critical_security_compromise = false;
 
-    // SOS authority escalation state. READWRITE values may be overwritten by Arduino Cloud.
-    // READWRITE values may be overwritten by Arduino Cloud after connection.
+    // Trạng thái nâng cấp SOS đến cơ quan. Arduino Cloud có thể ghi đè giá trị
+    // READWRITE sau khi kết nối.
     home_address_configured = false;
     sos_authority_note = "";
     setAuthorityStatus("IDLE");
@@ -2178,11 +2293,11 @@ bool hasGoogleScriptConfig() {
     cooldown_active = false;
 
     // =======================
-    // CAMERA INIT
+    // KHỞI TẠO CAMERA
     // =======================
-    // IMPORTANT:
-    // cameraReady must be assigned here. If setup() does not call initCamera(),
-    // manual_capture_photo will always fail with CAMERA_NOT_READY even if the camera wiring is OK.
+    // QUAN TRỌNG:
+    // Phải gán cameraReady tại đây. Nếu setup() không gọi initCamera(),
+    // manual_capture_photo luôn lỗi CAMERA_NOT_READY dù đấu dây camera đúng.
     cameraReady = initCamera();
 
     if (cameraReady) {
@@ -2202,6 +2317,10 @@ bool hasGoogleScriptConfig() {
     Serial.println("[INFO] Final build started. Watch Arduino Cloud dashboard, camera status, Telegram, and Apps Script status.");
   }
 
+  /**
+   * Vòng lặp chính: duy trì Cloud/Wi-Fi/heartbeat, đọc cảm biến theo chu kỳ và in báo cáo.
+   * Các mốc millis() giúp không chặn luồng bằng delay dài.
+   */
   void loop() {
     ArduinoCloud.update();
     handleSerialInput();
@@ -2209,18 +2328,18 @@ bool hasGoogleScriptConfig() {
     processGoogleScriptHeartbeatMonitorControl();
     processGoogleAppsScriptHeartbeat();
 
-    static unsigned long lastSensorUpdate = 0;
+    static unsigned long lastSensorUpdate = 0; // Mốc chu kỳ đọc cảm biến gần nhất.
     if (millis() - lastSensorUpdate >= SENSOR_UPDATE_INTERVAL_MS) {
       lastSensorUpdate = millis();
 
-      HardwareSnapshot snapshot = readHardwareSnapshot();
+      HardwareSnapshot snapshot = readHardwareSnapshot(); // Bộ dữ liệu cảm biến nhất quán của chu kỳ hiện tại.
       publishHardwareSnapshotToCloud(snapshot);
       updateScheduleLogic();
       updateSecurityLogic(snapshot);
       processCameraRequests();
     }
 
-    static unsigned long lastReport = 0;
+    static unsigned long lastReport = 0; // Mốc lần in báo cáo Serial gần nhất.
     if (millis() - lastReport >= SERIAL_REPORT_INTERVAL_MS) {
       lastReport = millis();
       printSecurityReport();
@@ -2228,9 +2347,10 @@ bool hasGoogleScriptConfig() {
   }
 
   // ==================================================
-  // CLOUD CALLBACKS
+  // CALLBACK TỪ CLOUD
   // ==================================================
 
+  /** Callback ghi nhận khi người dùng thay đổi alarm_enabled trên Dashboard. */
   void onAlarmEnabledChange() {
     setLastEvent(
       "cloud_alarm_enabled",
@@ -2240,6 +2360,7 @@ bool hasGoogleScriptConfig() {
     );
   }
 
+  /** Callback xử lý nút reset_alarm; reset xong tự trả nút về false. */
   void onResetAlarmChange() {
     if (reset_alarm) {
       resetAllAlerts();
@@ -2247,6 +2368,7 @@ bool hasGoogleScriptConfig() {
     }
   }
 
+/** Callback kích hoạt SOS trẻ em khi nút sos_child được bật rồi tự nhả nút. */
 void onSosChildChange() {
   if (sos_child) {
     triggerSosAlert("CHILD");
@@ -2254,6 +2376,7 @@ void onSosChildChange() {
   }
 }
 
+/** Callback kích hoạt SOS người lớn khi nút sos_adult được bật rồi tự nhả nút. */
 void onSosAdultChange() {
   if (sos_adult) {
     triggerSosAlert("PARENT_ADULT");
@@ -2261,11 +2384,13 @@ void onSosAdultChange() {
   }
 }
 
+  /** Callback chuẩn hóa mức nhạy mới và ghi sự kiện thay đổi cấu hình. */
   void onSensitivityLevelChange() {
     clampCloudConfigValues();
     setLastEvent("cloud_sensitivity", "Đã cập nhật mức nhạy phát hiện đột nhập: " + String(sensitivity_level) + ".");
   }
 
+/** Callback chuyển nút chụp Cloud thành yêu cầu nội bộ để loop() xử lý an toàn. */
 void onManualCapturePhotoChange() {
   if (manual_capture_photo) {
     manualCapturePending = true;
@@ -2275,6 +2400,7 @@ void onManualCapturePhotoChange() {
   }
 }
 
+  /** Callback bật/tắt lịch, chuẩn hóa thời gian và ghi thông báo lịch tương ứng. */
   void onScheduleEnabledChange() {
     clampCloudConfigValues();
     if (schedule_enabled) {
@@ -2293,40 +2419,48 @@ void onManualCapturePhotoChange() {
     }
   }
 
+  /** Callback chuẩn hóa giờ tự bật bảo vệ sau khi Dashboard thay đổi. */
   void onAutoArmHourChange() {
     clampCloudConfigValues();
   }
 
+  /** Callback chuẩn hóa phút tự bật bảo vệ sau khi Dashboard thay đổi. */
   void onAutoArmMinuteChange() {
     clampCloudConfigValues();
   }
 
+  /** Callback chuẩn hóa giờ tự tắt bảo vệ sau khi Dashboard thay đổi. */
   void onAutoDisarmHourChange() {
     clampCloudConfigValues();
   }
 
+  /** Callback chuẩn hóa phút tự tắt bảo vệ sau khi Dashboard thay đổi. */
   void onAutoDisarmMinuteChange() {
     clampCloudConfigValues();
   }
 
+/** Callback ghi nhận việc bật/tắt tự động chụp ảnh khi có cảnh báo. */
 void onAutoPhotoOnAlertChange() {
   setLastEvent("cloud_auto_photo", auto_photo_on_alert
     ? "Đã bật tự chụp ảnh khi có sự kiện cảnh báo."
     : "Đã tắt tự chụp ảnh khi có sự kiện cảnh báo.");
 }
 
+/** Callback ghi nhận quyền bật/tắt camera từ Dashboard. */
 void onCameraEnabledChange() {
   setLastEvent("cloud_camera", camera_enabled
     ? "Đã bật camera thành công. Hệ thống có thể chụp ảnh theo yêu cầu hoặc khi xảy ra cảnh báo."
     : "Đã tắt camera. Hệ thống sẽ không chụp hoặc gửi ảnh mới.");
 }
 
+/** Callback ghi nhận quyền bật/tắt phân tích ảnh bằng Gemini. */
 void onGeminiEnabledChange() {
   setLastEvent("cloud_gemini", gemini_enabled
     ? "Đã bật nhận diện người qua ảnh bằng AI. AI chỉ phân tích khi camera đang bật."
     : "Đã tắt nhận diện người qua ảnh bằng AI.");
 }
 
+/** Callback xếp lệnh đồng bộ heartbeat-monitor và ghi trạng thái Apps Script mới. */
 void onGoogleScriptEnabledChange() {
   requestGoogleScriptHeartbeatMonitorState(google_script_enabled && heartbeat_enabled);
   setLastEvent("cloud_apps_script", google_script_enabled
@@ -2334,6 +2468,7 @@ void onGoogleScriptEnabledChange() {
     : "Đã tắt gửi Gmail qua Google Apps Script.");
 }
 
+/** Callback xếp lệnh đồng bộ và ghi nhận việc bật/tắt heartbeat. */
 void onHeartbeatEnabledChange() {
   requestGoogleScriptHeartbeatMonitorState(google_script_enabled && heartbeat_enabled);
   setLastEvent("cloud_heartbeat", heartbeat_enabled
@@ -2341,14 +2476,16 @@ void onHeartbeatEnabledChange() {
     : "Đã tắt tín hiệu theo dõi thiết bị (heartbeat).");
 }
 
+/** Callback ghi nhận việc bật/tắt kênh Telegram. */
 void onTelegramEnabledChange() {
   setLastEvent("cloud_telegram", telegram_enabled
     ? "Đã bật gửi thông báo Telegram."
     : "Đã tắt gửi thông báo Telegram.");
 }
 
+  /** Callback ghi nhận độ dài ghi chú SOS nhưng không in nội dung nhạy cảm ra log. */
   void onSosAuthorityNoteChange() {
-    // Do not print the full note to Serial/log because it may contain sensitive emergency context.
+    // Không in toàn bộ ghi chú ra Serial/log vì có thể chứa nội dung khẩn cấp nhạy cảm.
     setLastEvent(
       "cloud_sos_note",
       "sos_authority_note updated, length=" + String(sos_authority_note.length()) +
